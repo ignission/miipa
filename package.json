@@ -20,6 +20,8 @@
 		"@mastra/observability": "^1.0.0",
 		"@park-ui/panda-preset": "^0.43.1",
 		"better-sqlite3": "^12.6.2",
+		"googleapis": "^170.1.0",
+		"ical.js": "^2.2.1",
 		"keytar": "^7.9.0",
 		"mastra": "^1.0.1",
 		"next": "16.1.4",

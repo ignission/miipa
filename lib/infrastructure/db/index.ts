@@ -100,3 +100,9 @@ export {
 	/** DatabaseErrorかどうかを判定 */
 	isDatabaseError,
 } from "./types";
+
+// ============================================================
+// リポジトリ
+// ============================================================
+
+export { SqliteEventRepository } from "./event-repository";

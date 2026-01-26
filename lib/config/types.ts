@@ -40,6 +40,11 @@
  */
 
 import { z } from "zod";
+import { type CalendarId, createCalendarId } from "@/lib/domain/shared/types";
+
+// ドメイン型の再エクスポート（カレンダー設定で使用）
+export type { CalendarId };
+export { createCalendarId };
 
 // ============================================================
 // LLMプロバイダ設定
@@ -124,21 +129,29 @@ export type CalendarType = "google" | "ical";
 /**
  * カレンダー設定のZodスキーマ
  *
+ * lib/domain/calendar/types.ts の CalendarConfig インターフェースと
+ * 整合性を保つように設計されています。
+ *
  * @remarks
+ * - `id`: CalendarId（ブランド型）として使用される一意識別子
  * - `type`: カレンダーの種類（google/ical）
- * - `id`: 一意識別子（UUID形式）
  * - `name`: ユーザー向け表示名
  * - `enabled`: 有効/無効フラグ
- * - `color`: UI表示用カラーコード
- * - `url`: iCal URLまたはGoogle Calendar ID
- * - `googleAccountId`: Googleアカウント識別子
+ * - `color`: UI表示用カラーコード（任意）
+ * - `googleAccountEmail`: Googleアカウントのメールアドレス（Google固有）
+ * - `googleCalendarId`: GoogleカレンダーのID（Google固有）
+ * - `icalUrl`: iCalのURL（iCal固有）
  */
 export const CalendarConfigSchema = z.object({
+	/** カレンダーの一意識別子（CalendarIdとして使用） */
+	id: z
+		.string()
+		.min(1)
+		.describe("カレンダーを一意に識別するID")
+		.transform((val) => createCalendarId(val)),
+
 	/** カレンダーの種類 */
 	type: z.enum(["google", "ical"]).describe("カレンダーソースの種類"),
-
-	/** カレンダーの一意識別子 */
-	id: z.string().uuid().describe("カレンダーのUUID"),
 
 	/** カレンダーの表示名 */
 	name: z.string().min(1).describe("ユーザーに表示されるカレンダー名"),
@@ -146,21 +159,28 @@ export const CalendarConfigSchema = z.object({
 	/** カレンダーの有効/無効 */
 	enabled: z.boolean().default(true).describe("カレンダーが有効かどうか"),
 
-	/** 表示用カラーコード */
+	/** 表示用カラーコード（任意） */
 	color: z
 		.string()
 		.regex(/^#[0-9A-Fa-f]{6}$/)
 		.optional()
 		.describe("HEX形式のカラーコード（例: #FF5733）"),
 
-	/** iCalのURLまたはGoogle CalendarのリソースID */
-	url: z.string().url().optional().describe("iCal URLまたはGoogle Calendar ID"),
+	/** Googleアカウントのメールアドレス（type='google'の場合） */
+	googleAccountEmail: z
+		.string()
+		.email()
+		.optional()
+		.describe("Googleアカウントのメールアドレス"),
 
-	/** Googleアカウント識別子（type='google'の場合） */
-	googleAccountId: z
+	/** GoogleカレンダーのID（type='google'の場合） */
+	googleCalendarId: z
 		.string()
 		.optional()
-		.describe("連携するGoogleアカウントのID"),
+		.describe("GoogleカレンダーのID（'primary'または具体的なカレンダーID）"),
+
+	/** iCalのURL（type='ical'の場合） */
+	icalUrl: z.string().url().optional().describe("iCal形式のカレンダーURL"),
 });
 
 /**
@@ -169,26 +189,39 @@ export const CalendarConfigSchema = z.object({
  * 個々のカレンダーソースの設定を定義します。
  * Google CalendarとiCal形式のURLに対応しています。
  *
+ * lib/domain/calendar/types.ts の CalendarConfig インターフェースと
+ * 同等の構造を持ちますが、こちらはZodスキーマから推論された型です。
+ *
+ * @property id - CalendarId（ブランド型）として使用される一意識別子
+ * @property type - カレンダーの種類（google | ical）
+ * @property name - カレンダーの表示名
+ * @property enabled - カレンダーが有効かどうか
+ * @property color - カレンダーの表示色（任意）
+ * @property googleAccountEmail - Googleアカウントのメールアドレス（Google固有）
+ * @property googleCalendarId - GoogleカレンダーのID（Google固有）
+ * @property icalUrl - iCalのURL（iCal固有）
+ *
  * @example
  * ```typescript
  * // Google Calendarの設定
  * const googleCalendar: CalendarConfig = {
+ *   id: createCalendarId('google-work'),
  *   type: 'google',
- *   id: '550e8400-e29b-41d4-a716-446655440000',
- *   name: '仕事',
+ *   name: '仕事用カレンダー',
  *   enabled: true,
  *   color: '#4285F4',
- *   googleAccountId: 'user@gmail.com',
+ *   googleAccountEmail: 'user@gmail.com',
+ *   googleCalendarId: 'primary',
  * };
  *
  * // iCalの設定
  * const icalCalendar: CalendarConfig = {
+ *   id: createCalendarId('ical-holidays'),
  *   type: 'ical',
- *   id: '550e8400-e29b-41d4-a716-446655440001',
- *   name: '祝日',
+ *   name: '日本の祝日',
  *   enabled: true,
  *   color: '#EA4335',
- *   url: 'https://example.com/calendar.ics',
+ *   icalUrl: 'https://example.com/calendar.ics',
  * };
  * ```
  */

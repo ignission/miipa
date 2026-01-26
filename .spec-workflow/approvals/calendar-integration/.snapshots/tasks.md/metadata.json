@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/calendar-integration/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-26T04:34:51.299Z",
+      "trigger": "initial",
+      "approvalId": "approval_1769402091287_si9lvehaj",
+      "approvalTitle": "calendar-integration Tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-01-26T04:35:57.456Z",
+      "trigger": "approved",
+      "approvalId": "approval_1769402091287_si9lvehaj",
+      "approvalTitle": "calendar-integration Tasks"
+    }
+  ]
+}

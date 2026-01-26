@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/calendar-integration/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-26T04:32:14.232Z",
+      "trigger": "initial",
+      "approvalId": "approval_1769401934201_tdw62r11c",
+      "approvalTitle": "calendar-integration Design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-01-26T04:33:19.930Z",
+      "trigger": "approved",
+      "approvalId": "approval_1769401934201_tdw62r11c",
+      "approvalTitle": "calendar-integration Design"
+    }
+  ]
+}

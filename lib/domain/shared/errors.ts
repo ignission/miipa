@@ -527,6 +527,168 @@ export function isFileSystemError(error: AppError): error is FileSystemError {
 	);
 }
 
+// ============================================================
+// データベースエラー
+// ============================================================
+
+/**
+ * データベースエラーコードの型定義
+ */
+export type DbErrorCode =
+	| "DB_CONNECTION_ERROR"
+	| "DB_QUERY_ERROR"
+	| "DB_WRITE_ERROR"
+	| "DB_NOT_FOUND";
+
+/**
+ * データベース操作エラー
+ *
+ * SQLiteデータベースの操作に関するエラーを表現します。
+ *
+ * @example
+ * ```typescript
+ * const error: DbError = {
+ *   code: 'DB_QUERY_ERROR',
+ *   message: 'クエリの実行に失敗しました',
+ *   query: 'SELECT * FROM events WHERE ...',
+ * };
+ * ```
+ */
+export interface DbError extends AppError {
+	/** データベースエラーコード */
+	readonly code: DbErrorCode;
+	/** 失敗したクエリ（デバッグ用、省略可） */
+	readonly query?: string;
+}
+
+/**
+ * データベース接続エラーを生成
+ *
+ * @param message - エラーメッセージ
+ * @param cause - エラーの原因
+ * @returns DbError
+ *
+ * @example
+ * ```typescript
+ * return err(dbConnectionError('データベースに接続できません'));
+ * ```
+ */
+export function dbConnectionError(message?: string, cause?: unknown): DbError {
+	return {
+		code: "DB_CONNECTION_ERROR",
+		message: message ?? "データベースに接続できません",
+		cause,
+	} as const;
+}
+
+/**
+ * データベースクエリエラーを生成
+ *
+ * @param message - エラーメッセージ
+ * @param query - 失敗したクエリ
+ * @param cause - エラーの原因
+ * @returns DbError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   db.prepare(sql).all();
+ * } catch (e) {
+ *   return err(dbQueryError('クエリの実行に失敗しました', sql, e));
+ * }
+ * ```
+ */
+export function dbQueryError(
+	message?: string,
+	query?: string,
+	cause?: unknown,
+): DbError {
+	return {
+		code: "DB_QUERY_ERROR",
+		message: message ?? "クエリの実行に失敗しました",
+		query,
+		cause,
+	} as const;
+}
+
+/**
+ * データベース書き込みエラーを生成
+ *
+ * @param message - エラーメッセージ
+ * @param query - 失敗したクエリ
+ * @param cause - エラーの原因
+ * @returns DbError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   db.prepare(sql).run(params);
+ * } catch (e) {
+ *   return err(dbWriteError('データの保存に失敗しました', sql, e));
+ * }
+ * ```
+ */
+export function dbWriteError(
+	message?: string,
+	query?: string,
+	cause?: unknown,
+): DbError {
+	return {
+		code: "DB_WRITE_ERROR",
+		message: message ?? "データの保存に失敗しました",
+		query,
+		cause,
+	} as const;
+}
+
+/**
+ * データベースレコード未検出エラーを生成
+ *
+ * @param message - エラーメッセージ
+ * @param cause - エラーの原因
+ * @returns DbError
+ *
+ * @example
+ * ```typescript
+ * const row = db.prepare(sql).get(id);
+ * if (!row) {
+ *   return err(dbNotFound(`ID: ${id} のレコードが見つかりません`));
+ * }
+ * ```
+ */
+export function dbNotFound(message?: string, cause?: unknown): DbError {
+	return {
+		code: "DB_NOT_FOUND",
+		message: message ?? "レコードが見つかりません",
+		cause,
+	} as const;
+}
+
+/**
+ * DbErrorかどうかを判定
+ *
+ * @param error - 判定対象のエラー
+ * @returns DbErrorの場合true
+ *
+ * @example
+ * ```typescript
+ * if (isDbError(error)) {
+ *   // error は DbError 型に絞り込まれる
+ *   if (error.query) {
+ *     console.error(`クエリ: ${error.query}`);
+ *   }
+ * }
+ * ```
+ */
+export function isDbError(error: AppError): error is DbError {
+	return (
+		error.code === "DB_CONNECTION_ERROR" ||
+		error.code === "DB_QUERY_ERROR" ||
+		error.code === "DB_WRITE_ERROR" ||
+		error.code === "DB_NOT_FOUND"
+	);
+}
+
 /**
  * KeychainErrorかどうかを判定
  *
@@ -593,6 +755,11 @@ export function toSerializable(error: AppError): Record<string, unknown> {
 	// KeychainError の service を含める
 	if ("service" in error) {
 		result.service = (error as KeychainError).service;
+	}
+
+	// DbError の query を含める
+	if ("query" in error) {
+		result.query = (error as DbError).query;
 	}
 
 	return result;
