@@ -22,7 +22,7 @@ import { css } from "@/styled-system/css";
 import { ProviderCard } from "./ProviderCard";
 
 /** 表示するプロバイダの順序 */
-const PROVIDERS: LLMProvider[] = ["claude", "openai", "ollama"];
+const PROVIDERS: LLMProvider[] = ["claude", "gemini", "openai", "ollama"];
 
 /**
  * ProviderSelectorコンポーネントのProps
@@ -61,7 +61,7 @@ export function ProviderSelector({
 		<div
 			className={css({
 				display: "grid",
-				gridTemplateColumns: { base: "1fr", md: "repeat(3, 1fr)" },
+				gridTemplateColumns: { base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
 				gap: "4",
 			})}
 			role="radiogroup"

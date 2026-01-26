@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.23",
+		"@ai-sdk/google": "^1.2.3",
 		"@ark-ui/react": "^5.30.0",
 		"@mastra/core": "^1.0.4",
 		"@mastra/libsql": "^1.0.0",

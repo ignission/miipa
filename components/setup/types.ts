@@ -63,6 +63,15 @@ export const PROVIDER_INFO: Record<LLMProvider, ProviderInfo> = {
 		requiresApiKey: false,
 		iconPath: "/icons/ollama.svg",
 	},
+	gemini: {
+		name: "Gemini (Google)",
+		description: "Google社の最新AIモデル。高速で多機能。",
+		isRecommended: false,
+		requiresApiKey: true,
+		apiKeyPattern: /^AIza/,
+		apiKeyHelpUrl: "https://aistudio.google.com/app/apikey",
+		iconPath: "/icons/gemini.svg",
+	},
 };
 
 /**

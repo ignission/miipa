@@ -57,8 +57,9 @@ export { createCalendarId };
  * - `claude`: Anthropic Claude API
  * - `openai`: OpenAI API
  * - `ollama`: ローカルOllama
+ * - `gemini`: Google AI (Gemini) API
  */
-export type LLMProvider = "claude" | "openai" | "ollama";
+export type LLMProvider = "claude" | "openai" | "ollama" | "gemini";
 
 /**
  * LLMプロバイダ設定のZodスキーマ
@@ -72,7 +73,7 @@ export type LLMProvider = "claude" | "openai" | "ollama";
 export const LLMConfigSchema = z.object({
 	/** 使用するLLMプロバイダ */
 	provider: z
-		.enum(["claude", "openai", "ollama"])
+		.enum(["claude", "openai", "ollama", "gemini"])
 		.default("claude")
 		.describe("LLMプロバイダの識別子"),
 
@@ -407,7 +408,12 @@ export const DEFAULT_CONFIG: Readonly<AppConfig> = Object.freeze(
  * ```
  */
 export function isLLMProvider(value: unknown): value is LLMProvider {
-	return value === "claude" || value === "openai" || value === "ollama";
+	return (
+		value === "claude" ||
+		value === "openai" ||
+		value === "ollama" ||
+		value === "gemini"
+	);
 }
 
 /**

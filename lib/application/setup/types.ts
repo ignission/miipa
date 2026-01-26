@@ -46,11 +46,13 @@ export type ProviderSecretKeyMap = {
  * - claude: anthropic-api-key
  * - openai: openai-api-key
  * - ollama: ollama-api-key
+ * - gemini: gemini-api-key
  */
 export const PROVIDER_SECRET_KEY_MAP: ProviderSecretKeyMap = {
 	claude: "anthropic-api-key",
 	openai: "openai-api-key",
 	ollama: "ollama-api-key",
+	gemini: "gemini-api-key",
 } as const;
 
 /**
