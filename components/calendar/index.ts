@@ -1,0 +1,24 @@
+/**
+ * カレンダーコンポーネント バレルエクスポート
+ *
+ * カレンダー管理UIで使用するコンポーネントをまとめてエクスポートします。
+ *
+ * @module components/calendar
+ *
+ * @example
+ * ```tsx
+ * import {
+ *   AddGoogleCalendarButton,
+ *   AddICalDialog,
+ *   DeleteCalendarDialog,
+ * } from '@/components/calendar';
+ * ```
+ */
+
+export { AddGoogleCalendarButton } from "./AddGoogleCalendarButton";
+export { AddICalDialog } from "./AddICalDialog";
+export { CalendarCard } from "./CalendarCard";
+export { CalendarList } from "./CalendarList";
+export { CalendarsClientWrapper } from "./CalendarsClientWrapper";
+export { DeleteCalendarDialog } from "./DeleteCalendarDialog";
+export { SyncStatusBadge } from "./SyncStatusBadge";

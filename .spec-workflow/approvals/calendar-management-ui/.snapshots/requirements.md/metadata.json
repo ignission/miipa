@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/calendar-management-ui/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-26T05:54:46.251Z",
+      "trigger": "initial",
+      "approvalId": "approval_1769406886228_hazv64nyc",
+      "approvalTitle": "calendar-management-ui Requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-01-26T05:55:57.385Z",
+      "trigger": "approved",
+      "approvalId": "approval_1769406886228_hazv64nyc",
+      "approvalTitle": "calendar-management-ui Requirements"
+    }
+  ]
+}
