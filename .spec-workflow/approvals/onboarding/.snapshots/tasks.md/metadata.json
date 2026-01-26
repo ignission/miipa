@@ -1,0 +1,22 @@
+{
+	"filePath": ".spec-workflow/specs/onboarding/tasks.md",
+	"currentVersion": 2,
+	"snapshots": [
+		{
+			"version": 1,
+			"filename": "snapshot-001.json",
+			"timestamp": "2026-01-26T02:53:19.863Z",
+			"trigger": "initial",
+			"approvalId": "approval_1769395999858_7ln29v9d4",
+			"approvalTitle": "Onboarding Tasks文書"
+		},
+		{
+			"version": 2,
+			"filename": "snapshot-002.json",
+			"timestamp": "2026-01-26T02:54:12.461Z",
+			"trigger": "approved",
+			"approvalId": "approval_1769395999858_7ln29v9d4",
+			"approvalTitle": "Onboarding Tasks文書"
+		}
+	]
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- OpenAIスタイルの六角形アイコン -->
+  <path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z" fill="none" stroke="#00A67E" stroke-width="2"/>
+  <circle cx="16" cy="16" r="6" fill="#00A67E"/>
+</svg>

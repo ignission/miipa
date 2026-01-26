@@ -1,14 +1,14 @@
 {
-  "mcpServers": {
-    "spec-workflow": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@pimzino/spec-workflow-mcp@latest",
-        "/Users/01045822/dev/github.com/ignission/soloday"
-      ],
-      "env": {}
-    }
-  }
+	"mcpServers": {
+		"spec-workflow": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@pimzino/spec-workflow-mcp@latest",
+				"/Users/01045822/dev/github.com/ignission/soloday"
+			],
+			"env": {}
+		}
+	}
 }

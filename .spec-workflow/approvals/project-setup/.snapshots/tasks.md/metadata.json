@@ -1,0 +1,30 @@
+{
+	"filePath": ".spec-workflow/specs/project-setup/tasks.md",
+	"currentVersion": 3,
+	"snapshots": [
+		{
+			"version": 1,
+			"filename": "snapshot-001.json",
+			"timestamp": "2026-01-25T23:55:14.887Z",
+			"trigger": "initial",
+			"approvalId": "approval_1769385314875_rzamebibg",
+			"approvalTitle": "project-setup Tasks Document"
+		},
+		{
+			"version": 2,
+			"filename": "snapshot-002.json",
+			"timestamp": "2026-01-25T23:58:12.611Z",
+			"trigger": "revision_requested",
+			"approvalId": "approval_1769385314875_rzamebibg",
+			"approvalTitle": "project-setup Tasks Document"
+		},
+		{
+			"version": 3,
+			"filename": "snapshot-003.json",
+			"timestamp": "2026-01-26T00:08:46.602Z",
+			"trigger": "approved",
+			"approvalId": "approval_1769385683359_7njpfk5zo",
+			"approvalTitle": "project-setup Tasks Document (公式CLI対応版)"
+		}
+	]
+}
