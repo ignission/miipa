@@ -20,6 +20,7 @@
  */
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { LLMProvider } from "@/lib/config/types";
 import { css } from "@/styled-system/css";
@@ -127,25 +128,61 @@ export function SetupComplete({
 				<span className={css({ fontWeight: "medium" })}>{info.name}</span>
 			</div>
 
-			{/* 開始ボタン */}
-			<button
-				type="button"
-				onClick={onStart}
+			{/* ボタングループ */}
+			<div
 				className={css({
-					px: "8",
-					py: "3",
-					bg: "accent.default",
-					color: "accent.fg",
-					borderRadius: "lg",
-					fontWeight: "semibold",
-					fontSize: "lg",
-					cursor: "pointer",
-					transition: "all 0.2s",
-					_hover: { bg: "accent.emphasized", transform: "scale(1.02)" },
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					gap: "3",
 				})}
 			>
-				SoloDayを始める
-			</button>
+				{/* 開始ボタン */}
+				<button
+					type="button"
+					onClick={onStart}
+					className={css({
+						px: "8",
+						py: "3",
+						bg: "accent.default",
+						color: "accent.fg",
+						borderRadius: "lg",
+						fontWeight: "semibold",
+						fontSize: "lg",
+						cursor: "pointer",
+						transition: "all 0.2s",
+						_hover: { bg: "accent.emphasized", transform: "scale(1.02)" },
+					})}
+				>
+					SoloDayを始める
+				</button>
+
+				{/* カレンダー設定ボタン */}
+				<Link
+					href="/settings/calendars"
+					className={css({
+						px: "6",
+						py: "2",
+						bg: "transparent",
+						color: "fg.muted",
+						border: "1px solid",
+						borderColor: "border.default",
+						borderRadius: "lg",
+						fontWeight: "medium",
+						fontSize: "sm",
+						cursor: "pointer",
+						transition: "all 0.2s",
+						textDecoration: "none",
+						_hover: {
+							bg: "bg.muted",
+							color: "fg.default",
+							borderColor: "border.emphasized",
+						},
+					})}
+				>
+					カレンダーを設定
+				</Link>
+			</div>
 
 			{/* カウントダウン */}
 			<p className={css({ color: "fg.muted", fontSize: "sm" })}>

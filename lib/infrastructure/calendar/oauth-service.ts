@@ -46,14 +46,17 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 /** Google OAuth クライアントシークレット（環境変数から取得） */
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
-/** OAuth コールバック URI（ローカルホスト固定） */
-const REDIRECT_URI = "http://localhost:3000/api/auth/google/callback";
+/** OAuth コールバック URI（環境変数またはデフォルト） */
+const REDIRECT_URI = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/auth/google/callback`;
 
 /**
  * Google Calendar API スコープ
  * 読み取り専用アクセスのみを要求（セキュリティ考慮）
  */
-const SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"] as const;
+const SCOPES = [
+  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/userinfo.email",
+] as const;
 
 // ============================================================
 // 型定義

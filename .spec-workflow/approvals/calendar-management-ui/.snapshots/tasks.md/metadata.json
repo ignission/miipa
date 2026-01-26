@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/calendar-management-ui/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-26T06:31:59.122Z",
+      "trigger": "initial",
+      "approvalId": "approval_1769409119096_b5w90376j",
+      "approvalTitle": "calendar-management-ui Tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-01-26T06:34:00.662Z",
+      "trigger": "approved",
+      "approvalId": "approval_1769409119096_b5w90376j",
+      "approvalTitle": "calendar-management-ui Tasks"
+    }
+  ]
+}
