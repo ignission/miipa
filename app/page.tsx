@@ -16,44 +16,59 @@ export default function HomePage() {
 				minHeight: "100vh",
 				display: "flex",
 				flexDirection: "column",
-				alignItems: "center",
-				gap: "4",
-				p: "6",
+				background:
+					"linear-gradient(180deg, #faf8f5 0%, #f5f0e8 50%, #ebe5d9 100%)",
 			})}
 		>
-			{/* ヘッダー: ミーアキャットロゴとタイトル */}
+			{/* ヘッダー: ミーアキャットロゴとタイトル（コンパクト・横並び） */}
 			<header
 				className={css({
 					display: "flex",
-					flexDirection: "column",
 					alignItems: "center",
-					gap: "2",
-					pt: "4",
-					pb: "2",
+					justifyContent: "center",
+					gap: "3",
+					py: "3",
+					px: "4",
+					borderBottom: "1px solid",
+					borderColor: "sand.4",
+					backgroundColor: "rgba(255, 255, 255, 0.6)",
+					backdropFilter: "blur(8px)",
 				})}
 			>
 				<Image
 					src="/icons/meerkat-celebration.svg"
 					alt="SoloDay"
-					width={64}
-					height={64}
-					className={css({ width: "16", height: "16" })}
+					width={40}
+					height={40}
+					className={css({ width: "10", height: "10" })}
 				/>
 
-				<h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
-					SoloDay
-				</h1>
-
-				<p
+				<div
 					className={css({
-						color: "fg.muted",
-						textAlign: "center",
-						maxWidth: "md",
-						fontSize: "sm",
+						display: "flex",
+						alignItems: "baseline",
+						gap: "2",
 					})}
 				>
-					今日と今週の予定を30秒で把握
-				</p>
+					<h1
+						className={css({
+							fontSize: "xl",
+							fontWeight: "bold",
+							color: "#1c1917",
+						})}
+					>
+						SoloDay
+					</h1>
+					<span
+						className={css({
+							color: "#57534e",
+							fontSize: "xs",
+							display: { base: "none", sm: "inline" },
+						})}
+					>
+						30秒で今日を把握
+					</span>
+				</div>
 			</header>
 
 			{/* メインコンテンツ: 今日/今週の予定表示 */}
@@ -61,11 +76,28 @@ export default function HomePage() {
 				className={css({
 					width: "100%",
 					maxWidth: "2xl",
+					mx: "auto",
 					flex: "1",
+					px: { base: "4", md: "6" },
+					py: "4",
 				})}
 			>
 				<TodayWeekView />
 			</main>
+
+			{/* フッター */}
+			<footer
+				className={css({
+					py: "3",
+					textAlign: "center",
+					color: "fg.muted",
+					fontSize: "xs",
+					borderTop: "1px solid",
+					borderColor: "sand.3",
+				})}
+			>
+				SoloDay v1.0
+			</footer>
 		</div>
 	);
 }

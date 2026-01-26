@@ -5,7 +5,7 @@
  *
  * 単一のカレンダーイベントを表示するカードコンポーネントです。
  * 時間、タイトル、場所を表示し、カレンダー色を左端に表示します。
- * 終日イベントは「終日」と表示されます。
+ * 終日イベントは「終日」と表示され、特別な背景色で強調されます。
  *
  * @module components/calendar/EventCard
  *
@@ -27,7 +27,7 @@
  */
 
 import { formatTime } from "@/lib/utils/date";
-import { css } from "@/styled-system/css";
+import { css, cx } from "@/styled-system/css";
 
 // ============================================================
 // 型定義
@@ -53,6 +53,7 @@ interface EventData {
 	source: {
 		type: string;
 		calendarName: string;
+		accountEmail?: string;
 	};
 }
 
@@ -80,6 +81,28 @@ const DEFAULT_COLOR = "#6b7280";
 // ============================================================
 
 /**
+ * アカウントアイコン（SVG）
+ */
+function AccountIcon() {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 20 20"
+			fill="currentColor"
+			className={css({
+				width: "3.5",
+				height: "3.5",
+				flexShrink: 0,
+			})}
+			aria-hidden="true"
+		>
+			<path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z" />
+			<path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z" />
+		</svg>
+	);
+}
+
+/**
  * 場所アイコン（SVG）
  */
 function LocationIcon() {
@@ -89,8 +112,8 @@ function LocationIcon() {
 			viewBox="0 0 20 20"
 			fill="currentColor"
 			className={css({
-				width: "3.5",
-				height: "3.5",
+				width: "4",
+				height: "4",
 				flexShrink: 0,
 			})}
 			aria-hidden="true"
@@ -107,6 +130,28 @@ function LocationIcon() {
 // ============================================================
 // メインコンポーネント
 // ============================================================
+
+/**
+ * 基本カードスタイル
+ */
+const baseCardStyle = css({
+	display: "flex",
+	gap: "3",
+	p: "4",
+	borderRadius: "lg",
+	bg: "bg.default",
+	border: "1px solid",
+	borderColor: "border.default",
+	boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)",
+});
+
+/**
+ * 終日イベント用のスタイル
+ */
+const allDayCardStyle = css({
+	bg: "bg.subtle",
+	borderStyle: "dashed",
+});
 
 /**
  * イベントカードコンポーネント
@@ -134,28 +179,19 @@ export function EventCard({ event, color }: EventCardProps) {
 
 	return (
 		<article
-			className={css({
-				display: "flex",
-				gap: "3",
-				p: "3",
-				borderRadius: "md",
-				bg: "bg.default",
-				border: "1px solid",
-				borderColor: "border.default",
-				transition: "all 0.15s",
-				_hover: {
-					bg: "bg.subtle",
-				},
-			})}
-			aria-label={`${event.title}${event.location ? `、場所: ${event.location}` : ""}`}
+			className={cx(baseCardStyle, event.isAllDay && allDayCardStyle)}
+			style={
+				event.isAllDay ? { backgroundColor: `${calendarColor}10` } : undefined
+			}
 		>
-			{/* カレンダー色ライン（左端） */}
+			{/* カレンダー色ライン（左端、3px幅） */}
 			<div
 				className={css({
-					width: "1",
+					width: "3px",
 					minHeight: "full",
 					borderRadius: "full",
 					flexShrink: 0,
+					alignSelf: "stretch",
 				})}
 				style={{ backgroundColor: calendarColor }}
 				aria-hidden="true"
@@ -163,47 +199,74 @@ export function EventCard({ event, color }: EventCardProps) {
 
 			{/* イベント情報 */}
 			<div className={css({ flex: 1, minWidth: 0 })}>
-				{/* 時間表示 */}
+				{/* 時間表示（より目立つスタイル） */}
 				<time
 					className={css({
-						display: "block",
-						fontSize: "xs",
-						fontWeight: "medium",
-						color: event.isAllDay ? "fg.default" : "fg.muted",
-						mb: "0.5",
+						display: "inline-block",
+						fontSize: "sm",
+						fontWeight: "bold",
+						color: "#b45309",
+						mb: "1",
+						letterSpacing: "tight",
 					})}
 					dateTime={event.isAllDay ? undefined : event.startTime}
 				>
 					{timeDisplay}
 				</time>
 
-				{/* タイトル */}
+				{/* タイトル（やや大きく） */}
 				<h3
 					className={css({
-						fontSize: "sm",
+						fontSize: "md",
 						fontWeight: "semibold",
 						color: "fg.default",
 						truncate: true,
-						lineHeight: "tight",
+						lineHeight: "snug",
 					})}
 				>
 					{event.title}
 				</h3>
 
-				{/* 場所（存在する場合のみ表示） */}
+				{/* 場所（存在する場合のみ表示、見やすく） */}
 				{event.location && (
 					<div
 						className={css({
 							display: "flex",
 							alignItems: "center",
-							gap: "1",
-							mt: "1",
-							color: "fg.muted",
-							fontSize: "xs",
+							gap: "1.5",
+							mt: "2",
+							color: "#57534e",
+							fontSize: "sm",
 						})}
 					>
 						<LocationIcon />
-						<span className={css({ truncate: true })}>{event.location}</span>
+						<span
+							className={css({
+								truncate: true,
+								fontWeight: "medium",
+							})}
+						>
+							{event.location}
+						</span>
+					</div>
+				)}
+
+				{/* アカウント情報（メールアドレス） */}
+				{event.source.accountEmail && (
+					<div
+						className={css({
+							display: "flex",
+							alignItems: "center",
+							gap: "1.5",
+							mt: "1.5",
+							color: "#78716c",
+							fontSize: "xs",
+						})}
+					>
+						<AccountIcon />
+						<span className={css({ truncate: true })}>
+							{event.source.accountEmail}
+						</span>
 					</div>
 				)}
 			</div>

@@ -24,7 +24,6 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import type { CalendarEvent } from "@/lib/domain/calendar/event";
 
 /**
  * イベント取得範囲の型
@@ -55,21 +54,53 @@ interface EventsApiResponse {
  * APIから返されるシリアライズされたイベント型
  *
  * DateオブジェクトがISO文字列として返されます。
+ * APIは既にOption型をnullableな値に変換して返します。
  */
 interface SerializedCalendarEvent {
 	id: string;
-	calendarId: string;
 	title: string;
 	startTime: string;
 	endTime: string;
 	isAllDay: boolean;
-	location: { _tag: "Some"; value: string } | { _tag: "None" };
-	description: { _tag: "Some"; value: string } | { _tag: "None" };
+	location: string | null;
+	description: string | null;
 	source: {
 		type: "google" | "ical";
 		calendarName: string;
 		accountEmail?: string;
 	};
+}
+
+/**
+ * UI表示用カレンダーイベント型
+ *
+ * EventCard/EventListコンポーネントで使用するための型定義です。
+ * ドメインモデルのCalendarEventとは異なり、Option型ではなくnullableな値を使用します。
+ */
+export interface UICalendarEvent {
+	/** イベントID */
+	id: string;
+	/** カレンダーID */
+	calendarId: string;
+	/** イベントタイトル */
+	title: string;
+	/** 開始時刻（ISO 8601形式） */
+	startTime: string;
+	/** 終了時刻（ISO 8601形式） */
+	endTime: string;
+	/** 終日イベントかどうか */
+	isAllDay: boolean;
+	/** 場所（nullの場合は表示しない） */
+	location: string | null;
+	/** 説明（nullの場合は表示しない） */
+	description: string | null;
+	/** イベントのソース情報 */
+	source: {
+		type: "google" | "ical";
+		calendarName: string;
+		accountEmail?: string;
+	};
+	/** カレンダー色 */
 	color?: string;
 }
 
@@ -77,8 +108,8 @@ interface SerializedCalendarEvent {
  * useEvents フックの戻り値型
  */
 export interface UseEventsResult {
-	/** イベント一覧 */
-	events: CalendarEvent[];
+	/** イベント一覧（UI表示用に変換済み） */
+	events: UICalendarEvent[];
 	/** ローディング状態 */
 	isLoading: boolean;
 	/** エラー情報（null の場合はエラーなし） */
@@ -90,23 +121,28 @@ export interface UseEventsResult {
 }
 
 /**
- * シリアライズされたイベントをドメインオブジェクトに変換
+ * シリアライズされたイベントをUI表示用オブジェクトに変換
+ *
+ * APIはOption型を既にnullable型に変換して返すため、
+ * そのままUICalendarEventにマッピングします。
  *
  * @param serialized - APIから返されたシリアライズされたイベント
- * @returns CalendarEventオブジェクト
+ * @returns UICalendarEventオブジェクト
  */
-function deserializeEvent(serialized: SerializedCalendarEvent): CalendarEvent {
+function deserializeEvent(
+	serialized: SerializedCalendarEvent,
+): UICalendarEvent {
 	return {
 		id: serialized.id,
-		calendarId: serialized.calendarId,
+		calendarId: "",
 		title: serialized.title,
-		startTime: new Date(serialized.startTime),
-		endTime: new Date(serialized.endTime),
+		startTime: serialized.startTime,
+		endTime: serialized.endTime,
 		isAllDay: serialized.isAllDay,
 		location: serialized.location,
 		description: serialized.description,
 		source: serialized.source,
-	} as CalendarEvent;
+	};
 }
 
 /**
@@ -147,7 +183,7 @@ function deserializeEvent(serialized: SerializedCalendarEvent): CalendarEvent {
  * ```
  */
 export function useEvents(range: EventRange): UseEventsResult {
-	const [events, setEvents] = useState<CalendarEvent[]>([]);
+	const [events, setEvents] = useState<UICalendarEvent[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
 	const [lastSync, setLastSync] = useState<Date | null>(null);

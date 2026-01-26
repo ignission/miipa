@@ -17,7 +17,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useEvents } from "@/hooks/useEvents";
 import { css } from "@/styled-system/css";
-import type { CalendarEvent } from "./EventList";
 import { TodayView } from "./TodayView";
 import { ViewTabs, type ViewType } from "./ViewTabs";
 import { WeekView } from "./WeekView";
@@ -79,37 +78,6 @@ function setStoredView(view: ViewType): void {
 	}
 }
 
-/**
- * ドメインイベントを表示用に変換
- *
- * useEventsから取得したCalendarEventをEventList用の形式に変換します。
- *
- * @param event - ドメインのCalendarEvent
- * @returns 表示用のCalendarEvent
- */
-function toDisplayEvent(event: {
-	id: string;
-	title: string;
-	startTime: Date;
-	endTime: Date;
-	isAllDay: boolean;
-	location: { _tag: "Some"; value: string } | { _tag: "None" };
-	source: {
-		type: "google" | "ical";
-		calendarName: string;
-	};
-}): CalendarEvent {
-	return {
-		id: event.id,
-		title: event.title,
-		startTime: event.startTime.toISOString(),
-		endTime: event.endTime.toISOString(),
-		isAllDay: event.isAllDay,
-		location: event.location._tag === "Some" ? event.location.value : null,
-		source: event.source,
-	};
-}
-
 // ============================================================
 // メインコンポーネント
 // ============================================================
@@ -169,9 +137,9 @@ export function TodayWeekView() {
 		}
 	}, [activeView, refreshToday, refreshWeek]);
 
-	// 表示用のイベントに変換
-	const displayTodayEvents = todayEvents.map(toDisplayEvent);
-	const displayWeekEvents = weekEvents.map(toDisplayEvent);
+	// useEventsは既にUI表示用の形式（UICalendarEvent）を返すため、直接使用可能
+	const displayTodayEvents = todayEvents;
+	const displayWeekEvents = weekEvents;
 
 	// ハイドレーション前は最小限のUIを表示
 	if (!isHydrated) {

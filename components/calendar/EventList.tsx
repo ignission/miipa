@@ -47,6 +47,7 @@ export interface CalendarEvent {
 	source: {
 		type: string;
 		calendarName: string;
+		accountEmail?: string;
 	};
 	/** カレンダーの色（オプション） */
 	color?: string;

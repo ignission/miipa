@@ -61,7 +61,11 @@ export function ProviderSelector({
 		<div
 			className={css({
 				display: "grid",
-				gridTemplateColumns: { base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+				gridTemplateColumns: {
+					base: "1fr",
+					md: "repeat(2, 1fr)",
+					lg: "repeat(4, 1fr)",
+				},
 				gap: "4",
 			})}
 			role="radiogroup"

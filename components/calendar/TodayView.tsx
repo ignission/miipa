@@ -20,7 +20,7 @@
  * ```
  */
 
-import { css } from "@/styled-system/css";
+import { css, cx } from "@/styled-system/css";
 import { type CalendarEvent, EventList } from "./EventList";
 
 // ============================================================
@@ -44,50 +44,109 @@ export interface TodayViewProps {
 }
 
 // ============================================================
+// ユーティリティ
+// ============================================================
+
+/**
+ * 今日の日付を日本語でフォーマット
+ */
+function formatTodayDate(): string {
+	const today = new Date();
+	const options: Intl.DateTimeFormatOptions = {
+		month: "long",
+		day: "numeric",
+		weekday: "long",
+	};
+	return today.toLocaleDateString("ja-JP", options);
+}
+
+// ============================================================
 // サブコンポーネント
 // ============================================================
 
 /**
- * ローディングスピナー
+ * バウンスドットローディング
  *
- * シンプルなCSSアニメーションによる回転スピナーです。
+ * 3つのドットがバウンスするローディングアニメーションです。
  *
- * @returns スピナー要素
+ * @returns ローディング要素
  */
 function LoadingSpinner() {
+	const dotStyle = css({
+		width: "10px",
+		height: "10px",
+		borderRadius: "full",
+		bg: "accent.default",
+	});
+
 	return (
-		<div
+		<output
 			className={css({
 				display: "flex",
+				flexDirection: "column",
 				alignItems: "center",
 				justifyContent: "center",
+				gap: "4",
 				py: "12",
 			})}
 			aria-live="polite"
 			aria-busy="true"
+			aria-label="予定を読み込み中"
 		>
-			<output
+			<div
 				className={css({
-					display: "block",
-					width: "8",
-					height: "8",
-					border: "3px solid",
-					borderColor: "border.default",
-					borderTopColor: "accent.default",
-					borderRadius: "full",
-					animation: "spin 0.8s linear infinite",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					gap: "2",
 				})}
-				aria-label="読み込み中"
-			/>
-			<span className={css({ srOnly: true })}>予定を読み込み中...</span>
-		</div>
+				aria-hidden="true"
+			>
+				<span
+					className={cx(
+						dotStyle,
+						css({
+							animation: "bounce 0.6s ease-in-out infinite",
+						}),
+					)}
+					style={{ animationDelay: "0ms" }}
+				/>
+				<span
+					className={cx(
+						dotStyle,
+						css({
+							animation: "bounce 0.6s ease-in-out infinite",
+						}),
+					)}
+					style={{ animationDelay: "150ms" }}
+				/>
+				<span
+					className={cx(
+						dotStyle,
+						css({
+							animation: "bounce 0.6s ease-in-out infinite",
+						}),
+					)}
+					style={{ animationDelay: "300ms" }}
+				/>
+			</div>
+			<span
+				className={css({
+					fontSize: "sm",
+					color: "fg.subtle",
+				})}
+				aria-hidden="true"
+			>
+				予定を読み込み中...
+			</span>
+		</output>
 	);
 }
 
 /**
  * エラー表示コンポーネント
  *
- * エラーメッセージとリトライボタンを表示します。
+ * ミーアキャットが困っている感じの優しいエラーメッセージを表示します。
  *
  * @param props - コンポーネントのProps
  * @param props.error - エラー情報
@@ -111,53 +170,52 @@ function ErrorDisplay({
 				gap: "4",
 				py: "8",
 				px: "4",
+				bg: "bg.subtle",
+				borderRadius: "xl",
+				border: "1px solid",
+				borderColor: "border.default",
 			})}
 			role="alert"
 		>
+			{/* ミーアキャットアイコン（困っている顔） */}
+			<div
+				className={css({
+					fontSize: "4xl",
+					lineHeight: "1",
+				})}
+				aria-hidden="true"
+			>
+				(; _ ;)
+			</div>
 			<div
 				className={css({
 					display: "flex",
+					flexDirection: "column",
 					alignItems: "center",
-					gap: "2",
-					color: "red.600",
+					gap: "1",
 				})}
 			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 20 20"
-					fill="currentColor"
-					className={css({
-						width: "5",
-						height: "5",
-						flexShrink: 0,
-					})}
-					aria-hidden="true"
-				>
-					<path
-						fillRule="evenodd"
-						d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"
-						clipRule="evenodd"
-					/>
-				</svg>
 				<span
 					className={css({
 						fontSize: "sm",
 						fontWeight: "medium",
+						color: "fg.default",
 					})}
 				>
 					予定の取得に失敗しました
 				</span>
+				<p
+					className={css({
+						fontSize: "xs",
+						color: "fg.subtle",
+						textAlign: "center",
+						maxWidth: "sm",
+						m: "0",
+					})}
+				>
+					{error.message || "ネットワーク接続を確認してください"}
+				</p>
 			</div>
-			<p
-				className={css({
-					fontSize: "xs",
-					color: "fg.muted",
-					textAlign: "center",
-					maxWidth: "sm",
-				})}
-			>
-				{error.message}
-			</p>
 			<button
 				type="button"
 				onClick={onRetry}
@@ -165,20 +223,22 @@ function ErrorDisplay({
 					display: "inline-flex",
 					alignItems: "center",
 					gap: "2",
-					px: "4",
-					py: "2",
+					px: "5",
+					py: "2.5",
 					fontSize: "sm",
 					fontWeight: "medium",
-					color: "fg.default",
-					bg: "bg.default",
-					border: "1px solid",
-					borderColor: "border.default",
-					borderRadius: "md",
+					color: "white",
+					bg: "accent.default",
+					border: "none",
+					borderRadius: "lg",
 					cursor: "pointer",
 					transition: "all 0.2s",
 					_hover: {
-						bg: "bg.subtle",
-						borderColor: "border.subtle",
+						bg: "accent.emphasized",
+						transform: "translateY(-1px)",
+					},
+					_active: {
+						transform: "translateY(0)",
 					},
 					_focusVisible: {
 						outline: "2px solid",
@@ -203,8 +263,72 @@ function ErrorDisplay({
 						clipRule="evenodd"
 					/>
 				</svg>
-				再試行
+				もう一度試す
 			</button>
+		</div>
+	);
+}
+
+/**
+ * 空状態コンポーネント
+ *
+ * 予定がない場合の親しみやすい表示です。
+ *
+ * @returns 空状態要素
+ */
+function EmptyState() {
+	return (
+		<div
+			className={css({
+				display: "flex",
+				flexDirection: "column",
+				alignItems: "center",
+				justifyContent: "center",
+				gap: "3",
+				py: "10",
+				px: "4",
+				bg: "bg.subtle",
+				borderRadius: "xl",
+				border: "1px dashed",
+				borderColor: "border.default",
+			})}
+		>
+			{/* ミーアキャットアイコン（リラックス） */}
+			<div
+				className={css({
+					fontSize: "4xl",
+					lineHeight: "1",
+				})}
+				aria-hidden="true"
+			>
+				( ^ o ^ )
+			</div>
+			<div
+				className={css({
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					gap: "1",
+				})}
+			>
+				<span
+					className={css({
+						fontSize: "sm",
+						fontWeight: "medium",
+						color: "fg.default",
+					})}
+				>
+					今日の予定はありません
+				</span>
+				<span
+					className={css({
+						fontSize: "xs",
+						color: "fg.subtle",
+					})}
+				>
+					ゆっくり過ごせる一日ですね
+				</span>
+			</div>
 		</div>
 	);
 }
@@ -212,7 +336,7 @@ function ErrorDisplay({
 /**
  * 更新ボタンコンポーネント
  *
- * 最終同期時刻と更新ボタンを表示します。
+ * ラベル付きの更新ボタンと最終同期時刻を表示します。
  *
  * @param props - コンポーネントのProps
  * @param props.lastSync - 最終同期時刻
@@ -244,44 +368,47 @@ function RefreshButton({
 			className={css({
 				display: "flex",
 				alignItems: "center",
-				gap: "2",
+				gap: "3",
 			})}
 		>
 			{lastSync && (
 				<span
 					className={css({
 						fontSize: "xs",
-						color: "fg.muted",
+						color: "fg.subtle",
 					})}
 					title={lastSync.toLocaleString("ja-JP")}
 				>
-					最終同期: {formatLastSync(lastSync)}
+					{formatLastSync(lastSync)} 更新
 				</span>
 			)}
 			<button
 				type="button"
 				onClick={onRefresh}
 				disabled={isLoading}
-				aria-label="予定を更新"
+				aria-label={isLoading ? "予定を更新中" : "予定を更新する"}
+				aria-busy={isLoading}
 				className={css({
 					display: "inline-flex",
 					alignItems: "center",
-					justifyContent: "center",
-					width: "8",
-					height: "8",
+					gap: "1.5",
+					px: "3",
+					py: "1.5",
+					fontSize: "xs",
+					fontWeight: "medium",
 					borderRadius: "md",
 					border: "1px solid",
 					borderColor: "border.default",
 					bg: "bg.default",
-					color: "fg.muted",
+					color: "fg.default",
 					cursor: "pointer",
 					transition: "all 0.2s",
 					_hover: {
 						bg: "bg.subtle",
-						color: "fg.default",
+						borderColor: "border.subtle",
 					},
 					_disabled: {
-						opacity: 0.5,
+						opacity: 0.6,
 						cursor: "not-allowed",
 					},
 					_focusVisible: {
@@ -296,8 +423,8 @@ function RefreshButton({
 					viewBox="0 0 20 20"
 					fill="currentColor"
 					className={css({
-						width: "4",
-						height: "4",
+						width: "3.5",
+						height: "3.5",
 						animation: isLoading ? "spin 1s linear infinite" : "none",
 					})}
 					aria-hidden="true"
@@ -308,6 +435,7 @@ function RefreshButton({
 						clipRule="evenodd"
 					/>
 				</svg>
+				<span aria-hidden="true">{isLoading ? "更新中..." : "更新"}</span>
 			</button>
 		</div>
 	);
@@ -343,36 +471,64 @@ export function TodayView({
 			className={css({
 				display: "flex",
 				flexDirection: "column",
-				gap: "4",
+				gap: "5",
 				width: "100%",
 			})}
 			aria-labelledby="today-view-title"
 		>
-			{/* ヘッダー: タイトルと更新ボタン */}
+			{/* ヘッダー: タイトル、日付、更新ボタン */}
 			<header
 				className={css({
 					display: "flex",
-					alignItems: "center",
-					justifyContent: "space-between",
-					gap: "4",
+					flexDirection: "column",
+					gap: "3",
 				})}
 			>
-				<h2
-					id="today-view-title"
+				{/* タイトルと更新ボタン */}
+				<div
 					className={css({
-						fontSize: "lg",
-						fontWeight: "semibold",
-						color: "fg.default",
-						m: "0",
+						display: "flex",
+						alignItems: "flex-start",
+						justifyContent: "space-between",
+						gap: "4",
 					})}
 				>
-					今日の予定
-				</h2>
-				<RefreshButton
-					lastSync={lastSync}
-					isLoading={isLoading}
-					onRefresh={onRefresh}
-				/>
+					<div
+						className={css({
+							display: "flex",
+							flexDirection: "column",
+							gap: "1",
+						})}
+					>
+						<h2
+							id="today-view-title"
+							className={css({
+								fontSize: "xl",
+								fontWeight: "bold",
+								color: "fg.default",
+								m: "0",
+								letterSpacing: "-0.01em",
+							})}
+						>
+							今日の予定
+						</h2>
+						<time
+							dateTime={new Date().toISOString().split("T")[0]}
+							className={css({
+								fontSize: "sm",
+								color: "fg.muted",
+								fontWeight: "medium",
+							})}
+						>
+							{formatTodayDate()}
+						</time>
+					</div>
+					<RefreshButton
+						lastSync={lastSync}
+						isLoading={isLoading}
+						onRefresh={onRefresh}
+					/>
+				</div>
 			</header>
 
 			{/* コンテンツ: ローディング/エラー/イベント一覧 */}
@@ -385,6 +541,8 @@ export function TodayView({
 					<LoadingSpinner />
 				) : error ? (
 					<ErrorDisplay error={error} onRetry={onRefresh} />
+				) : events.length === 0 ? (
+					<EmptyState />
 				) : (
 					<EventList events={events} emptyMessage="今日の予定はありません" />
 				)}
