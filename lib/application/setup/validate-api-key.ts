@@ -57,6 +57,12 @@ const ANTHROPIC_API_ENDPOINT = "https://api.anthropic.com/v1/messages";
 const OPENAI_API_ENDPOINT = "https://api.openai.com/v1/models";
 
 /**
+ * Google AI API エンドポイント（モデル一覧取得）
+ */
+const GOOGLE_AI_API_ENDPOINT =
+	"https://generativelanguage.googleapis.com/v1beta/models";
+
+/**
  * デフォルトのOllama ベースURL
  */
 const DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
@@ -70,6 +76,11 @@ const CLAUDE_API_KEY_PATTERN = /^sk-ant-/;
  * OpenAI APIキーの形式パターン
  */
 const OPENAI_API_KEY_PATTERN = /^sk-/;
+
+/**
+ * Google AI APIキーの形式パターン
+ */
+const GEMINI_API_KEY_PATTERN = /^AIza/;
 
 // ============================================================
 // APIキー形式検証
@@ -117,6 +128,16 @@ export function validateApiKeyFormat(
 					code: "INVALID_FORMAT",
 					message:
 						"OpenAI APIキーの形式が正しくありません。「sk-」で始まる必要があります。",
+				});
+			}
+			return ok(undefined);
+		}
+		case "gemini": {
+			if (!GEMINI_API_KEY_PATTERN.test(key)) {
+				return err({
+					code: "INVALID_FORMAT",
+					message:
+						"Google AI APIキーの形式が正しくありません。「AIza」で始まる必要があります。",
 				});
 			}
 			return ok(undefined);
@@ -361,6 +382,92 @@ export async function validateOpenAIKey(
 }
 
 /**
+ * Google AI (Gemini) APIキーを検証する
+ *
+ * Google AI API `/v1beta/models` エンドポイントで認証確認を行います。
+ * このエンドポイントは認証確認のみでトークン消費はありません。
+ *
+ * @param apiKey - 検証対象のGoogle AI APIキー
+ * @returns 検証結果（成功時はOk(void)、失敗時はErr(ApiKeyValidationError)）
+ *
+ * @example
+ * ```typescript
+ * const result = await validateGeminiKey('AIzaxxxxx');
+ * if (isOk(result)) {
+ *   console.log('Google AI APIキーは有効です');
+ * }
+ * ```
+ */
+export async function validateGeminiKey(
+	apiKey: string,
+): Promise<Result<void, ApiKeyValidationError>> {
+	// まず形式チェック
+	const formatResult = validateApiKeyFormat("gemini", apiKey);
+	if (isErr(formatResult)) {
+		return formatResult;
+	}
+
+	// API接続テスト（/v1beta/models はGETリクエストで認証確認のみ）
+	const fetchResult = await fetchWithTimeout(
+		`${GOOGLE_AI_API_ENDPOINT}?key=${apiKey}`,
+		{
+			method: "GET",
+		},
+		API_TIMEOUT_MS,
+	);
+
+	if (isErr(fetchResult)) {
+		return fetchResult;
+	}
+
+	const response = fetchResult.value;
+
+	// 認証エラー（400/401）
+	if (response.status === 400 || response.status === 401) {
+		return err({
+			code: "API_ERROR",
+			message: "APIキーが無効です。正しいキーを入力してください。",
+		});
+	}
+
+	// 権限エラー（403）
+	if (response.status === 403) {
+		return err({
+			code: "API_ERROR",
+			message:
+				"APIキーの権限が不足しています。Google AI StudioでAPIキーの設定を確認してください。",
+		});
+	}
+
+	// レート制限（429）
+	if (response.status === 429) {
+		return err({
+			code: "API_ERROR",
+			message:
+				"APIのレート制限に達しました。しばらく待ってから再試行してください。",
+		});
+	}
+
+	// サーバーエラー（5xx）
+	if (!response.ok && response.status >= 500) {
+		return err({
+			code: "API_ERROR",
+			message: `Google AI APIでサーバーエラーが発生しました（${response.status}）。しばらく待ってから再試行してください。`,
+		});
+	}
+
+	// その他のエラー
+	if (!response.ok) {
+		return err({
+			code: "API_ERROR",
+			message: `Google AI API接続エラー（${response.status}）。APIキーを確認してください。`,
+		});
+	}
+
+	return ok(undefined);
+}
+
+/**
  * Ollamaサーバーへの接続を確認する
  *
  * 指定されたベースURLの `/api/tags` エンドポイントに接続し、
@@ -474,6 +581,9 @@ export async function validateApiKey(
 		}
 		case "openai": {
 			return validateOpenAIKey(key);
+		}
+		case "gemini": {
+			return validateGeminiKey(key);
 		}
 		case "ollama": {
 			// Ollamaの場合はkeyをベースURLとして使用

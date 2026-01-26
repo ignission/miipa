@@ -54,8 +54,8 @@ const REDIRECT_URI = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:30
  * 読み取り専用アクセスのみを要求（セキュリティ考慮）
  */
 const SCOPES = [
-  "https://www.googleapis.com/auth/calendar.readonly",
-  "https://www.googleapis.com/auth/userinfo.email",
+	"https://www.googleapis.com/auth/calendar.readonly",
+	"https://www.googleapis.com/auth/userinfo.email",
 ] as const;
 
 // ============================================================

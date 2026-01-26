@@ -37,7 +37,8 @@ export const KEYCHAIN_SERVICE = "com.soloday.app" as const;
 export type LLMSecretKey =
 	| "anthropic-api-key"
 	| "openai-api-key"
-	| "ollama-api-key";
+	| "ollama-api-key"
+	| "gemini-api-key";
 
 /**
  * OAuth関連のトークン
@@ -77,6 +78,7 @@ export const SECRET_KEYS: readonly SecretKey[] = [
 	"anthropic-api-key",
 	"openai-api-key",
 	"ollama-api-key",
+	"gemini-api-key",
 	// OAuth
 	"google-oauth-access-token",
 	"google-oauth-refresh-token",
@@ -118,6 +120,7 @@ export const SECRET_KEY_DESCRIPTIONS: Record<SecretKey, string> = {
 	"anthropic-api-key": "Anthropic APIキー（Claude用）",
 	"openai-api-key": "OpenAI APIキー（GPT用）",
 	"ollama-api-key": "Ollama APIキー（ローカルLLM用）",
+	"gemini-api-key": "Google AI APIキー（Gemini用）",
 	"google-oauth-access-token": "Google OAuthアクセストークン",
 	"google-oauth-refresh-token": "Google OAuthリフレッシュトークン",
 };
