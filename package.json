@@ -1,0 +1,40 @@
+{
+	"name": "soloday",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev --turbopack",
+		"build": "panda codegen && next build",
+		"start": "next start",
+		"lint": "npx @biomejs/biome check .",
+		"lint:fix": "npx @biomejs/biome check --write .",
+		"prepare": "panda codegen"
+	},
+	"dependencies": {
+		"@ai-sdk/anthropic": "^3.0.23",
+		"@ark-ui/react": "^5.30.0",
+		"@mastra/core": "^1.0.4",
+		"@mastra/libsql": "^1.0.0",
+		"@mastra/loggers": "^1.0.0",
+		"@mastra/memory": "^1.0.0",
+		"@mastra/observability": "^1.0.0",
+		"@park-ui/panda-preset": "^0.43.1",
+		"better-sqlite3": "^12.6.2",
+		"keytar": "^7.9.0",
+		"mastra": "^1.0.1",
+		"next": "16.1.4",
+		"react": "19.2.3",
+		"react-dom": "19.2.3",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.12",
+		"@pandacss/dev": "^1.8.1",
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/node": "^20",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"tsx": "^4.21.0",
+		"typescript": "^5"
+	}
+}

@@ -1,0 +1,22 @@
+# データベースインフラストラクチャ (Database Infrastructure)
+#
+# このディレクトリはSQLiteデータベースとの連携を担当します。
+#
+# 責務:
+# - SQLiteデータベースの初期化・接続管理
+# - マイグレーションの実行
+# - カレンダーキャッシュの永続化
+# - セッション情報の管理
+#
+# 依存関係:
+# - better-sqlite3（npmパッケージ）に依存
+# - ドメイン層のResult/Option型を使用
+# - lib/config/paths.ts のDB_PATH定数を使用
+#
+# データ保存先:
+# - ~/.soloday/db.sqlite
+#
+# 配置ファイル:
+# - lib/infrastructure/db/index.ts（DB初期化・接続管理）
+# - lib/infrastructure/db/types.ts（型定義）
+# - lib/infrastructure/db/migrations/001_initial.sql（初期スキーマ）

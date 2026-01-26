@@ -1,0 +1,23 @@
+# カレンダーインフラストラクチャ (Calendar Infrastructure)
+#
+# このディレクトリは外部カレンダープロバイダとの連携を担当します。
+#
+# 責務:
+# - Google Calendar APIとの通信
+# - iCal形式のカレンダーデータ取得・パース
+# - カレンダーリポジトリインターフェースの実装
+# - OAuth PKCEフローの処理
+#
+# 依存関係:
+# - ドメイン層のカレンダーリポジトリインターフェースを実装
+# - ドメイン層のResult/Option/Error型を使用
+# - Keychainインフラ（OAuthトークン取得）を使用
+#
+# セキュリティ:
+# - Google Calendarはread-onlyスコープのみ
+# - OAuth PKCEフロー（サーバー不要）
+#
+# 配置ファイル:
+# - lib/infrastructure/calendar/google.ts（Google Calendar API実装）
+# - lib/infrastructure/calendar/ical.ts（iCalパーサー実装）
+# - lib/infrastructure/calendar/merge.ts（複数カレンダー統合）

@@ -1,0 +1,24 @@
+# Keychain インフラストラクチャ (Keychain Infrastructure)
+#
+# このディレクトリはmacOS Keychainとの連携を担当します。
+#
+# 責務:
+# - macOS Keychainへの認証情報の保存・取得・削除
+# - keytarライブラリのラッパー実装
+# - 機密情報（APIキー、OAuthトークン）の安全な管理
+# - Keychainエラーのハンドリング
+#
+# 依存関係:
+# - keytar（npmパッケージ）に依存
+# - ドメイン層のResult/Option/Error型を使用
+# - ドメイン層のリポジトリインターフェースを実装
+#
+# セキュリティ:
+# - 平文でのファイル保存は禁止
+# - サービス名は 'com.soloday.app' を使用
+# - localhost環境でのみ動作
+#
+# 配置ファイル:
+# - lib/infrastructure/keychain/index.ts（公開API）
+# - lib/infrastructure/keychain/types.ts（型定義）
+# - lib/infrastructure/keychain/keytar-adapter.ts（keytarラッパー）
