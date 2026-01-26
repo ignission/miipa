@@ -48,3 +48,6 @@ Thumbs.db
 
 # テスト
 coverage/
+
+# spec-workflow approvals (local state)
+.spec-workflow/approvals/
