@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { TodayWeekView } from "@/components/calendar/TodayWeekView";
 import { css } from "@/styled-system/css";
 
 /**
@@ -16,49 +17,55 @@ export default function HomePage() {
 				display: "flex",
 				flexDirection: "column",
 				alignItems: "center",
-				justifyContent: "center",
 				gap: "4",
 				p: "6",
 			})}
 		>
-			{/* ミーアキャットロゴ */}
-			<Image
-				src="/icons/meerkat-celebration.svg"
-				alt="SoloDay"
-				width={96}
-				height={96}
-				className={css({ width: "24", height: "24" })}
-			/>
-
-			<h1 className={css({ fontSize: "3xl", fontWeight: "bold" })}>
-				SoloDayへようこそ
-			</h1>
-
-			<p
+			{/* ヘッダー: ミーアキャットロゴとタイトル */}
+			<header
 				className={css({
-					color: "fg.muted",
-					textAlign: "center",
-					maxWidth: "md",
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					gap: "2",
+					pt: "4",
+					pb: "2",
 				})}
 			>
-				一人社長のための30秒カレンダーAIアシスタント。
-				今日と今週の予定を素早く把握できます。
-			</p>
+				<Image
+					src="/icons/meerkat-celebration.svg"
+					alt="SoloDay"
+					width={64}
+					height={64}
+					className={css({ width: "16", height: "16" })}
+				/>
 
-			{/* プレースホルダ: 後でカレンダー統合UIに置き換え */}
-			<div
-				className={css({
-					mt: "8",
-					p: "8",
-					bg: "bg.muted",
-					borderRadius: "xl",
-					textAlign: "center",
-				})}
-			>
-				<p className={css({ color: "fg.muted" })}>
-					カレンダー統合機能は今後実装予定です
+				<h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
+					SoloDay
+				</h1>
+
+				<p
+					className={css({
+						color: "fg.muted",
+						textAlign: "center",
+						maxWidth: "md",
+						fontSize: "sm",
+					})}
+				>
+					今日と今週の予定を30秒で把握
 				</p>
-			</div>
+			</header>
+
+			{/* メインコンテンツ: 今日/今週の予定表示 */}
+			<main
+				className={css({
+					width: "100%",
+					maxWidth: "2xl",
+					flex: "1",
+				})}
+			>
+				<TodayWeekView />
+			</main>
 		</div>
 	);
 }
