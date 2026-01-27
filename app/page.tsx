@@ -1,6 +1,30 @@
 import Image from "next/image";
+import Link from "next/link";
 import { TodayWeekView } from "@/components/calendar/TodayWeekView";
 import { css } from "@/styled-system/css";
+
+/**
+ * 設定アイコン（歯車）
+ * WCAG AA準拠: 3:1以上のコントラスト比を確保
+ * アウトライン版で視認性を向上
+ */
+function SettingsIcon() {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 24 24"
+			fill="#292524"
+			className={css({ width: "6", height: "6" })}
+			aria-hidden="true"
+		>
+			<path
+				fillRule="evenodd"
+				d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 0 0-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 0 0-2.282.819l-.922 1.597a1.875 1.875 0 0 0 .432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 0 0 0 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 0 0-.432 2.385l.922 1.597a1.875 1.875 0 0 0 2.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 0 0 2.28-.819l.923-1.597a1.875 1.875 0 0 0-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 0 0 0-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 0 0-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 0 0-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 0 0-1.85-1.567h-1.843ZM12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"
+				clipRule="evenodd"
+			/>
+		</svg>
+	);
+}
 
 /**
  * メイン画面
@@ -20,13 +44,12 @@ export default function HomePage() {
 					"linear-gradient(180deg, #faf8f5 0%, #f5f0e8 50%, #ebe5d9 100%)",
 			})}
 		>
-			{/* ヘッダー: ミーアキャットロゴとタイトル（コンパクト・横並び） */}
+			{/* ヘッダー: ロゴ・タイトル（左）、設定（右） */}
 			<header
 				className={css({
 					display: "flex",
 					alignItems: "center",
-					justifyContent: "center",
-					gap: "3",
+					justifyContent: "space-between",
 					py: "3",
 					px: "4",
 					borderBottom: "1px solid",
@@ -35,40 +58,88 @@ export default function HomePage() {
 					backdropFilter: "blur(8px)",
 				})}
 			>
-				<Image
-					src="/icons/meerkat-celebration.svg"
-					alt="SoloDay"
-					width={40}
-					height={40}
-					className={css({ width: "10", height: "10" })}
-				/>
-
+				{/* 左: ロゴとタイトル */}
 				<div
 					className={css({
 						display: "flex",
-						alignItems: "baseline",
-						gap: "2",
+						alignItems: "center",
+						gap: "3",
 					})}
 				>
-					<h1
+					<Image
+						src="/icons/meerkat-celebration.svg"
+						alt="SoloDay"
+						width={40}
+						height={40}
+						className={css({ width: "10", height: "10" })}
+					/>
+					<div
 						className={css({
-							fontSize: "xl",
-							fontWeight: "bold",
-							color: "#1c1917",
+							display: "flex",
+							alignItems: "baseline",
+							gap: "2",
 						})}
 					>
-						SoloDay
-					</h1>
-					<span
-						className={css({
-							color: "#57534e",
-							fontSize: "xs",
-							display: { base: "none", sm: "inline" },
-						})}
-					>
-						30秒で今日を把握
-					</span>
+						<h1
+							className={css({
+								fontSize: "xl",
+								fontWeight: "bold",
+								color: "#1c1917",
+							})}
+						>
+							SoloDay
+						</h1>
+						<span
+							className={css({
+								color: "#57534e",
+								fontSize: "xs",
+								display: { base: "none", sm: "inline" },
+							})}
+						>
+							30秒で今日を把握
+						</span>
+					</div>
 				</div>
+
+				{/* 右: 設定リンク */}
+				{/* WCAG: タッチターゲット44px以上、コントラスト比3:1以上 */}
+				<Link
+					href="/settings/calendars"
+					className={css({
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						// タッチターゲット: 44x44px (WCAG推奨をクリア)
+						width: "11",
+						height: "11",
+						borderRadius: "lg",
+						// 色: #292524 (stone-800) で高コントラスト
+						color: "#292524",
+						backgroundColor: "#f5f5f4",
+						border: "1px solid",
+						borderColor: "#d6d3d1",
+						transition: "all 0.2s ease",
+						_hover: {
+							color: "#b45309",
+							backgroundColor: "#fef3c7",
+							borderColor: "#fbbf24",
+							transform: "rotate(45deg)",
+						},
+						_focusVisible: {
+							outline: "3px solid #f59e0b",
+							outlineOffset: "2px",
+							color: "#b45309",
+							backgroundColor: "#fef3c7",
+						},
+						_active: {
+							// アクティブ時: 押下感
+							transform: "rotate(45deg) scale(0.95)",
+						},
+					})}
+					aria-label="カレンダー設定"
+				>
+					<SettingsIcon />
+				</Link>
 			</header>
 
 			{/* メインコンテンツ: 今日/今週の予定表示 */}
