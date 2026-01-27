@@ -24,7 +24,7 @@
  */
 
 import type { LLMProvider } from "@/lib/config/types";
-import type { LLMSecretKey } from "@/lib/infrastructure/keychain";
+import type { LLMSecretKey } from "@/lib/infrastructure/secret";
 
 // ============================================================
 // プロバイダとシークレットキーのマッピング

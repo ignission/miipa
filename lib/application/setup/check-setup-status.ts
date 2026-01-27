@@ -36,9 +36,9 @@
  */
 
 import { configExists, loadConfig } from "@/lib/config/loader";
-import type { ConfigError, KeychainError } from "@/lib/domain/shared";
+import type { ConfigError } from "@/lib/domain/shared";
 import { isErr, ok, type Result } from "@/lib/domain/shared";
-import { hasSecret } from "@/lib/infrastructure/keychain";
+import { hasSecret, type SecretError } from "@/lib/infrastructure/secret";
 
 import {
 	createSetupStatus,
@@ -54,9 +54,9 @@ import {
  * セットアップ状態確認時に発生しうるエラー型
  *
  * ConfigError: 設定ファイルの読み込みエラー
- * KeychainError: Keychainアクセスエラー
+ * SecretError: シークレットストレージアクセスエラー
  */
-export type SetupStatusError = ConfigError | KeychainError;
+export type SetupStatusError = ConfigError | SecretError;
 
 // ============================================================
 // メイン関数

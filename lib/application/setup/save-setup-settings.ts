@@ -30,7 +30,7 @@
 import { loadOrInitializeConfig, saveConfig } from "@/lib/config/loader";
 import { err, isErr, ok } from "@/lib/domain/shared";
 import type { Result } from "@/lib/domain/shared/result";
-import { hasSecret, setSecret } from "@/lib/infrastructure/keychain";
+import { hasSecret, setSecret } from "@/lib/infrastructure/secret";
 import {
 	getSecretKeyForProvider,
 	type SaveOptions,

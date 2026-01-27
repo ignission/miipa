@@ -53,7 +53,7 @@ import {
 	ok,
 	type Result,
 } from "@/lib/domain/shared";
-import type { DbError, KeychainError } from "@/lib/domain/shared/errors";
+import type { DbError } from "@/lib/domain/shared/errors";
 import {
 	GoogleCalendarProvider,
 	getTokens,
@@ -64,6 +64,7 @@ import {
 	initializeDatabase,
 	SqliteEventRepository,
 } from "@/lib/infrastructure/db";
+import type { SecretError } from "@/lib/infrastructure/secret/types";
 
 // ============================================================
 // 型定義
@@ -92,7 +93,7 @@ export interface SyncError {
 	/** カレンダーID（特定のカレンダーでエラーが発生した場合） */
 	readonly calendarId?: CalendarId;
 	/** 元のエラー（デバッグ用） */
-	readonly cause?: CalendarError | ConfigError | DbError | KeychainError;
+	readonly cause?: CalendarError | ConfigError | DbError | SecretError;
 }
 
 /**

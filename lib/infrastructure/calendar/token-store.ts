@@ -25,7 +25,7 @@
  *
  * // トークンを取得
  * const result = await getTokens('user@gmail.com');
- * if (isOk(result) && isSome(result.value)) {
+ * if (result._tag === 'Ok' && result.value._tag === 'Some') {
  *   const tokens = result.value.value;
  *   if (isTokenExpired(tokens)) {
  *     // リフレッシュ処理
@@ -34,19 +34,16 @@
  * ```
  */
 
-import keytar from "keytar";
+import { none, type Option, ok, type Result, some } from "@/lib/domain/shared";
 import {
-	err,
-	type KeychainError,
-	keychainAccessDenied,
-	keychainWriteFailed,
-	none,
-	type Option,
-	ok,
-	type Result,
-	some,
-} from "@/lib/domain/shared";
-import { KEYCHAIN_SERVICE } from "@/lib/infrastructure/keychain";
+	deleteSecret,
+	getSecret,
+	setSecret,
+} from "@/lib/infrastructure/secret/secret-repository";
+import {
+	createGoogleOAuthKey,
+	type SecretError,
+} from "@/lib/infrastructure/secret/types";
 
 // ============================================================
 // 型定義
@@ -79,63 +76,18 @@ interface StoredTokens {
 }
 
 // ============================================================
-// 内部ユーティリティ
-// ============================================================
-
-/**
- * トークンのKeychainキーを生成
- *
- * @param accountEmail - Googleアカウントのメールアドレス
- * @returns Keychainで使用するキー文字列
- */
-function getTokenKey(accountEmail: string): string {
-	return `google-oauth-${accountEmail}`;
-}
-
-/**
- * keytarエラーをKeychainErrorに変換
- *
- * @param error - 発生したエラー
- * @param operation - 操作名（日本語）
- * @returns KeychainError
- */
-function mapKeytarError(error: unknown, operation: string): KeychainError {
-	const errorMessage = error instanceof Error ? error.message : String(error);
-
-	// アクセス拒否エラーの判定
-	if (
-		errorMessage.includes("denied") ||
-		errorMessage.includes("permission") ||
-		errorMessage.includes("access")
-	) {
-		return keychainAccessDenied(
-			KEYCHAIN_SERVICE,
-			`Keychainへの${operation}が拒否されました。システム環境設定でアクセスを許可してください`,
-			error,
-		);
-	}
-
-	// その他のエラー
-	return keychainWriteFailed(
-		KEYCHAIN_SERVICE,
-		`Keychainの${operation}に失敗しました: ${errorMessage}`,
-		error,
-	);
-}
-
-// ============================================================
 // トークン操作関数
 // ============================================================
 
 /**
  * トークンを保存
  *
- * 指定されたアカウントのOAuthトークンをKeychainに保存します。
+ * 指定されたアカウントのOAuthトークンをSQLiteに暗号化して保存します。
  * 同じアカウントのトークンが既に存在する場合は上書きします。
  *
  * @param accountEmail - Googleアカウントのメールアドレス
  * @param tokens - 保存するOAuthトークン
- * @returns 成功時はOk(void)、失敗時はErr(KeychainError)
+ * @returns 成功時はOk(void)、失敗時はErr(SecretError)
  *
  * @example
  * ```typescript
@@ -145,7 +97,7 @@ function mapKeytarError(error: unknown, operation: string): KeychainError {
  *   expiresAt: new Date(Date.now() + 3600 * 1000),
  * });
  *
- * if (isOk(result)) {
+ * if (result._tag === 'Ok') {
  *   console.log('トークンを保存しました');
  * }
  * ```
@@ -153,37 +105,32 @@ function mapKeytarError(error: unknown, operation: string): KeychainError {
 export async function saveTokens(
 	accountEmail: string,
 	tokens: OAuthTokens,
-): Promise<Result<void, KeychainError>> {
-	const key = getTokenKey(accountEmail);
+): Promise<Result<void, SecretError>> {
+	const key = createGoogleOAuthKey(accountEmail);
 	const stored: StoredTokens = {
 		accessToken: tokens.accessToken,
 		refreshToken: tokens.refreshToken,
 		expiresAt: tokens.expiresAt.toISOString(),
 	};
 
-	try {
-		await keytar.setPassword(KEYCHAIN_SERVICE, key, JSON.stringify(stored));
-		return ok(undefined);
-	} catch (error) {
-		return err(mapKeytarError(error, "書き込み"));
-	}
+	return setSecret(key, JSON.stringify(stored));
 }
 
 /**
  * トークンを取得
  *
- * 指定されたアカウントのOAuthトークンをKeychainから取得します。
+ * 指定されたアカウントのOAuthトークンをSQLiteから取得し復号化します。
  * トークンが存在しない場合は `Ok(None)` を返します。
  * トークンのパースに失敗した場合も `Ok(None)` を返します（破損データとして扱う）。
  *
  * @param accountEmail - Googleアカウントのメールアドレス
- * @returns トークンを含むResult<Option<OAuthTokens>, KeychainError>
+ * @returns トークンを含むResult<Option<OAuthTokens>, SecretError>
  *
  * @example
  * ```typescript
  * const result = await getTokens('user@gmail.com');
  *
- * if (isOk(result) && isSome(result.value)) {
+ * if (result._tag === 'Ok' && result.value._tag === 'Some') {
  *   const tokens = result.value.value;
  *   console.log('アクセストークン:', tokens.accessToken);
  * }
@@ -191,95 +138,91 @@ export async function saveTokens(
  */
 export async function getTokens(
 	accountEmail: string,
-): Promise<Result<Option<OAuthTokens>, KeychainError>> {
-	const key = getTokenKey(accountEmail);
+): Promise<Result<Option<OAuthTokens>, SecretError>> {
+	const key = createGoogleOAuthKey(accountEmail);
+
+	const result = await getSecret(key);
+
+	if (result._tag === "Err") {
+		return result;
+	}
+
+	const secretOption = result.value;
+
+	if (secretOption._tag === "None") {
+		return ok(none());
+	}
 
 	try {
-		const secret = await keytar.getPassword(KEYCHAIN_SERVICE, key);
-
-		if (secret === null) {
-			return ok(none());
-		}
-
-		try {
-			const stored: StoredTokens = JSON.parse(secret);
-			return ok(
-				some({
-					accessToken: stored.accessToken,
-					refreshToken: stored.refreshToken,
-					expiresAt: new Date(stored.expiresAt),
-				}),
-			);
-		} catch {
-			// JSONパースに失敗した場合は存在しないものとして扱う
-			return ok(none());
-		}
-	} catch (error) {
-		return err(mapKeytarError(error, "読み取り"));
+		const stored: StoredTokens = JSON.parse(secretOption.value);
+		return ok(
+			some({
+				accessToken: stored.accessToken,
+				refreshToken: stored.refreshToken,
+				expiresAt: new Date(stored.expiresAt),
+			}),
+		);
+	} catch {
+		// JSONパースに失敗した場合は存在しないものとして扱う
+		return ok(none());
 	}
 }
 
 /**
  * トークンを削除
  *
- * 指定されたアカウントのOAuthトークンをKeychainから削除します。
+ * 指定されたアカウントのOAuthトークンをSQLiteから削除します。
  * トークンが存在しない場合も成功として扱います。
  *
  * @param accountEmail - Googleアカウントのメールアドレス
- * @returns 成功時はOk(void)、失敗時はErr(KeychainError)
+ * @returns 成功時はOk(void)、失敗時はErr(SecretError)
  *
  * @example
  * ```typescript
  * const result = await deleteTokens('user@gmail.com');
  *
- * if (isOk(result)) {
+ * if (result._tag === 'Ok') {
  *   console.log('トークンを削除しました');
  * }
  * ```
  */
 export async function deleteTokens(
 	accountEmail: string,
-): Promise<Result<void, KeychainError>> {
-	const key = getTokenKey(accountEmail);
+): Promise<Result<void, SecretError>> {
+	const key = createGoogleOAuthKey(accountEmail);
 
-	try {
-		// deletePasswordは削除成功時にtrue、存在しない場合はfalseを返す
-		// どちらの場合も成功として扱う
-		await keytar.deletePassword(KEYCHAIN_SERVICE, key);
-		return ok(undefined);
-	} catch (error) {
-		return err(mapKeytarError(error, "削除"));
-	}
+	return deleteSecret(key);
 }
 
 /**
  * トークンが存在するか確認
  *
- * 指定されたアカウントのOAuthトークンがKeychainに存在するかどうかを確認します。
+ * 指定されたアカウントのOAuthトークンがSQLiteに存在するかどうかを確認します。
  *
  * @param accountEmail - Googleアカウントのメールアドレス
- * @returns 存在確認の結果を含むResult<boolean, KeychainError>
+ * @returns 存在確認の結果を含むResult<boolean, SecretError>
  *
  * @example
  * ```typescript
  * const result = await hasTokens('user@gmail.com');
  *
- * if (isOk(result) && result.value) {
+ * if (result._tag === 'Ok' && result.value) {
  *   console.log('トークンは設定済みです');
  * }
  * ```
  */
 export async function hasTokens(
 	accountEmail: string,
-): Promise<Result<boolean, KeychainError>> {
-	const key = getTokenKey(accountEmail);
+): Promise<Result<boolean, SecretError>> {
+	const key = createGoogleOAuthKey(accountEmail);
 
-	try {
-		const secret = await keytar.getPassword(KEYCHAIN_SERVICE, key);
-		return ok(secret !== null);
-	} catch (error) {
-		return err(mapKeytarError(error, "確認"));
+	const result = await getSecret(key);
+
+	if (result._tag === "Err") {
+		return result;
 	}
+
+	return ok(result.value._tag === "Some");
 }
 
 /**
