@@ -20,8 +20,10 @@
  * ```
  */
 
+import { useCurrentTime } from "@/hooks/useCurrentTime";
+import type { InputEvent } from "@/lib/utils/timeline";
 import { css, cx } from "@/styled-system/css";
-import { type CalendarEvent, EventList } from "./EventList";
+import { TimelineView } from "./TimelineView";
 
 // ============================================================
 // 型定義
@@ -32,7 +34,7 @@ import { type CalendarEvent, EventList } from "./EventList";
  */
 export interface TodayViewProps {
 	/** 今日の予定一覧 */
-	events: CalendarEvent[];
+	events: InputEvent[];
 	/** ローディング状態 */
 	isLoading: boolean;
 	/** エラー情報 */
@@ -466,6 +468,9 @@ export function TodayView({
 	onRefresh,
 	lastSync,
 }: TodayViewProps) {
+	// 現在時刻をリアルタイムで取得
+	const currentTime = useCurrentTime();
+
 	return (
 		<section
 			className={css({
@@ -544,7 +549,7 @@ export function TodayView({
 				) : events.length === 0 ? (
 					<EmptyState />
 				) : (
-					<EventList events={events} emptyMessage="今日の予定はありません" />
+					<TimelineView events={events} currentTime={currentTime} />
 				)}
 			</div>
 		</section>
