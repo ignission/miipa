@@ -59,7 +59,7 @@
  * // サーバーエラー (500)
  * // {
  * //   success: false,
- * //   error: { code: 'KEYCHAIN_ERROR', message: 'Keychainへの保存に失敗しました' }
+ * //   error: { code: 'KEYCHAIN_ERROR', message: '認証情報の保存に失敗しました' }
  * // }
  * ```
  */
@@ -70,7 +70,8 @@ import {
 	type SetupSettings,
 	saveSetupSettings,
 } from "@/lib/application/setup";
-import { isOk } from "@/lib/domain/shared";
+import { isErr, isOk } from "@/lib/domain/shared";
+import { initializeDatabase } from "@/lib/infrastructure/db";
 
 /**
  * 設定保存リクエストボディ
@@ -100,6 +101,21 @@ export async function POST(request: NextRequest) {
 				},
 			},
 			{ status: 400 },
+		);
+	}
+
+	// データベースを初期化
+	const dbResult = initializeDatabase();
+	if (isErr(dbResult)) {
+		return NextResponse.json(
+			{
+				success: false,
+				error: {
+					code: "DATABASE_ERROR",
+					message: `データベースの初期化に失敗しました: ${dbResult.error.message}`,
+				},
+			},
+			{ status: 500 },
 		);
 	}
 

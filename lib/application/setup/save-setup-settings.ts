@@ -1,8 +1,8 @@
 /**
  * セットアップ設定保存ユースケース
  *
- * セットアップ設定をKeychainと設定ファイルに保存する機能を提供します。
- * APIキーはKeychainに、プロバイダ設定はconfig.jsonに保存されます。
+ * セットアップ設定を暗号化DBと設定ファイルに保存する機能を提供します。
+ * APIキーは暗号化されてDBに、プロバイダ設定はconfig.jsonに保存されます。
  *
  * @module lib/application/setup/save-setup-settings
  *
@@ -63,15 +63,15 @@ function keyExistsError(): SaveSettingsError {
 }
 
 /**
- * Keychainエラーを生成
+ * シークレット保存エラーを生成
  *
  * @param cause - 元のエラー
- * @returns KEYCHAIN_ERRORエラー
+ * @returns KEYCHAIN_ERRORエラー（後方互換のためコード名は維持）
  */
-function keychainError(cause: unknown): SaveSettingsError {
+function secretStoreError(cause: unknown): SaveSettingsError {
 	return {
 		code: "KEYCHAIN_ERROR",
-		message: "Keychainへの保存に失敗しました。",
+		message: "認証情報の保存に失敗しました。",
 		cause,
 	};
 }
@@ -102,13 +102,13 @@ function configError(cause: unknown): SaveSettingsError {
  * ## 処理フロー
  * 1. 既存APIキーの存在確認
  * 2. overwriteExisting=falseかつ存在する場合はKEY_EXISTSエラー
- * 3. Keychainへの保存
+ * 3. 暗号化DBへの保存
  *    - Claude/OpenAI: apiKeyを保存
  *    - Ollama: baseUrlを保存（未指定の場合はデフォルト値）
  * 4. 設定ファイルの更新（llm.providerを更新）
  *
  * ## セキュリティ
- * - APIキーはKeychainにのみ保存され、設定ファイルには含まれません
+ * - APIキーは暗号化されてDBに保存され、設定ファイルには含まれません
  * - 入力されたapiKeyは参照渡しではなくコピーとして処理されます
  *
  * @param settings - セットアップ設定
@@ -152,7 +152,7 @@ export async function saveSetupSettings(
 	// ------------------------------------------------------------
 	const hasKeyResult = await hasSecret(secretKey);
 	if (isErr(hasKeyResult)) {
-		return err(keychainError(hasKeyResult.error));
+		return err(secretStoreError(hasKeyResult.error));
 	}
 
 	// overwriteExisting=falseかつ既存キーがある場合はエラー
@@ -161,7 +161,7 @@ export async function saveSetupSettings(
 	}
 
 	// ------------------------------------------------------------
-	// 2. Keychainへの保存
+	// 2. 暗号化DBへの保存
 	// ------------------------------------------------------------
 	// 保存する値を決定（参照ではなくコピーを使用）
 	const secretValue: string | undefined =
@@ -175,7 +175,7 @@ export async function saveSetupSettings(
 	if (secretValue !== undefined) {
 		const setResult = await setSecret(secretKey, secretValue);
 		if (isErr(setResult)) {
-			return err(keychainError(setResult.error));
+			return err(secretStoreError(setResult.error));
 		}
 	}
 
