@@ -54,6 +54,7 @@ import {
 	type OAuthTokens,
 	saveTokens,
 } from "@/lib/infrastructure/calendar";
+import { initializeDatabase } from "@/lib/infrastructure/db";
 
 // ============================================================
 // 型定義
@@ -135,8 +136,7 @@ function tokenExchangeError(cause: CalendarError): AddGoogleCalendarError {
 function tokenSaveError(cause: unknown): AddGoogleCalendarError {
 	return {
 		code: "TOKEN_SAVE_FAILED",
-		message:
-			"トークンの保存に失敗しました。Keychainへのアクセスを確認してください。",
+		message: "トークンの保存に失敗しました。",
 		cause,
 	};
 }
@@ -280,7 +280,7 @@ export function startGoogleAuth(): Result<AuthUrlInfo, AddGoogleCalendarError> {
  * ## 処理フロー
  *
  * 1. 認証コードをトークンに交換
- * 2. トークンを Keychain に保存
+ * 2. トークンを暗号化DBに保存
  * 3. ユーザーのメールアドレスを取得
  * 4. カレンダー一覧を取得
  * 5. 各カレンダーを設定に保存
@@ -328,8 +328,14 @@ export async function completeGoogleAuth(
 	const accountEmail = emailResult.value;
 
 	// ------------------------------------------------------------
-	// 3. トークンを Keychain に保存
+	// 3. トークンを暗号化DBに保存
 	// ------------------------------------------------------------
+	// データベースを初期化
+	const dbResult = initializeDatabase();
+	if (isErr(dbResult)) {
+		return err(tokenSaveError(dbResult.error));
+	}
+
 	const saveTokenResult = await saveTokens(accountEmail, tokens);
 	if (isErr(saveTokenResult)) {
 		return err(tokenSaveError(saveTokenResult.error));
