@@ -49,7 +49,8 @@ import {
 } from "@/lib/application/calendar";
 import type { CalendarEvent } from "@/lib/domain/calendar";
 import { isSome } from "@/lib/domain/shared/option";
-import { isOk } from "@/lib/domain/shared/result";
+import { isErr, isOk } from "@/lib/domain/shared/result";
+import { initializeDatabase } from "@/lib/infrastructure/db";
 
 /**
  * イベントのレスポンス形式
@@ -109,6 +110,20 @@ function toEventResponse(event: CalendarEvent): EventResponse {
  * @returns イベント一覧（events, lastSync）
  */
 export async function GET(request: NextRequest) {
+	// データベースを初期化
+	const dbResult = initializeDatabase();
+	if (isErr(dbResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "DATABASE_ERROR",
+					message: `データベースの初期化に失敗しました: ${dbResult.error.message}`,
+				},
+			},
+			{ status: 500 },
+		);
+	}
+
 	// クエリパラメータからrangeを取得
 	const { searchParams } = new URL(request.url);
 	const range = searchParams.get("range") || "today";
