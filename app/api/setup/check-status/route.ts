@@ -28,7 +28,8 @@
 
 import { NextResponse } from "next/server";
 import { checkSetupStatus } from "@/lib/application/setup";
-import { isOk } from "@/lib/domain/shared";
+import { isErr, isOk } from "@/lib/domain/shared";
+import { initializeDatabase } from "@/lib/infrastructure/db";
 
 /**
  * セットアップ状態を取得する
@@ -36,6 +37,20 @@ import { isOk } from "@/lib/domain/shared";
  * @returns セットアップ状態（isComplete, currentProvider, hasApiKey）
  */
 export async function GET() {
+	// データベースを初期化
+	const dbResult = initializeDatabase();
+	if (isErr(dbResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "DATABASE_ERROR",
+					message: `データベースの初期化に失敗しました: ${dbResult.error.message}`,
+				},
+			},
+			{ status: 500 },
+		);
+	}
+
 	const result = await checkSetupStatus();
 
 	if (isOk(result)) {

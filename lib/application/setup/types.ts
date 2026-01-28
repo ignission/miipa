@@ -329,10 +329,10 @@ export type SaveSettingsErrorCode =
  *   message: '既にAPIキーが設定されています。上書きする場合はoverwriteExistingをtrueに設定してください。',
  * };
  *
- * // Keychainエラー
- * const keychainError: SaveSettingsError = {
+ * // 認証情報保存エラー
+ * const secretError: SaveSettingsError = {
  *   code: 'KEYCHAIN_ERROR',
- *   message: 'Keychainへの保存に失敗しました。',
+ *   message: '認証情報の保存に失敗しました。',
  *   cause: originalError,
  * };
  * ```
