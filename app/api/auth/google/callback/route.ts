@@ -11,8 +11,8 @@
  * // Google OAuth からのリダイレクト
  * GET /api/auth/google/callback?code=xxx&state=xxx
  *
- * // 成功時: /setup?calendar=success にリダイレクト
- * // 失敗時: /setup?calendar=error&message=xxx にリダイレクト
+ * // 成功時: /settings/calendars?calendar=success にリダイレクト
+ * // 失敗時: /settings/calendars?calendar=error&message=xxx にリダイレクト
  * ```
  */
 
@@ -40,12 +40,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 	if (error) {
 		const errorDescription =
 			searchParams.get("error_description") || "認証がキャンセルされました";
-		return redirectToSetupWithError(errorDescription);
+		return redirectToCalendarsWithError(errorDescription);
 	}
 
 	// 認証コードがない場合
 	if (!code) {
-		return redirectToSetupWithError("認証コードが見つかりません");
+		return redirectToCalendarsWithError("認証コードが見つかりません");
 	}
 
 	// Cookie から code_verifier を取得
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 	const codeVerifier = cookieStore.get(CODE_VERIFIER_COOKIE)?.value;
 
 	if (!codeVerifier) {
-		return redirectToSetupWithError(
+		return redirectToCalendarsWithError(
 			"認証セッションが無効です。もう一度お試しください。",
 		);
 	}
@@ -63,8 +63,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 	// code_verifier Cookie を削除
 	const response = isOk(result)
-		? redirectToSetupWithSuccess()
-		: redirectToSetupWithError(result.error.message);
+		? redirectToCalendarsWithSuccess()
+		: redirectToCalendarsWithError(result.error.message);
 
 	// Cookie を削除するために Response を変更
 	response.cookies.delete(CODE_VERIFIER_COOKIE);
@@ -75,10 +75,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 /**
  * 成功時のリダイレクトレスポンスを生成
  */
-function redirectToSetupWithSuccess(): NextResponse {
+function redirectToCalendarsWithSuccess(): NextResponse {
 	return NextResponse.redirect(
 		new URL(
-			"/setup?calendar=success",
+			"/settings/calendars?calendar=success",
 			process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
 		),
 	);
@@ -89,9 +89,9 @@ function redirectToSetupWithSuccess(): NextResponse {
  *
  * @param message - エラーメッセージ
  */
-function redirectToSetupWithError(message: string): NextResponse {
+function redirectToCalendarsWithError(message: string): NextResponse {
 	const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-	const url = new URL("/setup", baseUrl);
+	const url = new URL("/settings/calendars", baseUrl);
 	url.searchParams.set("calendar", "error");
 	url.searchParams.set("message", message);
 	return NextResponse.redirect(url);
