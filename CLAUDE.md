@@ -44,6 +44,27 @@ npm run build
 - 30秒で今日を把握できるUI
 - シンプル、情報過多にしない
 
+### UI問題の調査
+
+UIの問題（スタイル、コントラスト、レイアウト等）が報告された場合は、ユーザーに確認を求めず**agent-browser**を使って自分で調査すること。
+
+```bash
+# ページを開く
+npx agent-browser open http://localhost:3333
+
+# 要素のスナップショットを取得
+npx agent-browser snapshot
+
+# 特定要素のスタイルを取得
+npx agent-browser get styles @e1
+
+# 要素のHTMLを取得
+npx agent-browser eval "document.querySelector('article').outerHTML"
+
+# ブラウザを閉じる
+npx agent-browser close
+```
+
 ### 仕様駆動開発
 
 spec-workflow MCP を使用して Requirements → Design → Tasks → Implementation の順序で進める。

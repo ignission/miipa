@@ -137,7 +137,8 @@ function DialogContent({
 			className={cx(
 				css({
 					position: "relative",
-					bg: "white",
+					bg: "bg.default",
+					color: "fg.default",
 					borderRadius: "lg",
 					boxShadow: "lg",
 					padding: "6",
@@ -177,7 +178,7 @@ function DialogTitle({
 				css({
 					fontSize: "lg",
 					fontWeight: "semibold",
-					color: "neutral.900",
+					color: "fg.default",
 					marginBottom: "2",
 				}),
 				className,
@@ -201,7 +202,7 @@ function DialogDescription({
 			className={cx(
 				css({
 					fontSize: "sm",
-					color: "neutral.500",
+					color: "fg.muted",
 					marginBottom: "4",
 				}),
 				className,
@@ -237,15 +238,15 @@ function DialogCloseTrigger({
 					bg: "transparent",
 					border: "none",
 					cursor: "pointer",
-					color: "neutral.500",
+					color: "fg.muted",
 					transition: "all 0.15s ease",
 					_hover: {
-						bg: "neutral.100",
-						color: "neutral.700",
+						bg: "bg.muted",
+						color: "fg.default",
 					},
 					_focus: {
 						outline: "2px solid",
-						outlineColor: "neutral.400",
+						outlineColor: "border.outline",
 						outlineOffset: "2px",
 					},
 				}),

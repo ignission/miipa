@@ -145,6 +145,7 @@ export function CalendarCard({
 				border: "1px solid",
 				borderColor: "border.default",
 				bg: "bg.default",
+				color: "fg.default",
 				opacity: calendar.enabled ? 1 : 0.5,
 				transition: "all 0.2s",
 			})}
@@ -207,12 +208,12 @@ export function CalendarCard({
 						cursor: "pointer",
 						transition: "all 0.2s",
 						_hover: {
-							bg: "red.50",
-							color: "red.600",
+							bg: "red.3",
+							color: "red.11",
 						},
 						_focus: {
 							outline: "2px solid",
-							outlineColor: "red.500",
+							outlineColor: "red.9",
 							outlineOffset: "2px",
 						},
 					})}

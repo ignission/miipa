@@ -10,9 +10,30 @@
  * ブラウザで /setup にアクセスするとセットアップウィザードが表示されます。
  */
 
+import { Suspense } from "react";
 import { SetupClientWrapper } from "@/components/setup/SetupClientWrapper";
 import { checkSetupStatus } from "@/lib/application/setup";
 import { isOk } from "@/lib/domain/shared";
+import { css } from "@/styled-system/css";
+
+/**
+ * ローディングフォールバック
+ */
+function SetupLoading() {
+	return (
+		<div
+			className={css({
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				minHeight: "100vh",
+				color: "fg.muted",
+			})}
+		>
+			読み込み中...
+		</div>
+	);
+}
 
 /**
  * セットアップページ
@@ -34,9 +55,11 @@ export default async function SetupPage() {
 		: undefined;
 
 	return (
-		<SetupClientWrapper
-			isExistingSetup={isExistingSetup}
-			currentProvider={currentProvider}
-		/>
+		<Suspense fallback={<SetupLoading />}>
+			<SetupClientWrapper
+				isExistingSetup={isExistingSetup}
+				currentProvider={currentProvider}
+			/>
+		</Suspense>
 	);
 }

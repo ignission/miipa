@@ -17,7 +17,7 @@ function SettingsIcon() {
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 24 24"
-			fill="#292524"
+			fill="currentColor"
 			className={css({ width: "6", height: "6" })}
 			aria-hidden="true"
 		>
@@ -60,8 +60,7 @@ export default async function HomePage() {
 				minHeight: "100vh",
 				display: "flex",
 				flexDirection: "column",
-				background:
-					"linear-gradient(180deg, #faf8f5 0%, #f5f0e8 50%, #ebe5d9 100%)",
+				bg: "bg.canvas",
 			})}
 		>
 			{/* ヘッダー: ロゴ・タイトル（左）、設定（右） */}
@@ -73,8 +72,8 @@ export default async function HomePage() {
 					py: "3",
 					px: "4",
 					borderBottom: "1px solid",
-					borderColor: "sand.4",
-					backgroundColor: "rgba(255, 255, 255, 0.6)",
+					borderColor: "border.default",
+					bg: "bg.default",
 					backdropFilter: "blur(8px)",
 				})}
 			>
@@ -104,14 +103,14 @@ export default async function HomePage() {
 							className={css({
 								fontSize: "xl",
 								fontWeight: "bold",
-								color: "#1c1917",
+								color: "fg.default",
 							})}
 						>
 							SoloDay
 						</h1>
 						<span
 							className={css({
-								color: "#57534e",
+								color: "fg.muted",
 								fontSize: "xs",
 								display: { base: "none", sm: "inline" },
 							})}
@@ -133,23 +132,22 @@ export default async function HomePage() {
 						width: "11",
 						height: "11",
 						borderRadius: "lg",
-						// 色: #292524 (stone-800) で高コントラスト
-						color: "#292524",
-						backgroundColor: "#f5f5f4",
+						color: "fg.default",
+						bg: "bg.subtle",
 						border: "1px solid",
-						borderColor: "#d6d3d1",
+						borderColor: "border.default",
 						transition: "all 0.2s ease",
 						_hover: {
-							color: "#b45309",
-							backgroundColor: "#fef3c7",
-							borderColor: "#fbbf24",
+							color: "fg.default",
+							bg: "bg.muted",
+							borderColor: "border.muted",
 							transform: "rotate(45deg)",
 						},
 						_focusVisible: {
-							outline: "3px solid #f59e0b",
+							outline: "3px solid",
+							outlineColor: "neutral.9",
 							outlineOffset: "2px",
-							color: "#b45309",
-							backgroundColor: "#fef3c7",
+							bg: "bg.muted",
 						},
 						_active: {
 							// アクティブ時: 押下感
@@ -184,7 +182,7 @@ export default async function HomePage() {
 					color: "fg.muted",
 					fontSize: "xs",
 					borderTop: "1px solid",
-					borderColor: "sand.3",
+					borderColor: "border.default",
 				})}
 			>
 				SoloDay v1.0

@@ -140,7 +140,8 @@ const tabBaseStyle = css({
 	userSelect: "none",
 	// フォーカス状態 - 視認性の高いフォーカスリング（最低3px、コントラスト比3:1以上）
 	_focusVisible: {
-		outline: "3px solid #f59e0b", // amber.500 - 白背景に対してコントラスト比3:1以上
+		outline: "3px solid",
+		outlineColor: "neutral.9",
 		outlineOffset: "2px",
 	},
 	// アクティブ押下時
@@ -151,19 +152,19 @@ const tabBaseStyle = css({
 
 /** アクティブタブのスタイル */
 const tabActiveStyle = css({
-	bg: "white",
-	color: "#d97706", // amber.600
-	boxShadow: "0 2px 8px rgba(245, 158, 11, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1)",
+	bg: "bg.default",
+	color: "fg.default",
+	boxShadow: "sm",
 	transform: "scale(1)",
 });
 
 /** 非アクティブタブのスタイル */
 const tabInactiveStyle = css({
 	bg: "transparent",
-	color: "#78716c", // stone.500 - コントラスト比4.5:1以上を確保
+	color: "fg.muted",
 	_hover: {
-		color: "#44403c", // stone.700
-		bg: "#fafaf9", // stone.50
+		color: "fg.default",
+		bg: "bg.subtle",
 		transform: "scale(1.02)",
 	},
 });
@@ -230,9 +231,9 @@ export function ViewTabs({ activeView, onViewChange }: ViewTabsProps) {
 				gap: "2",
 				p: "1.5",
 				borderRadius: "2xl",
-				bg: "#f5f5f4", // stone.100
+				bg: "bg.subtle",
 				border: "1px solid",
-				borderColor: "#e7e5e4", // stone.200
+				borderColor: "border.default",
 				boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)",
 			})}
 		>

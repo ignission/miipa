@@ -70,7 +70,11 @@ export function CalendarSetup({ onComplete }: CalendarSetupProps) {
 	const { calendars, isLoading, refetch } = useCalendars();
 
 	// Google OAuth認証
-	const { startAuth, isLoading: isAuthLoading, error: authError } = useAddGoogleCalendar();
+	const {
+		startAuth,
+		isLoading: isAuthLoading,
+		error: authError,
+	} = useAddGoogleCalendar();
 
 	// 通知メッセージ
 	const [notification, setNotification] = useState<{
@@ -169,7 +173,8 @@ export function CalendarSetup({ onComplete }: CalendarSetupProps) {
 					gap: "3",
 					width: "full",
 					p: "4",
-					bg: "white",
+					bg: "bg.default",
+					color: "fg.default",
 					border: "1px solid",
 					borderColor: "border.default",
 					borderRadius: "lg",
@@ -177,8 +182,8 @@ export function CalendarSetup({ onComplete }: CalendarSetupProps) {
 					cursor: "pointer",
 					transition: "all 0.15s ease",
 					_hover: {
-						bg: "neutral.50",
-						borderColor: "neutral.300",
+						bg: "bg.subtle",
+						borderColor: "border.muted",
 					},
 					_disabled: {
 						opacity: 0.6,
@@ -307,7 +312,7 @@ export function CalendarSetup({ onComplete }: CalendarSetupProps) {
 											color: "fg.muted",
 										})}
 									>
-										{calendar.provider === "google"
+										{calendar.type === "google"
 											? "Googleカレンダー"
 											: "iCal"}
 									</p>
@@ -333,7 +338,7 @@ export function CalendarSetup({ onComplete }: CalendarSetupProps) {
 						gap: "2",
 						px: "8",
 						py: "3",
-						bg: hasCalendars ? "accent.default" : "neutral.200",
+						bg: hasCalendars ? "accent.default" : "neutral.4",
 						color: hasCalendars ? "accent.fg" : "fg.muted",
 						borderRadius: "lg",
 						fontWeight: "medium",

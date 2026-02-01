@@ -96,23 +96,23 @@ function StepsItem({
 					gap: "2",
 					"&[data-current]": {
 						"& [data-part='indicator']": {
-							bg: "neutral.900",
+							bg: "neutral.12",
 							color: "white",
-							borderColor: "neutral.900",
+							borderColor: "neutral.12",
 						},
 						"& [data-part='title']": {
-							color: "neutral.900",
+							color: "fg.default",
 							fontWeight: "semibold",
 						},
 					},
 					"&[data-complete]": {
 						"& [data-part='indicator']": {
-							bg: "neutral.900",
+							bg: "neutral.12",
 							color: "white",
-							borderColor: "neutral.900",
+							borderColor: "neutral.12",
 						},
 						"& [data-part='separator']": {
-							bg: "neutral.900",
+							bg: "neutral.12",
 						},
 					},
 					// 最後のアイテムはflex-growしない
@@ -180,9 +180,9 @@ function StepsIndicator({
 					height: "8",
 					borderRadius: "full",
 					border: "2px solid",
-					borderColor: "neutral.300",
-					bg: "white",
-					color: "neutral.500",
+					borderColor: "border.default",
+					bg: "bg.default",
+					color: "fg.muted",
 					fontSize: "sm",
 					fontWeight: "medium",
 					flexShrink: 0,
@@ -211,7 +211,7 @@ function StepsSeparator({
 				css({
 					flex: "1",
 					height: "0.5",
-					bg: "neutral.200",
+					bg: "border.default",
 					transition: "all 0.2s ease",
 				}),
 				className,
@@ -278,7 +278,7 @@ function StepsTitle({ className, children, ...props }: ComponentProps<"span">) {
 			className={cx(
 				css({
 					fontSize: "sm",
-					color: "neutral.500",
+					color: "fg.muted",
 					transition: "all 0.2s ease",
 					whiteSpace: "nowrap",
 				}),

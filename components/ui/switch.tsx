@@ -72,15 +72,15 @@ function SwitchControl({
 					width: "11",
 					height: "6",
 					borderRadius: "full",
-					bg: "neutral.300",
+					bg: "neutral.6",
 					padding: "0.5",
 					transition: "background 0.2s ease",
 					flexShrink: 0,
 					"&[data-state='checked']": {
-						bg: "neutral.900",
+						bg: "neutral.12",
 					},
 					"&[data-disabled]": {
-						bg: "neutral.200",
+						bg: "neutral.4",
 					},
 				}),
 				className,
@@ -135,7 +135,7 @@ function SwitchLabel({
 			className={cx(
 				css({
 					fontSize: "sm",
-					color: "neutral.700",
+					color: "fg.default",
 					userSelect: "none",
 				}),
 				className,

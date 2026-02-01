@@ -72,7 +72,7 @@ function WarningIcon() {
 			className={css({
 				width: "3.5",
 				height: "3.5",
-				color: "orange.500",
+				color: "red.9",
 				flexShrink: 0,
 			})}
 			aria-hidden="true"
@@ -127,7 +127,7 @@ export function SyncStatusBadge({
 				alignItems: "center",
 				gap: "1",
 				fontSize: "xs",
-				color: hasError ? "orange.600" : "fg.muted",
+				color: hasError ? "red.11" : "fg.muted",
 			})}
 			title={lastSyncTime.toLocaleString("ja-JP")}
 		>

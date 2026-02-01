@@ -165,6 +165,7 @@ const baseCardStyle = css({
 	p: "4",
 	borderRadius: "lg",
 	bg: "bg.default",
+	color: "fg.default",
 	border: "1px solid",
 	borderColor: "border.default",
 	boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)",
@@ -230,7 +231,7 @@ export function EventCard({ event, color }: EventCardProps) {
 						display: "inline-block",
 						fontSize: "sm",
 						fontWeight: "bold",
-						color: "#b45309",
+						color: "fg.muted",
 						mb: "1",
 						letterSpacing: "tight",
 					})}
@@ -260,7 +261,7 @@ export function EventCard({ event, color }: EventCardProps) {
 							alignItems: "center",
 							gap: "1.5",
 							mt: "2",
-							color: "#57534e",
+							color: "fg.muted",
 							fontSize: "sm",
 						})}
 					>
@@ -283,7 +284,7 @@ export function EventCard({ event, color }: EventCardProps) {
 						alignItems: "center",
 						gap: "1.5",
 						mt: "1.5",
-						color: "#78716c",
+						color: "fg.muted",
 						fontSize: "xs",
 					})}
 				>

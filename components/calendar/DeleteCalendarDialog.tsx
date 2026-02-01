@@ -111,7 +111,7 @@ export function DeleteCalendarDialog({
 					<Dialog.Description>
 						<strong
 							className={css({
-								color: "neutral.900",
+								color: "fg.default",
 								fontWeight: "semibold",
 							})}
 						>
@@ -123,7 +123,7 @@ export function DeleteCalendarDialog({
 					<p
 						className={css({
 							fontSize: "sm",
-							color: "neutral.500",
+							color: "fg.muted",
 							mb: "4",
 						})}
 					>
@@ -146,6 +146,7 @@ export function DeleteCalendarDialog({
 								px: "4",
 								py: "2",
 								bg: "transparent",
+								color: "fg.default",
 								border: "1px solid",
 								borderColor: "border.default",
 								borderRadius: "md",
@@ -153,7 +154,7 @@ export function DeleteCalendarDialog({
 								cursor: "pointer",
 								transition: "all 0.15s ease",
 								_hover: {
-									bg: "neutral.50",
+									bg: "bg.subtle",
 								},
 								_disabled: {
 									opacity: 0.6,
@@ -170,15 +171,15 @@ export function DeleteCalendarDialog({
 							className={css({
 								px: "4",
 								py: "2",
-								bg: "red.500",
-								color: "white",
+								bg: "red.9",
+								color: "red.fg",
 								borderRadius: "md",
 								fontWeight: "medium",
 								cursor: "pointer",
 								border: "none",
 								transition: "all 0.15s ease",
 								_hover: {
-									bg: "red.600",
+									bg: "red.10",
 								},
 								_disabled: {
 									opacity: 0.6,

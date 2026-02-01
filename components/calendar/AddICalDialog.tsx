@@ -226,7 +226,7 @@ export function AddICalDialog({
 									className={css({ fontWeight: "medium", fontSize: "sm" })}
 								>
 									カレンダー名
-									<span className={css({ color: "neutral.400", ml: "1" })}>
+									<span className={css({ color: "fg.subtle", ml: "1" })}>
 										（任意）
 									</span>
 								</label>
@@ -284,6 +284,7 @@ export function AddICalDialog({
 										px: "4",
 										py: "2",
 										bg: "transparent",
+										color: "fg.default",
 										border: "1px solid",
 										borderColor: "border.default",
 										borderRadius: "md",
@@ -291,7 +292,7 @@ export function AddICalDialog({
 										cursor: "pointer",
 										transition: "all 0.15s ease",
 										_hover: {
-											bg: "neutral.50",
+											bg: "bg.subtle",
 										},
 										_disabled: {
 											opacity: 0.6,

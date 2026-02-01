@@ -78,7 +78,8 @@ export function AddGoogleCalendarButton({
 				gap: "2",
 				width: "full",
 				p: "3",
-				bg: "white",
+				bg: "bg.default",
+				color: "fg.default",
 				border: "1px solid",
 				borderColor: "border.default",
 				borderRadius: "md",
@@ -86,8 +87,8 @@ export function AddGoogleCalendarButton({
 				cursor: "pointer",
 				transition: "all 0.15s ease",
 				_hover: {
-					bg: "neutral.50",
-					borderColor: "neutral.300",
+					bg: "bg.subtle",
+					borderColor: "border.muted",
 				},
 				_disabled: {
 					opacity: 0.6,

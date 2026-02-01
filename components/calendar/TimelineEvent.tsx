@@ -70,27 +70,68 @@ const DEFAULT_COLOR = "#6b7280";
 const COLUMN_GAP = 2;
 
 /**
- * ステータス別のスタイル設定
+ * ステータス別のスタイル設定（Panda CSSクラス）
+ * ダークモード対応のセマンティックトークンを使用
  */
 const STATUS_STYLES: Record<
 	EventStatus,
-	{ backgroundColor: string; opacity: number }
+	{ className: string; opacity: number }
 > = {
-	past: { backgroundColor: "#f3f4f6", opacity: 0.5 },
-	current: { backgroundColor: "#fef3c7", opacity: 1 },
-	next: { backgroundColor: "#dbeafe", opacity: 1 },
-	future: { backgroundColor: "#ffffff", opacity: 1 },
+	past: {
+		className: css({
+			backgroundColor: "bg.muted",
+			_dark: { backgroundColor: "gray.dark.3" },
+		}),
+		opacity: 0.5,
+	},
+	current: {
+		className: css({
+			backgroundColor: "colorPalette.light.3",
+			colorPalette: "red",
+			_dark: { backgroundColor: "colorPalette.dark.3" },
+		}),
+		opacity: 1,
+	},
+	next: {
+		className: css({
+			backgroundColor: "colorPalette.light.3",
+			colorPalette: "gray",
+			_dark: { backgroundColor: "colorPalette.dark.4" },
+		}),
+		opacity: 1,
+	},
+	future: {
+		className: css({
+			backgroundColor: "bg.default",
+		}),
+		opacity: 1,
+	},
 };
 
 /**
- * バッジ設定
+ * バッジ設定（Panda CSSクラス）
+ * ダークモード対応
  */
 const BADGE_CONFIG: Record<
 	"current" | "next",
-	{ text: string; backgroundColor: string; color: string }
+	{ text: string; className: string }
 > = {
-	current: { text: "NOW", backgroundColor: "#dc2626", color: "#ffffff" },
-	next: { text: "NEXT", backgroundColor: "#2563eb", color: "#ffffff" },
+	current: {
+		text: "NOW",
+		className: css({
+			backgroundColor: "red.light.9",
+			color: "white",
+			_dark: { backgroundColor: "red.dark.9" },
+		}),
+	},
+	next: {
+		text: "NEXT",
+		className: css({
+			backgroundColor: "gray.light.9",
+			color: "white",
+			_dark: { backgroundColor: "gray.dark.9" },
+		}),
+	},
 };
 
 // ============================================================
@@ -188,21 +229,20 @@ function StatusBadge({ status }: { status: EventStatus }) {
 
 	return (
 		<span
-			className={css({
-				position: "absolute",
-				top: "1",
-				right: "1",
-				fontSize: "10px",
-				fontWeight: "bold",
-				px: "1.5",
-				py: "0.5",
-				borderRadius: "full",
-				lineHeight: 1,
-			})}
-			style={{
-				backgroundColor: config.backgroundColor,
-				color: config.color,
-			}}
+			className={cx(
+				css({
+					position: "absolute",
+					top: "1",
+					right: "1",
+					fontSize: "10px",
+					fontWeight: "bold",
+					px: "1.5",
+					py: "0.5",
+					borderRadius: "full",
+					lineHeight: 1,
+				}),
+				config.className,
+			)}
 		>
 			{config.text}
 		</span>
@@ -274,14 +314,13 @@ export function TimelineEvent({ event, dayStart, dayEnd }: TimelineEventProps) {
 
 	return (
 		<article
-			className={cx(baseCardStyle)}
+			className={cx(baseCardStyle, statusStyle.className)}
 			style={{
 				top: `${position.top}%`,
 				height: `${position.height}%`,
 				minHeight: "70px",
 				left: cardLeft,
 				width: cardWidth,
-				backgroundColor: statusStyle.backgroundColor,
 				opacity: statusStyle.opacity,
 			}}
 		>
