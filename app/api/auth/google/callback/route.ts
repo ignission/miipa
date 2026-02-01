@@ -63,7 +63,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 	// デバッグログ
 	if (!isOk(result)) {
-		console.error("[Google OAuth] Error:", JSON.stringify(result.error, null, 2));
+		console.error(
+			"[Google OAuth] Error:",
+			JSON.stringify(result.error, null, 2),
+		);
 	}
 
 	// code_verifier Cookie を削除
