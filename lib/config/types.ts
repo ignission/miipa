@@ -296,7 +296,7 @@ export type UIConfig = z.infer<typeof UIConfigSchema>;
  * アプリケーション設定のZodスキーマ
  *
  * SoloDayアプリケーション全体の設定を定義するルートスキーマです。
- * このスキーマを使用して `~/.soloday/config.json` をバリデーションします。
+ * このスキーマを使用してD1のsettingsテーブルの値をバリデーションします。
  *
  * @remarks
  * - `version`: 設定ファイルのバージョン（マイグレーション用）
@@ -338,7 +338,7 @@ export const AppConfigSchema = z.object({
  * 型チェックが完全に一致することを保証しています。
  *
  * @remarks
- * 設定ファイルは `~/.soloday/config.json` に保存されます。
+ * 設定はCloudflare D1のsettingsテーブルに保存されます。
  * readonlyプロパティとして扱うことで、不変性を保証します。
  *
  * @example

@@ -1,82 +1,11 @@
 /**
- * SQLiteデータベース型定義モジュール
+ * データベース型定義モジュール
  *
- * better-sqlite3を使用したデータベース接続に関する型定義を提供します。
+ * Cloudflare D1を使用したデータベース操作に関する型定義を提供します。
  * 型安全なデータベース操作を実現するための基盤型です。
  *
  * @module lib/infrastructure/db/types
- *
- * @example
- * ```typescript
- * import type { DatabaseConfig, DatabaseConnection, MigrationInfo } from '@/lib/infrastructure/db/types';
- *
- * const config: DatabaseConfig = {
- *   path: '~/.soloday/db.sqlite',
- *   verbose: true,
- * };
- * ```
  */
-
-import type Database from "better-sqlite3";
-
-// ============================================================
-// 接続関連の型定義
-// ============================================================
-
-/**
- * データベース接続設定
- *
- * SQLiteデータベースの接続に必要な設定を定義します。
- */
-export interface DatabaseConfig {
-	/** データベースファイルのパス */
-	readonly path: string;
-	/** SQLログを出力するかどうか（開発時のデバッグ用） */
-	readonly verbose?: boolean;
-	/** 読み取り専用モードで開くかどうか */
-	readonly readonly?: boolean;
-	/** ファイルが存在しない場合に例外をスローするかどうか */
-	readonly fileMustExist?: boolean;
-}
-
-/**
- * データベース接続オブジェクトの型エイリアス
- *
- * better-sqlite3のDatabaseインスタンスへの型付き参照を提供します。
- */
-export type DatabaseConnection = Database.Database;
-
-// ============================================================
-// マイグレーション関連の型定義
-// ============================================================
-
-/**
- * マイグレーション情報
- *
- * 実行済みマイグレーションの追跡に使用します。
- */
-export interface MigrationInfo {
-	/** マイグレーションID（ファイル名から抽出） */
-	readonly id: number;
-	/** マイグレーション名 */
-	readonly name: string;
-	/** 実行日時 */
-	readonly executedAt: Date;
-}
-
-/**
- * マイグレーションファイルの情報
- *
- * マイグレーションの実行順序管理に使用します。
- */
-export interface MigrationFile {
-	/** マイグレーションID（ファイル名のプレフィックス番号） */
-	readonly id: number;
-	/** マイグレーション名（拡張子を除くファイル名） */
-	readonly name: string;
-	/** マイグレーションファイルのフルパス */
-	readonly path: string;
-}
 
 // ============================================================
 // 設定テーブル関連の型定義
@@ -113,7 +42,7 @@ export type DatabaseErrorCode =
 /**
  * データベースエラー
  *
- * SQLite操作に関するエラーを表現します。
+ * D1操作に関するエラーを表現します。
  */
 export interface DatabaseError {
 	/** エラーコード（型判別に使用） */

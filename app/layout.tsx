@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "@/styled-system/styles.css";
 
 export const metadata: Metadata = {
 	title: "SoloDay",

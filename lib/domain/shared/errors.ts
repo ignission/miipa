@@ -82,7 +82,7 @@ export type ConfigErrorCode =
  * ```typescript
  * const error: ConfigError = {
  *   code: 'CONFIG_NOT_FOUND',
- *   message: '設定ファイルが見つかりません: ~/.soloday/config.json',
+ *   message: '設定が見つかりません',
  * };
  * ```
  */
@@ -100,7 +100,7 @@ export interface ConfigError extends AppError {
  *
  * @example
  * ```typescript
- * return err(configNotFound('~/.soloday/config.json が見つかりません'));
+ * return err(configNotFound('設定が見つかりません'));
  * ```
  */
 export function configNotFound(message?: string, cause?: unknown): ConfigError {
@@ -215,7 +215,7 @@ export type FileSystemErrorCode =
  * const error: FileSystemError = {
  *   code: 'FILE_NOT_FOUND',
  *   message: 'ファイルが見つかりません',
- *   path: '~/.soloday/db.sqlite',
+ *   path: '/data/example.db',
  * };
  * ```
  */
@@ -421,7 +421,7 @@ export function keychainAccessDenied(
  *
  * @example
  * ```typescript
- * const secret = await keytar.getPassword(service, key);
+ * const secret = await getSecret(service, key);
  * if (secret === null) {
  *   return err(keychainItemNotFound('com.soloday.app', `キー "${key}" が見つかりません`));
  * }
@@ -455,7 +455,7 @@ export function keychainItemNotFound(
  * @example
  * ```typescript
  * try {
- *   await keytar.setPassword(service, key, value);
+ *   await setSecret(service, key, value);
  * } catch (e) {
  *   return err(keychainWriteFailed('com.soloday.app', '認証情報の保存に失敗しました', e));
  * }

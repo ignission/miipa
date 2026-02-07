@@ -42,18 +42,10 @@ export { getD1Connection } from "./d1-connection";
 // ============================================================
 
 export type {
-	/** データベース接続設定 */
-	DatabaseConfig,
-	/** データベース接続オブジェクト型 */
-	DatabaseConnection,
 	/** データベースエラー */
 	DatabaseError,
 	/** データベースエラーコード */
 	DatabaseErrorCode,
-	/** マイグレーションファイル情報 */
-	MigrationFile,
-	/** マイグレーション情報 */
-	MigrationInfo,
 	/** 設定値の行データ */
 	SettingRow,
 } from "./types";
