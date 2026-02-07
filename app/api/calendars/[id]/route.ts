@@ -54,10 +54,15 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server";
-import { loadConfig, saveConfig } from "@/lib/config";
-import { isErr, isSome } from "@/lib/domain/shared";
+import { auth } from "@/auth";
+import { createCalendarContext } from "@/lib/context/calendar-context";
+import { isOk } from "@/lib/domain/shared/result";
 import { createCalendarId } from "@/lib/domain/shared/types";
-import { getDatabase, SqliteEventRepository } from "@/lib/infrastructure/db";
+import {
+	getD1Database,
+	getEncryptionKey,
+} from "@/lib/infrastructure/cloudflare/bindings";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 /**
  * ルートパラメータの型定義
@@ -79,28 +84,85 @@ export async function DELETE(
 	_request: NextRequest,
 	{ params }: RouteParams,
 ): Promise<NextResponse> {
-	const { id } = await params;
-
-	// 設定を読み込み
-	const configResult = await loadConfig();
-	if (isErr(configResult)) {
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
 		return NextResponse.json(
 			{
 				error: {
-					code: configResult.error.code,
-					message: configResult.error.message,
+					code: "UNAUTHORIZED",
+					message: "認証が必要です",
+				},
+			},
+			{ status: 401 },
+		);
+	}
+
+	// D1コンテキスト作成
+	const dbResult = getD1Database();
+	if (!isOk(dbResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "DB_ERROR",
+					message: "データベース接続エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const keyResult = getEncryptionKey();
+	if (!isOk(keyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キー取得エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+	if (!isOk(cryptoKeyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キーインポートエラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const ctx = createCalendarContext(
+		dbResult.value,
+		session.user.id,
+		cryptoKeyResult.value,
+	);
+
+	const { id } = await params;
+
+	// カレンダー設定を取得
+	const settingResult = await ctx.configRepository.getSetting("calendars");
+	if (!isOk(settingResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "DB_ERROR",
+					message: "設定取得エラー",
 				},
 			},
 			{ status: 500 },
 		);
 	}
 
-	const config = configResult.value;
+	// カレンダー一覧をパース
+	const calendars: unknown[] =
+		settingResult.value !== null ? JSON.parse(settingResult.value) : [];
 
 	// 対象のカレンダーを検索
-	const calendarIndex = config.calendars.findIndex(
-		(cal) => (cal.id as string) === id,
-	);
+	const calendarIndex = calendars.findIndex((cal: any) => cal.id === id);
 
 	if (calendarIndex === -1) {
 		return NextResponse.json(
@@ -116,22 +178,21 @@ export async function DELETE(
 
 	// カレンダーを配列から削除
 	const updatedCalendars = [
-		...config.calendars.slice(0, calendarIndex),
-		...config.calendars.slice(calendarIndex + 1),
+		...calendars.slice(0, calendarIndex),
+		...calendars.slice(calendarIndex + 1),
 	];
 
 	// 更新した設定を保存
-	const saveResult = await saveConfig({
-		...config,
-		calendars: updatedCalendars,
-	});
-
-	if (isErr(saveResult)) {
+	const saveResult = await ctx.configRepository.setSetting(
+		"calendars",
+		JSON.stringify(updatedCalendars),
+	);
+	if (!isOk(saveResult)) {
 		return NextResponse.json(
 			{
 				error: {
 					code: "CONFIG_SAVE_ERROR",
-					message: saveResult.error.message,
+					message: "設定の保存に失敗しました",
 				},
 			},
 			{ status: 500 },
@@ -139,18 +200,13 @@ export async function DELETE(
 	}
 
 	// キャッシュされたイベントを削除
-	const dbOption = getDatabase();
-	if (isSome(dbOption)) {
-		const repository = new SqliteEventRepository(dbOption.value);
-		const calendarId = createCalendarId(id);
-		const deleteResult = await repository.deleteByCalendar(calendarId);
-
-		if (isErr(deleteResult)) {
-			// イベント削除に失敗しても、カレンダー自体は削除済みなので警告ログのみ
-			console.warn(
-				`カレンダー ${id} のキャッシュイベント削除に失敗しました: ${deleteResult.error.message}`,
-			);
-		}
+	const calendarId = createCalendarId(id);
+	const deleteResult = await ctx.eventRepository.deleteByCalendar(calendarId);
+	if (!isOk(deleteResult)) {
+		// イベント削除に失敗しても、カレンダー自体は削除済みなので警告ログのみ
+		console.warn(
+			`カレンダー ${id} のキャッシュイベント削除に失敗しました: ${deleteResult.error.message}`,
+		);
 	}
 
 	// 成功: 204 No Content を返す
@@ -168,6 +224,63 @@ export async function PATCH(
 	request: NextRequest,
 	{ params }: RouteParams,
 ): Promise<NextResponse> {
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "UNAUTHORIZED",
+					message: "認証が必要です",
+				},
+			},
+			{ status: 401 },
+		);
+	}
+
+	// D1コンテキスト作成
+	const dbResult = getD1Database();
+	if (!isOk(dbResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "DB_ERROR",
+					message: "データベース接続エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const keyResult = getEncryptionKey();
+	if (!isOk(keyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キー取得エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+	if (!isOk(cryptoKeyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キーインポートエラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const ctx = createCalendarContext(
+		dbResult.value,
+		session.user.id,
+		cryptoKeyResult.value,
+	);
+
 	const { id } = await params;
 
 	// リクエストボディをパース
@@ -206,26 +319,25 @@ export async function PATCH(
 
 	const { enabled } = body as { enabled: boolean };
 
-	// 設定を読み込み
-	const configResult = await loadConfig();
-	if (isErr(configResult)) {
+	// カレンダー設定を取得
+	const settingResult = await ctx.configRepository.getSetting("calendars");
+	if (!isOk(settingResult)) {
 		return NextResponse.json(
 			{
 				error: {
-					code: configResult.error.code,
-					message: configResult.error.message,
+					code: "DB_ERROR",
+					message: "設定取得エラー",
 				},
 			},
 			{ status: 500 },
 		);
 	}
 
-	const config = configResult.value;
+	const calendars: any[] =
+		settingResult.value !== null ? JSON.parse(settingResult.value) : [];
 
 	// 対象のカレンダーを検索
-	const calendarIndex = config.calendars.findIndex(
-		(cal) => (cal.id as string) === id,
-	);
+	const calendarIndex = calendars.findIndex((cal: any) => cal.id === id);
 
 	if (calendarIndex === -1) {
 		return NextResponse.json(
@@ -240,29 +352,25 @@ export async function PATCH(
 	}
 
 	// カレンダーの enabled フィールドを更新
-	const updatedCalendar = {
-		...config.calendars[calendarIndex],
-		enabled,
-	};
+	const updatedCalendar = { ...calendars[calendarIndex], enabled };
 
 	const updatedCalendars = [
-		...config.calendars.slice(0, calendarIndex),
+		...calendars.slice(0, calendarIndex),
 		updatedCalendar,
-		...config.calendars.slice(calendarIndex + 1),
+		...calendars.slice(calendarIndex + 1),
 	];
 
 	// 更新した設定を保存
-	const saveResult = await saveConfig({
-		...config,
-		calendars: updatedCalendars,
-	});
-
-	if (isErr(saveResult)) {
+	const saveResult = await ctx.configRepository.setSetting(
+		"calendars",
+		JSON.stringify(updatedCalendars),
+	);
+	if (!isOk(saveResult)) {
 		return NextResponse.json(
 			{
 				error: {
 					code: "CONFIG_SAVE_ERROR",
-					message: saveResult.error.message,
+					message: "設定の保存に失敗しました",
 				},
 			},
 			{ status: 500 },

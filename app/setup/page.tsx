@@ -11,9 +11,17 @@
  */
 
 import { Suspense } from "react";
+import { auth } from "@/auth";
 import { SetupClientWrapper } from "@/components/setup/SetupClientWrapper";
 import { checkSetupStatus } from "@/lib/application/setup";
+import type { LLMProvider } from "@/lib/config/types";
+import { createCalendarContext } from "@/lib/context/calendar-context";
 import { isOk } from "@/lib/domain/shared";
+import {
+	getD1Database,
+	getEncryptionKey,
+} from "@/lib/infrastructure/cloudflare/bindings";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 import { css } from "@/styled-system/css";
 
 /**
@@ -46,13 +54,34 @@ function SetupLoading() {
  */
 export default async function SetupPage() {
 	// サーバーサイドでセットアップ状態を取得
-	const statusResult = await checkSetupStatus();
+	const session = await auth();
 
-	// セットアップ状態から初期値を決定
-	const isExistingSetup = isOk(statusResult) && statusResult.value.isComplete;
-	const currentProvider = isOk(statusResult)
-		? statusResult.value.currentProvider
-		: undefined;
+	// 認証済みかつD1接続可能な場合のみセットアップ状態を取得
+	let isExistingSetup = false;
+	let currentProvider: LLMProvider | undefined;
+
+	if (session?.user?.id) {
+		const dbResult = getD1Database();
+		const keyResult = getEncryptionKey();
+
+		if (isOk(dbResult) && isOk(keyResult)) {
+			const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+
+			if (isOk(cryptoKeyResult)) {
+				const ctx = createCalendarContext(
+					dbResult.value,
+					session.user.id,
+					cryptoKeyResult.value,
+				);
+				const statusResult = await checkSetupStatus(ctx);
+
+				isExistingSetup = isOk(statusResult) && statusResult.value.isComplete;
+				currentProvider = isOk(statusResult)
+					? statusResult.value.currentProvider
+					: undefined;
+			}
+		}
+	}
 
 	return (
 		<Suspense fallback={<SetupLoading />}>

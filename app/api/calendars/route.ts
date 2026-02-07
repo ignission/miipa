@@ -2,6 +2,7 @@
  * カレンダー一覧 API エンドポイント
  *
  * 設定に登録されているカレンダー一覧を取得します。
+ * 認証済みユーザーのD1データベースからカレンダー設定を取得します。
  *
  * @endpoint GET /api/calendars
  *
@@ -19,16 +20,27 @@
  * //   ]
  * // }
  *
+ * // エラーレスポンス (401)
+ * // {
+ * //   error: { code: 'UNAUTHORIZED', message: '認証が必要です' }
+ * // }
+ *
  * // エラーレスポンス (500)
  * // {
- * //   error: { code: 'CONFIG_PARSE_ERROR', message: '設定ファイルの読み込みに失敗しました' }
+ * //   error: { code: 'DB_ERROR', message: 'データベース接続エラー' }
  * // }
  * ```
  */
 
 import { NextResponse } from "next/server";
-import { loadConfig } from "@/lib/config";
-import { isOk } from "@/lib/domain/shared";
+import { auth } from "@/auth";
+import { createCalendarContext } from "@/lib/context/calendar-context";
+import { isOk } from "@/lib/domain/shared/result";
+import {
+	getD1Database,
+	getEncryptionKey,
+} from "@/lib/infrastructure/cloudflare/bindings";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 /**
  * カレンダー一覧を取得する
@@ -36,24 +48,86 @@ import { isOk } from "@/lib/domain/shared";
  * @returns カレンダー設定の配列
  */
 export async function GET() {
-	const result = await loadConfig();
-
-	if (isOk(result)) {
-		return NextResponse.json({
-			calendars: result.value.calendars,
-		});
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
+		return NextResponse.json(
+			{
+				error: { code: "UNAUTHORIZED", message: "認証が必要です" },
+			},
+			{ status: 401 },
+		);
 	}
 
-	// 設定ファイルが見つからない場合は空配列を返す
-	if (result.error.code === "CONFIG_NOT_FOUND") {
-		return NextResponse.json({
-			calendars: [],
-		});
+	// D1コンテキスト作成
+	const dbResult = getD1Database();
+	if (!isOk(dbResult)) {
+		return NextResponse.json(
+			{
+				error: { code: "DB_ERROR", message: "データベース接続エラー" },
+			},
+			{ status: 500 },
+		);
 	}
-
-	// その他のエラー時は500を返す
-	return NextResponse.json(
-		{ error: { code: result.error.code, message: result.error.message } },
-		{ status: 500 },
+	const keyResult = getEncryptionKey();
+	if (!isOk(keyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キー取得エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+	if (!isOk(cryptoKeyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キーインポートエラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const ctx = createCalendarContext(
+		dbResult.value,
+		session.user.id,
+		cryptoKeyResult.value,
 	);
+
+	// カレンダー一覧取得
+	const settingResult = await ctx.configRepository.getSetting("calendars");
+	if (!isOk(settingResult)) {
+		return NextResponse.json(
+			{
+				error: { code: "DB_ERROR", message: "設定取得エラー" },
+			},
+			{ status: 500 },
+		);
+	}
+
+	// 設定が見つからない場合は空配列を返す
+	if (settingResult.value === null) {
+		return NextResponse.json({ calendars: [] });
+	}
+
+	// JSON文字列をパースして返す
+	try {
+		const calendars = JSON.parse(settingResult.value);
+		return NextResponse.json({ calendars });
+	} catch {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_PARSE_ERROR",
+					message: "カレンダー設定のパースに失敗しました",
+				},
+			},
+			{ status: 500 },
+		);
+	}
 }

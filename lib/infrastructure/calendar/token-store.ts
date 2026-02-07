@@ -15,16 +15,19 @@
  *   isTokenExpired,
  *   type OAuthTokens,
  * } from '@/lib/infrastructure/calendar/token-store';
+ * import { D1SecretRepository } from '@/lib/infrastructure/secret/d1-secret-repository';
+ *
+ * const secretRepo = new D1SecretRepository(db, userId, encryptionKey);
  *
  * // トークンを保存
- * await saveTokens('user@gmail.com', {
+ * await saveTokens(secretRepo, 'user@gmail.com', {
  *   accessToken: 'ya29.xxx',
  *   refreshToken: '1//xxx',
  *   expiresAt: new Date(Date.now() + 3600 * 1000),
  * });
  *
  * // トークンを取得
- * const result = await getTokens('user@gmail.com');
+ * const result = await getTokens(secretRepo, 'user@gmail.com');
  * if (result._tag === 'Ok' && result.value._tag === 'Some') {
  *   const tokens = result.value.value;
  *   if (isTokenExpired(tokens)) {
@@ -35,11 +38,7 @@
  */
 
 import { none, type Option, ok, type Result, some } from "@/lib/domain/shared";
-import {
-	deleteSecret,
-	getSecret,
-	setSecret,
-} from "@/lib/infrastructure/secret/secret-repository";
+import type { D1SecretRepository } from "@/lib/infrastructure/secret/d1-secret-repository";
 import {
 	createGoogleOAuthKey,
 	type SecretError,
@@ -85,13 +84,14 @@ interface StoredTokens {
  * 指定されたアカウントのOAuthトークンをSQLiteに暗号化して保存します。
  * 同じアカウントのトークンが既に存在する場合は上書きします。
  *
+ * @param secretRepo - D1SecretRepositoryインスタンス
  * @param accountEmail - Googleアカウントのメールアドレス
  * @param tokens - 保存するOAuthトークン
  * @returns 成功時はOk(void)、失敗時はErr(SecretError)
  *
  * @example
  * ```typescript
- * const result = await saveTokens('user@gmail.com', {
+ * const result = await saveTokens(secretRepo, 'user@gmail.com', {
  *   accessToken: 'ya29.xxx',
  *   refreshToken: '1//xxx',
  *   expiresAt: new Date(Date.now() + 3600 * 1000),
@@ -103,6 +103,7 @@ interface StoredTokens {
  * ```
  */
 export async function saveTokens(
+	secretRepo: D1SecretRepository,
 	accountEmail: string,
 	tokens: OAuthTokens,
 ): Promise<Result<void, SecretError>> {
@@ -113,7 +114,7 @@ export async function saveTokens(
 		expiresAt: tokens.expiresAt.toISOString(),
 	};
 
-	return setSecret(key, JSON.stringify(stored));
+	return secretRepo.setSecret(key, JSON.stringify(stored));
 }
 
 /**
@@ -123,12 +124,13 @@ export async function saveTokens(
  * トークンが存在しない場合は `Ok(None)` を返します。
  * トークンのパースに失敗した場合も `Ok(None)` を返します（破損データとして扱う）。
  *
+ * @param secretRepo - D1SecretRepositoryインスタンス
  * @param accountEmail - Googleアカウントのメールアドレス
  * @returns トークンを含むResult<Option<OAuthTokens>, SecretError>
  *
  * @example
  * ```typescript
- * const result = await getTokens('user@gmail.com');
+ * const result = await getTokens(secretRepo, 'user@gmail.com');
  *
  * if (result._tag === 'Ok' && result.value._tag === 'Some') {
  *   const tokens = result.value.value;
@@ -137,24 +139,26 @@ export async function saveTokens(
  * ```
  */
 export async function getTokens(
+	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<Option<OAuthTokens>, SecretError>> {
 	const key = createGoogleOAuthKey(accountEmail);
 
-	const result = await getSecret(key);
+	const result = await secretRepo.getSecret(key);
 
 	if (result._tag === "Err") {
 		return result;
 	}
 
-	const secretOption = result.value;
+	const secretValue = result.value;
 
-	if (secretOption._tag === "None") {
+	// D1SecretRepositoryのgetSecretはnullを返す（旧版はOption型）
+	if (secretValue === null) {
 		return ok(none());
 	}
 
 	try {
-		const stored: StoredTokens = JSON.parse(secretOption.value);
+		const stored: StoredTokens = JSON.parse(secretValue);
 		return ok(
 			some({
 				accessToken: stored.accessToken,
@@ -174,12 +178,13 @@ export async function getTokens(
  * 指定されたアカウントのOAuthトークンをSQLiteから削除します。
  * トークンが存在しない場合も成功として扱います。
  *
+ * @param secretRepo - D1SecretRepositoryインスタンス
  * @param accountEmail - Googleアカウントのメールアドレス
  * @returns 成功時はOk(void)、失敗時はErr(SecretError)
  *
  * @example
  * ```typescript
- * const result = await deleteTokens('user@gmail.com');
+ * const result = await deleteTokens(secretRepo, 'user@gmail.com');
  *
  * if (result._tag === 'Ok') {
  *   console.log('トークンを削除しました');
@@ -187,11 +192,12 @@ export async function getTokens(
  * ```
  */
 export async function deleteTokens(
+	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<void, SecretError>> {
 	const key = createGoogleOAuthKey(accountEmail);
 
-	return deleteSecret(key);
+	return secretRepo.deleteSecret(key);
 }
 
 /**
@@ -199,12 +205,13 @@ export async function deleteTokens(
  *
  * 指定されたアカウントのOAuthトークンがSQLiteに存在するかどうかを確認します。
  *
+ * @param secretRepo - D1SecretRepositoryインスタンス
  * @param accountEmail - Googleアカウントのメールアドレス
  * @returns 存在確認の結果を含むResult<boolean, SecretError>
  *
  * @example
  * ```typescript
- * const result = await hasTokens('user@gmail.com');
+ * const result = await hasTokens(secretRepo, 'user@gmail.com');
  *
  * if (result._tag === 'Ok' && result.value) {
  *   console.log('トークンは設定済みです');
@@ -212,17 +219,12 @@ export async function deleteTokens(
  * ```
  */
 export async function hasTokens(
+	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<boolean, SecretError>> {
 	const key = createGoogleOAuthKey(accountEmail);
 
-	const result = await getSecret(key);
-
-	if (result._tag === "Err") {
-		return result;
-	}
-
-	return ok(result.value._tag === "Some");
+	return secretRepo.hasSecret(key);
 }
 
 /**

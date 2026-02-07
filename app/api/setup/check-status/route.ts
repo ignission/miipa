@@ -2,34 +2,20 @@
  * セットアップ状態確認 API エンドポイント
  *
  * アプリケーションのセットアップ状態を取得します。
- * 設定ファイルの存在、プロバイダ設定、APIキーの有無を確認し返却します。
+ * Auth.js認証チェック後、D1コンテキストからステータスを確認します。
  *
  * @endpoint GET /api/setup/check-status
- *
- * @example
- * ```typescript
- * // リクエスト
- * const response = await fetch('/api/setup/check-status');
- * const data = await response.json();
- *
- * // 成功レスポンス
- * // {
- * //   isComplete: true,
- * //   currentProvider: 'claude',
- * //   hasApiKey: true
- * // }
- *
- * // エラーレスポンス (500)
- * // {
- * //   error: { code: 'CONFIG_PARSE_ERROR', message: '設定ファイルの読み込みに失敗しました' }
- * // }
- * ```
  */
 
 import { NextResponse } from "next/server";
-import { checkSetupStatus } from "@/lib/application/setup";
-import { isErr, isOk } from "@/lib/domain/shared";
-import { initializeDatabase } from "@/lib/infrastructure/db";
+import { auth } from "@/auth";
+import { createCalendarContext } from "@/lib/context/calendar-context";
+import { isOk } from "@/lib/domain/shared/result";
+import {
+	getD1Database,
+	getEncryptionKey,
+} from "@/lib/infrastructure/cloudflare/bindings";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 /**
  * セットアップ状態を取得する
@@ -37,33 +23,101 @@ import { initializeDatabase } from "@/lib/infrastructure/db";
  * @returns セットアップ状態（isComplete, currentProvider, hasApiKey）
  */
 export async function GET() {
-	// データベースを初期化
-	const dbResult = initializeDatabase();
-	if (isErr(dbResult)) {
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
 		return NextResponse.json(
 			{
 				error: {
-					code: "DATABASE_ERROR",
-					message: `データベースの初期化に失敗しました: ${dbResult.error.message}`,
+					code: "UNAUTHORIZED",
+					message: "認証が必要です",
+				},
+			},
+			{ status: 401 },
+		);
+	}
+
+	// D1コンテキスト作成
+	const dbResult = getD1Database();
+	if (!isOk(dbResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "DB_ERROR",
+					message: "データベース接続エラー",
 				},
 			},
 			{ status: 500 },
 		);
 	}
+	const keyResult = getEncryptionKey();
+	if (!isOk(keyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キー取得エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+	if (!isOk(cryptoKeyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キーインポートエラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const ctx = createCalendarContext(
+		dbResult.value,
+		session.user.id,
+		cryptoKeyResult.value,
+	);
 
-	const result = await checkSetupStatus();
+	// プロバイダ設定を確認
+	const providerResult = await ctx.configRepository.getSetting("llm_provider");
+	if (!isOk(providerResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "設定の取得に失敗しました",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const currentProvider = providerResult.value ?? undefined;
 
-	if (isOk(result)) {
-		return NextResponse.json({
-			isComplete: result.value.isComplete,
-			currentProvider: result.value.currentProvider,
-			hasApiKey: result.value.hasApiKey,
-		});
+	// APIキーの存在確認
+	let hasApiKey = false;
+	if (currentProvider) {
+		const secretKey = `llm-api-key:${currentProvider}`;
+		const hasKeyResult = await ctx.secretRepository.hasSecret(secretKey);
+		if (isOk(hasKeyResult)) {
+			hasApiKey = hasKeyResult.value;
+		}
 	}
 
-	// エラー時は500を返す
-	return NextResponse.json(
-		{ error: { code: result.error.code, message: result.error.message } },
-		{ status: 500 },
-	);
+	// カレンダー数の確認
+	const calendarsResult = await ctx.configRepository.getSetting("calendars");
+	const calendarCount =
+		isOk(calendarsResult) && calendarsResult.value
+			? (JSON.parse(calendarsResult.value) as unknown[]).length
+			: 0;
+
+	const isComplete = !!currentProvider && hasApiKey;
+
+	return NextResponse.json({
+		isComplete,
+		currentProvider,
+		hasApiKey,
+		calendarCount,
+	});
 }

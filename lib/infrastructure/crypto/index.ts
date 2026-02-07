@@ -1,8 +1,8 @@
 /**
  * 暗号化モジュール公開API
  *
- * AES-256-GCM暗号化機能を提供するモジュールのエントリーポイントです。
- * 暗号化・復号化関数と関連する型・定数をエクスポートします。
+ * Web Crypto APIを使用したAES-256-GCM暗号化機能を提供するモジュールのエントリーポイントです。
+ * Cloudflare Workers環境で動作する暗号化・復号化関数と関連する型・定数をエクスポートします。
  *
  * @module lib/infrastructure/crypto
  * @example
@@ -10,39 +10,27 @@
  * import {
  *   encrypt,
  *   decrypt,
- *   getEncryptionKey,
- *   serialize,
- *   deserialize,
+ *   importEncryptionKey,
  *   isCryptoError,
  *   CRYPTO_CONSTANTS,
  * } from '@/lib/infrastructure/crypto';
  * import { isOk } from '@/lib/domain/shared/result';
  *
- * // 暗号化キーを取得
- * const keyResult = getEncryptionKey();
+ * // 暗号化キーをインポート
+ * const keyResult = await importEncryptionKey(keyBase64);
  * if (!isOk(keyResult)) {
  *   console.error(keyResult.error.message);
- *   process.exit(1);
  * }
  *
  * // データを暗号化
- * const encryptResult = encrypt('機密データ', keyResult.value);
+ * const encryptResult = await encrypt('機密データ', keyResult.value);
  * if (isOk(encryptResult)) {
- *   // シリアライズしてDB保存
- *   const serialized = serialize(encryptResult.value);
- *   // ...DBに保存
+ *   // Base64文字列としてDB保存
+ *   const encrypted = encryptResult.value;
  * }
  * ```
  */
 
-// encryption.ts から関数をエクスポート
-export {
-	decrypt,
-	deserialize,
-	encrypt,
-	getEncryptionKey,
-	serialize,
-} from "./encryption";
 export type {
 	CryptoError,
 	CryptoErrorCode,
@@ -53,3 +41,5 @@ export {
 	CRYPTO_CONSTANTS,
 	isCryptoError,
 } from "./types";
+// web-crypto-encryption.ts から関数をエクスポート
+export { decrypt, encrypt, importEncryptionKey } from "./web-crypto-encryption";

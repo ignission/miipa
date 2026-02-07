@@ -1,6 +1,7 @@
 /**
  * イベント取得 API エンドポイント
  *
+ * Auth.jsによる認証とD1データベースコンテキストを使用して
  * カレンダーイベントを取得します。
  * 今日または今週のイベントを取得し、JSON形式で返却します。
  *
@@ -35,22 +36,33 @@
  * //   lastSync: "2026-01-26T09:00:00.000Z"
  * // }
  *
+ * // エラーレスポンス (401)
+ * // {
+ * //   error: { code: "UNAUTHORIZED", message: "認証が必要です" }
+ * // }
+ *
  * // エラーレスポンス (500)
  * // {
- * //   error: { code: "DATABASE_ERROR", message: "データベースエラー: ..." }
+ * //   error: { code: "DB_ERROR", message: "データベース接続エラー" }
  * // }
  * ```
  */
 
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import {
 	getEventsForToday,
 	getEventsForWeek,
 } from "@/lib/application/calendar";
+import { createCalendarContext } from "@/lib/context/calendar-context";
 import type { CalendarEvent } from "@/lib/domain/calendar";
 import { isSome } from "@/lib/domain/shared/option";
-import { isErr, isOk } from "@/lib/domain/shared/result";
-import { initializeDatabase } from "@/lib/infrastructure/db";
+import { isOk } from "@/lib/domain/shared/result";
+import {
+	getD1Database,
+	getEncryptionKey,
+} from "@/lib/infrastructure/cloudflare/bindings";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 /**
  * イベントのレスポンス形式
@@ -106,23 +118,75 @@ function toEventResponse(event: CalendarEvent): EventResponse {
 /**
  * イベントを取得する
  *
+ * Auth.jsセッションで認証を行い、D1データベースコンテキストを構築して
+ * カレンダーイベントを取得します。
+ *
  * @param request - Next.js リクエストオブジェクト
  * @returns イベント一覧（events, lastSync）
  */
 export async function GET(request: NextRequest) {
-	// データベースを初期化
-	const dbResult = initializeDatabase();
-	if (isErr(dbResult)) {
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
 		return NextResponse.json(
 			{
 				error: {
-					code: "DATABASE_ERROR",
-					message: `データベースの初期化に失敗しました: ${dbResult.error.message}`,
+					code: "UNAUTHORIZED",
+					message: "認証が必要です",
+				},
+			},
+			{ status: 401 },
+		);
+	}
+
+	// D1データベース取得
+	const dbResult = getD1Database();
+	if (!isOk(dbResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "DB_ERROR",
+					message: "データベース接続エラー",
 				},
 			},
 			{ status: 500 },
 		);
 	}
+
+	// 暗号化キー取得
+	const keyResult = getEncryptionKey();
+	if (!isOk(keyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キー取得エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+
+	// CryptoKeyにインポート
+	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+	if (!isOk(cryptoKeyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キーインポートエラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+
+	// コンテキスト作成
+	const ctx = createCalendarContext(
+		dbResult.value,
+		session.user.id,
+		cryptoKeyResult.value,
+	);
 
 	// クエリパラメータからrangeを取得
 	const { searchParams } = new URL(request.url);
@@ -130,7 +194,9 @@ export async function GET(request: NextRequest) {
 
 	// rangeに応じた関数を呼び出し
 	const result =
-		range === "week" ? await getEventsForWeek() : await getEventsForToday();
+		range === "week"
+			? await getEventsForWeek(ctx)
+			: await getEventsForToday(ctx);
 
 	if (isOk(result)) {
 		const events = result.value;
@@ -139,7 +205,6 @@ export async function GET(request: NextRequest) {
 		const eventResponses = events.map(toEventResponse);
 
 		// lastSyncは最新のイベント取得時刻として現在時刻を使用
-		// 将来的にはリポジトリから取得した同期時刻を使用する
 		const response: EventsApiResponse = {
 			events: eventResponses,
 			lastSync: new Date().toISOString(),

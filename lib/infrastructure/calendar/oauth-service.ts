@@ -11,7 +11,7 @@
  * import { generateAuthUrl, exchangeCode, refreshToken } from '@/lib/infrastructure/calendar/oauth-service';
  *
  * // 1. 認証URLを生成
- * const authUrlResult = generateAuthUrl();
+ * const authUrlResult = await generateAuthUrl();
  * if (isOk(authUrlResult)) {
  *   // codeVerifier は安全に保存し、コールバック時に使用
  *   redirect(authUrlResult.value.url);
@@ -25,9 +25,6 @@
  * ```
  */
 
-import * as crypto from "node:crypto";
-import { CodeChallengeMethod, type OAuth2Client } from "google-auth-library";
-import { google } from "googleapis";
 import {
 	apiError,
 	authRequired,
@@ -98,6 +95,20 @@ export interface AuthUrlInfo {
 // ============================================================
 
 /**
+ * バイト配列を Base64URL エンコード
+ *
+ * @param bytes - エンコードするバイト配列
+ * @returns Base64URL エンコードされた文字列
+ */
+function base64UrlEncode(bytes: Uint8Array): string {
+	const binString = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+	return btoa(binString)
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
+}
+
+/**
  * PKCE code_verifier を生成
  *
  * 暗号学的に安全な乱数を生成し、Base64URL エンコードして返します。
@@ -106,7 +117,9 @@ export interface AuthUrlInfo {
  * @returns 32バイトの乱数をBase64URLエンコードした文字列
  */
 function generateCodeVerifier(): string {
-	return crypto.randomBytes(32).toString("base64url");
+	const array = new Uint8Array(32);
+	crypto.getRandomValues(array);
+	return base64UrlEncode(array);
 }
 
 /**
@@ -118,8 +131,11 @@ function generateCodeVerifier(): string {
  * @param verifier - code_verifier 文字列
  * @returns SHA-256 ハッシュを Base64URL エンコードした文字列
  */
-function generateCodeChallenge(verifier: string): string {
-	return crypto.createHash("sha256").update(verifier).digest("base64url");
+async function generateCodeChallenge(verifier: string): Promise<string> {
+	const encoder = new TextEncoder();
+	const data = encoder.encode(verifier);
+	const hash = await crypto.subtle.digest("SHA-256", data);
+	return base64UrlEncode(new Uint8Array(hash));
 }
 
 /**
@@ -131,20 +147,9 @@ function generateCodeChallenge(verifier: string): string {
  * @returns 16バイトの乱数を16進数文字列に変換したもの
  */
 function generateState(): string {
-	return crypto.randomBytes(16).toString("hex");
-}
-
-/**
- * OAuth2 クライアントを作成
- *
- * @returns googleapis の OAuth2 クライアントインスタンス
- */
-function createOAuth2Client(): OAuth2Client {
-	return new google.auth.OAuth2(
-		GOOGLE_CLIENT_ID,
-		GOOGLE_CLIENT_SECRET,
-		REDIRECT_URI,
-	);
+	const array = new Uint8Array(16);
+	crypto.getRandomValues(array);
+	return Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 // ============================================================
@@ -158,36 +163,50 @@ function createOAuth2Client(): OAuth2Client {
  * PKCE（Proof Key for Code Exchange）方式を採用し、
  * 認可コード傍受攻撃（authorization code interception attack）を防止します。
  *
+ * @param loginHint - Google認証画面で事前選択するメールアドレス（オプション）
  * @returns 認証URL情報、または設定エラー
  *
  * @example
  * ```typescript
- * const result = generateAuthUrl();
+ * const result = await generateAuthUrl();
  * if (isOk(result)) {
  *   const { url, codeVerifier, state } = result.value;
  *   // codeVerifier と state をセッションに保存
  *   // ユーザーを url にリダイレクト
  * }
+ *
+ * // login_hint を指定してアカウントを事前選択
+ * const resultWithHint = await generateAuthUrl('user@example.com');
  * ```
  */
-export function generateAuthUrl(): Result<AuthUrlInfo, CalendarError> {
+export async function generateAuthUrl(
+	loginHint?: string,
+): Promise<Result<AuthUrlInfo, CalendarError>> {
 	if (!GOOGLE_CLIENT_ID) {
 		return err(authRequired("GOOGLE_CLIENT_IDが設定されていません"));
 	}
 
-	const oauth2Client = createOAuth2Client();
 	const codeVerifier = generateCodeVerifier();
-	const codeChallenge = generateCodeChallenge(codeVerifier);
+	const codeChallenge = await generateCodeChallenge(codeVerifier);
 	const state = generateState();
 
-	const url = oauth2Client.generateAuthUrl({
+	const params = new URLSearchParams({
+		client_id: GOOGLE_CLIENT_ID,
+		redirect_uri: REDIRECT_URI,
+		response_type: "code",
+		scope: SCOPES.join(" "),
 		access_type: "offline",
-		scope: [...SCOPES],
-		code_challenge: codeChallenge,
-		code_challenge_method: CodeChallengeMethod.S256,
-		state,
 		prompt: "consent",
+		code_challenge: codeChallenge,
+		code_challenge_method: "S256",
+		state,
 	});
+
+	if (loginHint) {
+		params.set("login_hint", loginHint);
+	}
+
+	const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
 	return ok({ url, codeVerifier, state });
 }
@@ -221,20 +240,39 @@ export async function exchangeCode(
 		return err(authRequired("Google OAuth設定が不足しています"));
 	}
 
-	const oauth2Client = createOAuth2Client();
-
 	try {
-		const { tokens } = await oauth2Client.getToken({
-			code,
-			codeVerifier,
+		const response = await fetch("https://oauth2.googleapis.com/token", {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({
+				code,
+				client_id: GOOGLE_CLIENT_ID,
+				client_secret: GOOGLE_CLIENT_SECRET,
+				redirect_uri: REDIRECT_URI,
+				grant_type: "authorization_code",
+				code_verifier: codeVerifier,
+			}),
 		});
+
+		if (!response.ok) {
+			const errorBody = await response.text();
+			return err(
+				apiError(`トークンの取得に失敗しました: ${errorBody}`, response.status),
+			);
+		}
+
+		const tokens = (await response.json()) as {
+			access_token?: string;
+			refresh_token?: string;
+			expires_in?: number;
+		};
 
 		if (!tokens.access_token || !tokens.refresh_token) {
 			return err(apiError("トークンの取得に失敗しました", 400));
 		}
 
-		const expiresAt = tokens.expiry_date
-			? new Date(tokens.expiry_date)
+		const expiresAt = tokens.expires_in
+			? new Date(Date.now() + tokens.expires_in * 1000)
 			: new Date(Date.now() + 3600 * 1000);
 
 		return ok({
@@ -274,18 +312,40 @@ export async function refreshToken(
 		return err(authRequired("Google OAuth設定が不足しています"));
 	}
 
-	const oauth2Client = createOAuth2Client();
-	oauth2Client.setCredentials({ refresh_token: refreshTokenValue });
-
 	try {
-		const { credentials } = await oauth2Client.refreshAccessToken();
+		const response = await fetch("https://oauth2.googleapis.com/token", {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({
+				refresh_token: refreshTokenValue,
+				client_id: GOOGLE_CLIENT_ID,
+				client_secret: GOOGLE_CLIENT_SECRET,
+				grant_type: "refresh_token",
+			}),
+		});
+
+		if (!response.ok) {
+			const errorBody = await response.text();
+			return err(
+				apiError(
+					`アクセストークンの更新に失敗しました: ${errorBody}`,
+					response.status,
+				),
+			);
+		}
+
+		const credentials = (await response.json()) as {
+			access_token?: string;
+			refresh_token?: string;
+			expires_in?: number;
+		};
 
 		if (!credentials.access_token) {
 			return err(apiError("アクセストークンの更新に失敗しました", 400));
 		}
 
-		const expiresAt = credentials.expiry_date
-			? new Date(credentials.expiry_date)
+		const expiresAt = credentials.expires_in
+			? new Date(Date.now() + credentials.expires_in * 1000)
 			: new Date(Date.now() + 3600 * 1000);
 
 		return ok({

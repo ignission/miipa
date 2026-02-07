@@ -312,9 +312,7 @@ export function CalendarSetup({ onComplete }: CalendarSetupProps) {
 											color: "fg.muted",
 										})}
 									>
-										{calendar.type === "google"
-											? "Googleカレンダー"
-											: "iCal"}
+										{calendar.type === "google" ? "Googleカレンダー" : "iCal"}
 									</p>
 								</div>
 							</li>

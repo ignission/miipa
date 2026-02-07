@@ -14,6 +14,7 @@
  * - Result型による型安全なエラーハンドリング
  * - 並列処理による効率的な同期
  * - 部分的な失敗の追跡（一部カレンダーが失敗しても他は継続）
+ * - CalendarContextによるマルチテナント対応
  *
  * @module lib/application/calendar/sync-calendars
  *
@@ -23,7 +24,7 @@
  * import { isOk } from '@/lib/domain/shared';
  *
  * // 全カレンダーを同期
- * const result = await syncAllCalendars();
+ * const result = await syncAllCalendars(ctx);
  * if (isOk(result)) {
  *   console.log(`同期完了: ${result.value.successCount}件成功`);
  *   if (result.value.errorCalendars.length > 0) {
@@ -32,12 +33,12 @@
  * }
  *
  * // 単一カレンダーを同期
- * const singleResult = await syncCalendar(createCalendarId('google-work'));
+ * const singleResult = await syncCalendar(ctx, createCalendarId('google-work'));
  * ```
  */
 
 import type { CalendarConfig } from "@/lib/config";
-import { loadConfig } from "@/lib/config";
+import type { CalendarContext } from "@/lib/context/calendar-context";
 import type {
 	CalendarError,
 	CalendarEvent,
@@ -45,26 +46,24 @@ import type {
 	TimeRange,
 } from "@/lib/domain/calendar";
 import { createCalendarId, createTimeRange } from "@/lib/domain/calendar";
+import type { EventRepository } from "@/lib/domain/calendar/repository";
 import {
 	type ConfigError,
 	err,
 	isErr,
-	isSome,
 	ok,
 	type Result,
 } from "@/lib/domain/shared";
 import type { DbError } from "@/lib/domain/shared/errors";
 import {
 	GoogleCalendarProvider,
-	getTokens,
 	ICalProvider,
+	type OAuthTokens,
 } from "@/lib/infrastructure/calendar";
 import {
-	getDatabase,
-	initializeDatabase,
-	SqliteEventRepository,
-} from "@/lib/infrastructure/db";
-import type { SecretError } from "@/lib/infrastructure/secret/types";
+	createGoogleOAuthKey,
+	type SecretError,
+} from "@/lib/infrastructure/secret/types";
 
 // ============================================================
 // 型定義
@@ -229,12 +228,13 @@ function getSyncTimeRange(): TimeRange {
  * 指定されたカレンダーからイベントを取得し、ローカルキャッシュに保存します。
  * カレンダーの種類（Google/iCal）に応じて適切なプロバイダを使用します。
  *
+ * @param ctx - カレンダーコンテキスト（マルチテナント対応）
  * @param calendarId - 同期するカレンダーのID
  * @returns 成功時はOk<SyncResult>、失敗時はErr<SyncError>
  *
  * @example
  * ```typescript
- * const result = await syncCalendar(createCalendarId('google-work'));
+ * const result = await syncCalendar(ctx, createCalendarId('google-work'));
  *
  * if (isOk(result)) {
  *   console.log(`${result.value.eventCount}件のイベントを同期しました`);
@@ -244,42 +244,34 @@ function getSyncTimeRange(): TimeRange {
  * ```
  */
 export async function syncCalendar(
+	ctx: CalendarContext,
 	calendarId: CalendarId,
 ): Promise<Result<SyncResult, SyncError>> {
-	// 設定を読み込み
-	const configResult = await loadConfig();
-	if (isErr(configResult)) {
-		return err(
-			syncConfigError("設定の読み込みに失敗しました", configResult.error),
-		);
+	// 設定からカレンダー一覧を取得
+	const calendarsResult = await ctx.configRepository.getSetting("calendars");
+	if (isErr(calendarsResult)) {
+		return err(syncConfigError("設定の読み込みに失敗しました"));
 	}
 
-	const config = configResult.value;
+	const calendars: CalendarConfig[] = calendarsResult.value
+		? (JSON.parse(calendarsResult.value) as CalendarConfig[])
+		: [];
 
 	// カレンダー設定を検索
-	const calendarConfig = config.calendars.find((c) => c.id === calendarId);
+	const calendarConfig = calendars.find((c) => c.id === calendarId);
 	if (!calendarConfig) {
 		return err(syncCalendarNotFound(calendarId));
 	}
 
-	// データベースを初期化
-	const dbInitResult = initializeDatabase();
-	if (isErr(dbInitResult)) {
-		return err(syncDbError("データベースの初期化に失敗しました", calendarId));
-	}
-
-	const dbOption = getDatabase();
-	if (!isSome(dbOption)) {
-		return err(
-			syncDbError("データベース接続を取得できませんでした", calendarId),
-		);
-	}
-
-	const repository = new SqliteEventRepository(dbOption.value);
+	const repository = ctx.eventRepository;
 	const timeRange = getSyncTimeRange();
 
 	// プロバイダからイベントを取得
-	const eventsResult = await fetchEventsFromProvider(calendarConfig, timeRange);
+	const eventsResult = await fetchEventsFromProvider(
+		ctx,
+		calendarConfig,
+		timeRange,
+	);
 	if (isErr(eventsResult)) {
 		return eventsResult;
 	}
@@ -322,14 +314,15 @@ export async function syncCalendar(
 /**
  * 全有効カレンダーを同期
  *
- * 設定ファイルに登録されている全ての有効なカレンダーを並列で同期します。
+ * 設定に登録されている全ての有効なカレンダーを並列で同期します。
  * 一部のカレンダーで失敗しても、他のカレンダーの同期は継続されます。
  *
+ * @param ctx - カレンダーコンテキスト（マルチテナント対応）
  * @returns 成功時はOk<SyncAllResult>、設定読み込み失敗時はErr<SyncError>
  *
  * @example
  * ```typescript
- * const result = await syncAllCalendars();
+ * const result = await syncAllCalendars(ctx);
  *
  * if (isOk(result)) {
  *   const { successCount, errorCalendars, totalCount } = result.value;
@@ -344,21 +337,21 @@ export async function syncCalendar(
  * }
  * ```
  */
-export async function syncAllCalendars(): Promise<
-	Result<SyncAllResult, SyncError>
-> {
-	// 設定を読み込み
-	const configResult = await loadConfig();
-	if (isErr(configResult)) {
-		return err(
-			syncConfigError("設定の読み込みに失敗しました", configResult.error),
-		);
+export async function syncAllCalendars(
+	ctx: CalendarContext,
+): Promise<Result<SyncAllResult, SyncError>> {
+	// 設定からカレンダー一覧を取得
+	const calendarsResult = await ctx.configRepository.getSetting("calendars");
+	if (isErr(calendarsResult)) {
+		return err(syncConfigError("設定の読み込みに失敗しました"));
 	}
 
-	const config = configResult.value;
+	const calendars: CalendarConfig[] = calendarsResult.value
+		? (JSON.parse(calendarsResult.value) as CalendarConfig[])
+		: [];
 
 	// 有効なカレンダーのみ抽出
-	const enabledCalendars = config.calendars.filter((c) => c.enabled);
+	const enabledCalendars = calendars.filter((c) => c.enabled);
 
 	if (enabledCalendars.length === 0) {
 		return ok({
@@ -369,25 +362,14 @@ export async function syncAllCalendars(): Promise<
 		});
 	}
 
-	// データベースを初期化
-	const dbInitResult = initializeDatabase();
-	if (isErr(dbInitResult)) {
-		return err(syncDbError("データベースの初期化に失敗しました"));
-	}
-
-	const dbOption = getDatabase();
-	if (!isSome(dbOption)) {
-		return err(syncDbError("データベース接続を取得できませんでした"));
-	}
-
-	const repository = new SqliteEventRepository(dbOption.value);
+	const repository = ctx.eventRepository;
 	const timeRange = getSyncTimeRange();
 	const syncTime = new Date();
 
 	// 全カレンダーを並列で同期
 	const syncResults = await Promise.all(
 		enabledCalendars.map((calendarConfig) =>
-			syncSingleCalendar(calendarConfig, repository, timeRange, syncTime),
+			syncSingleCalendar(ctx, calendarConfig, repository, timeRange, syncTime),
 		),
 	);
 
@@ -430,6 +412,7 @@ interface InternalSyncResult {
  * syncAllCalendarsから呼び出される内部関数。
  * 例外をスローせず、成功/失敗をInternalSyncResultで返します。
  *
+ * @param ctx - カレンダーコンテキスト
  * @param calendarConfig - カレンダー設定
  * @param repository - イベントリポジトリ
  * @param timeRange - 同期対象期間
@@ -437,8 +420,9 @@ interface InternalSyncResult {
  * @returns InternalSyncResult
  */
 async function syncSingleCalendar(
+	ctx: CalendarContext,
 	calendarConfig: CalendarConfig,
-	repository: SqliteEventRepository,
+	repository: EventRepository,
 	timeRange: TimeRange,
 	syncTime: Date,
 ): Promise<InternalSyncResult> {
@@ -446,8 +430,16 @@ async function syncSingleCalendar(
 	const name = calendarConfig.name;
 
 	// プロバイダからイベントを取得
-	const eventsResult = await fetchEventsFromProvider(calendarConfig, timeRange);
+	const eventsResult = await fetchEventsFromProvider(
+		ctx,
+		calendarConfig,
+		timeRange,
+	);
 	if (isErr(eventsResult)) {
+		console.error(
+			`[sync] カレンダー同期失敗: ${calendarId}`,
+			JSON.stringify(eventsResult.error),
+		);
 		return {
 			calendarId,
 			name,
@@ -458,9 +450,28 @@ async function syncSingleCalendar(
 
 	const events = eventsResult.value;
 
+	// カレンダーレコードの存在を保証（FK制約対応）
+	const ensureResult = await repository.ensureCalendarRecord(
+		calendarConfig.id,
+		calendarConfig.name,
+		calendarConfig.type,
+		JSON.stringify(calendarConfig),
+		calendarConfig.enabled,
+	);
+	if (isErr(ensureResult)) {
+		console.warn(
+			`[sync] カレンダーレコード作成失敗: ${calendarId}`,
+			ensureResult.error,
+		);
+	}
+
 	// イベントをキャッシュに保存
 	const saveResult = await repository.saveMany(events);
 	if (isErr(saveResult)) {
+		console.error(
+			`[sync] イベント保存失敗: ${calendarId}`,
+			JSON.stringify(saveResult.error),
+		);
 		return {
 			calendarId,
 			name,
@@ -499,18 +510,20 @@ async function syncSingleCalendar(
  *
  * カレンダーの種類に応じて適切なプロバイダを使用してイベントを取得します。
  *
+ * @param ctx - カレンダーコンテキスト
  * @param calendarConfig - カレンダー設定
  * @param timeRange - 取得期間
  * @returns イベントの配列、またはエラー
  */
 async function fetchEventsFromProvider(
+	ctx: CalendarContext,
 	calendarConfig: CalendarConfig,
 	timeRange: TimeRange,
 ): Promise<Result<CalendarEvent[], SyncError>> {
 	const calendarId = calendarConfig.id;
 
 	if (calendarConfig.type === "google") {
-		return fetchGoogleCalendarEvents(calendarConfig, timeRange);
+		return fetchGoogleCalendarEvents(ctx, calendarConfig, timeRange);
 	}
 
 	if (calendarConfig.type === "ical") {
@@ -527,8 +540,14 @@ async function fetchEventsFromProvider(
 
 /**
  * Google Calendarからイベントを取得
+ *
+ * @param ctx - カレンダーコンテキスト（トークン取得に使用）
+ * @param calendarConfig - カレンダー設定
+ * @param timeRange - 取得期間
+ * @returns イベントの配列、またはエラー
  */
 async function fetchGoogleCalendarEvents(
+	ctx: CalendarContext,
 	calendarConfig: CalendarConfig,
 	timeRange: TimeRange,
 ): Promise<Result<CalendarEvent[], SyncError>> {
@@ -542,23 +561,32 @@ async function fetchGoogleCalendarEvents(
 		);
 	}
 
-	// トークンを取得
-	const tokensResult = await getTokens(accountEmail);
-	if (isErr(tokensResult)) {
+	// シークレットリポジトリからトークンを取得
+	const tokensJson = await ctx.secretRepository.getSecret(
+		createGoogleOAuthKey(accountEmail),
+	);
+	if (isErr(tokensJson)) {
 		return err({
 			code: "SYNC_TOKEN_NOT_FOUND",
 			message: `認証情報の取得に失敗しました: ${accountEmail}`,
 			calendarId,
-			cause: tokensResult.error,
+			cause: tokensJson.error,
 		});
 	}
 
-	const tokensOption = tokensResult.value;
-	if (!isSome(tokensOption)) {
+	if (!tokensJson.value) {
 		return err(syncTokenNotFound(calendarId, accountEmail));
 	}
 
-	const tokens = tokensOption.value;
+	const stored = JSON.parse(tokensJson.value) as {
+		accessToken: string;
+		refreshToken: string;
+		expiresAt: string;
+	};
+	const tokens: OAuthTokens = {
+		...stored,
+		expiresAt: new Date(stored.expiresAt),
+	};
 
 	// プロバイダを作成してイベントを取得
 	const provider = new GoogleCalendarProvider(accountEmail, tokens);

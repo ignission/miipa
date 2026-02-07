@@ -30,6 +30,11 @@
  * //   }
  * // }
  *
+ * // 認証エラー (401)
+ * // {
+ * //   error: { code: 'UNAUTHORIZED', message: '認証が必要です' }
+ * // }
+ *
  * // バリデーションエラー (400)
  * // {
  * //   error: { code: 'INVALID_URL', message: 'URLを指定してください' }
@@ -43,8 +48,15 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { addICalCalendar } from "@/lib/application/calendar";
+import { createCalendarContext } from "@/lib/context/calendar-context";
 import { isOk } from "@/lib/domain/shared";
+import {
+	getD1Database,
+	getEncryptionKey,
+} from "@/lib/infrastructure/cloudflare/bindings";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 /**
  * リクエストボディの型定義
@@ -61,6 +73,63 @@ interface AddICalRequest {
  * @returns 追加されたカレンダー設定
  */
 export async function POST(request: NextRequest) {
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "UNAUTHORIZED",
+					message: "認証が必要です",
+				},
+			},
+			{ status: 401 },
+		);
+	}
+
+	// D1コンテキスト作成
+	const dbResult = getD1Database();
+	if (!isOk(dbResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "DB_ERROR",
+					message: "データベース接続エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const keyResult = getEncryptionKey();
+	if (!isOk(keyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キー取得エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+	if (!isOk(cryptoKeyResult)) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キーインポートエラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const ctx = createCalendarContext(
+		dbResult.value,
+		session.user.id,
+		cryptoKeyResult.value,
+	);
+
 	// リクエストボディをパース
 	let body: AddICalRequest;
 	try {
@@ -91,7 +160,7 @@ export async function POST(request: NextRequest) {
 	}
 
 	// iCalカレンダーを追加
-	const result = await addICalCalendar(body.url, body.name);
+	const result = await addICalCalendar(ctx, body.url, body.name);
 
 	if (isOk(result)) {
 		return NextResponse.json(

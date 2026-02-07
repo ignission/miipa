@@ -149,71 +149,83 @@ export interface DateRangeResult {
 }
 
 /**
- * 今日の時間範囲を取得します
+ * JSTのオフセット（ミリ秒）
  *
- * 今日の0時0分0秒から23時59分59秒999ミリ秒までの範囲を返します。
+ * UTC+9時間 = 9 * 60 * 60 * 1000 = 32400000ms
+ */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * 今日の時間範囲を取得します（JST基準）
  *
- * @returns 今日の開始から終了までのDateRangeResult
+ * JST（日本標準時 UTC+9）での今日の0時0分0秒から23時59分59秒999ミリ秒までの範囲をUTC時刻で返します。
+ * Cloudflare Workers上でもJST基準で正確に動作します。
+ *
+ * @returns 今日の開始から終了までのDateRangeResult（UTC時刻）
  *
  * @example
  * ```typescript
  * const todayRange = getTodayRange();
- * // { startDate: 2026-01-26T00:00:00.000, endDate: 2026-01-26T23:59:59.999 }
+ * // JST 2026-02-07の場合:
+ * // { startDate: 2026-02-06T15:00:00.000Z (JST 2026-02-07T00:00:00),
+ * //   endDate: 2026-02-07T14:59:59.999Z (JST 2026-02-07T23:59:59.999) }
  * ```
  */
 export function getTodayRange(): DateRangeResult {
 	const now = new Date();
+	// JSTの現在日付を計算
+	const jstNow = new Date(now.getTime() + JST_OFFSET_MS);
+	const year = jstNow.getUTCFullYear();
+	const month = jstNow.getUTCMonth();
+	const date = jstNow.getUTCDate();
+
+	// JSTの0時0分0秒をUTCに変換
 	const startDate = new Date(
-		now.getFullYear(),
-		now.getMonth(),
-		now.getDate(),
-		0,
-		0,
-		0,
-		0,
+		Date.UTC(year, month, date, 0, 0, 0, 0) - JST_OFFSET_MS,
 	);
+	// JSTの23時59分59秒999msをUTCに変換
 	const endDate = new Date(
-		now.getFullYear(),
-		now.getMonth(),
-		now.getDate(),
-		23,
-		59,
-		59,
-		999,
+		Date.UTC(year, month, date, 23, 59, 59, 999) - JST_OFFSET_MS,
 	);
+
 	return Object.freeze({ startDate, endDate });
 }
 
 /**
- * 今週の時間範囲を取得します（月曜始まり）
+ * 今日から7日間の時間範囲を取得します（JST基準）
  *
- * 今週の月曜日0時0分0秒から日曜日23時59分59秒999ミリ秒までの範囲を返します。
- * 日本のビジネス慣習に合わせて月曜日を週の始まりとしています。
+ * JST（日本標準時 UTC+9）での今日の0時0分0秒から7日後の23時59分59秒999ミリ秒までの範囲をUTC時刻で返します。
+ * 従来の「今週の月曜〜日曜」から変更し、土曜日でも来週月曜のイベントが表示されるようになります。
+ * Cloudflare Workers上でもJST基準で正確に動作します。
  *
- * @returns 今週の月曜から日曜までのDateRangeResult
+ * @returns 今日から7日間のDateRangeResult（UTC時刻）
  *
  * @example
  * ```typescript
  * const weekRange = getWeekRange();
- * // 2026-01-26（日曜）に実行した場合:
- * // { startDate: 2026-01-20T00:00:00.000, endDate: 2026-01-26T23:59:59.999 }
+ * // JST 2026-02-07（金曜）に実行した場合:
+ * // { startDate: 2026-02-06T15:00:00.000Z (JST 2026-02-07T00:00:00),
+ * //   endDate: 2026-02-13T14:59:59.999Z (JST 2026-02-14T23:59:59.999) }
  * ```
  */
 export function getWeekRange(): DateRangeResult {
 	const now = new Date();
-	const dayOfWeek = now.getDay();
-	// 日曜=0なので調整（月曜を週の始まりに）
-	const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+	// JSTの現在日付を計算
+	const jstNow = new Date(now.getTime() + JST_OFFSET_MS);
+	const year = jstNow.getUTCFullYear();
+	const month = jstNow.getUTCMonth();
+	const date = jstNow.getUTCDate();
 
-	const monday = new Date(now);
-	monday.setDate(now.getDate() + diff);
-	monday.setHours(0, 0, 0, 0);
+	// JSTの今日の0時0分0秒をUTCに変換
+	const startDate = new Date(
+		Date.UTC(year, month, date, 0, 0, 0, 0) - JST_OFFSET_MS,
+	);
+	// JSTの7日後の23時59分59秒999msをUTCに変換
+	const endDate = new Date(
+		Date.UTC(year, month, date + 7, 23, 59, 59, 999) - JST_OFFSET_MS,
+	);
 
-	const sunday = new Date(monday);
-	sunday.setDate(monday.getDate() + 6);
-	sunday.setHours(23, 59, 59, 999);
-
-	return Object.freeze({ startDate: monday, endDate: sunday });
+	return Object.freeze({ startDate, endDate });
 }
 
 // ============================================================

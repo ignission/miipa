@@ -37,13 +37,14 @@
  * import { isOk } from '@/lib/domain/shared';
  *
  * // 今日のイベントを取得
- * const result = await getEventsForToday();
+ * const result = await getEventsForToday(ctx);
  * if (isOk(result)) {
  *   console.log(`今日のイベント: ${result.value.length}件`);
  * }
  *
  * // iCalカレンダーを追加
  * const addResult = await addICalCalendar(
+ *   ctx,
  *   'https://example.com/calendar.ics',
  *   '祝日カレンダー'
  * );
@@ -56,7 +57,7 @@
  * }
  *
  * // 全カレンダーを同期
- * const syncResult = await syncAllCalendars();
+ * const syncResult = await syncAllCalendars(ctx);
  * if (isOk(syncResult)) {
  *   console.log(`${syncResult.value.successCount}件のカレンダーを同期しました`);
  * }

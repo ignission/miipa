@@ -1,54 +1,33 @@
 /**
  * シークレット管理モジュール公開API
  *
- * SQLite暗号化ストレージを使用したシークレット管理機能を提供します。
- * keytar-adapter.tsと同一インターフェースで、AES-256-GCM暗号化により
- * シークレットを安全に保存します。
+ * D1データベースを使用したマルチテナント対応の暗号化シークレット管理機能を提供します。
+ * Web Crypto API（AES-256-GCM）で暗号化し、ユーザーごとにシークレットを分離管理します。
  *
  * @module lib/infrastructure/secret
  * @example
  * ```typescript
  * import {
- *   getSecret,
- *   setSecret,
- *   deleteSecret,
- *   hasSecret,
- *   getSecrets,
+ *   D1SecretRepository,
  *   type SecretKey,
  *   type SecretError,
  * } from '@/lib/infrastructure/secret';
- * import { isOk, isSome } from '@/lib/domain/shared';
+ *
+ * const repo = new D1SecretRepository(env.DB, userId, encryptionKey);
  *
  * // シークレットの保存
- * const result = await setSecret('anthropic-api-key', 'sk-xxx');
- * if (isOk(result)) {
- *   console.log('保存成功');
- * }
+ * const result = await repo.setSecret('anthropic-api-key', 'sk-xxx');
  *
  * // シークレットの取得
- * const getResult = await getSecret('anthropic-api-key');
- * if (isOk(getResult) && isSome(getResult.value)) {
- *   console.log('取得成功');
- * }
+ * const getResult = await repo.getSecret('anthropic-api-key');
  * ```
  */
 
 // ============================================================
-// シークレットリポジトリ関数
+// D1SecretRepository
 // ============================================================
 
-export {
-	/** SQLiteからシークレットを削除 */
-	deleteSecret,
-	/** SQLiteからシークレットを取得 */
-	getSecret,
-	/** 複数のシークレットを一括で取得 */
-	getSecrets,
-	/** シークレットの存在確認 */
-	hasSecret,
-	/** SQLiteにシークレットを保存 */
-	setSecret,
-} from "./secret-repository";
+export { D1SecretRepository } from "./d1-secret-repository";
 
 // ============================================================
 // 型定義

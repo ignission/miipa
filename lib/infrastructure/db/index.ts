@@ -1,67 +1,41 @@
 /**
- * SQLiteデータベースモジュール
+ * データベースモジュール
  *
  * SoloDayアプリケーションのデータ永続化基盤を提供します。
- * better-sqlite3を使用した同期APIにより、シンプルで高速なデータベース操作を実現します。
+ * Cloudflare D1を使用した非同期APIにより、エッジ環境で動作します。
  *
  * ## 提供する機能
  *
- * ### 接続管理
- * - initializeDatabase: データベースの初期化とマイグレーション実行
- * - getDatabase: 初期化済み接続の取得
- * - closeDatabase: 接続のクローズ
+ * ### D1接続管理
+ * - getD1Connection: D1データベース接続の取得
+ *
+ * ### リポジトリ
+ * - D1EventRepository: D1ベースのイベントリポジトリ
  *
  * ### 型定義
- * - DatabaseConfig: 接続設定
- * - DatabaseConnection: 接続オブジェクト型
  * - DatabaseError: エラー型
  *
  * @module lib/infrastructure/db
  *
  * @example
  * ```typescript
- * import {
- *   initializeDatabase,
- *   getDatabase,
- *   closeDatabase,
- *   type DatabaseConnection,
- * } from '@/lib/infrastructure/db';
- * import { isOk, isSome } from '@/lib/domain/shared';
+ * import { getD1Connection, D1EventRepository } from '@/lib/infrastructure/db';
+ * import { isOk } from '@/lib/domain/shared';
  *
- * // アプリケーション起動時
- * const initResult = initializeDatabase();
- * if (!isOk(initResult)) {
- *   console.error('データベース初期化失敗:', initResult.error.message);
- *   process.exit(1);
+ * const result = getD1Connection();
+ * if (isOk(result)) {
+ *   const db = result.value;
+ *   const stmt = db.prepare('SELECT * FROM events');
+ *   const rows = await stmt.all();
  * }
- *
- * // データベース操作
- * const dbOption = getDatabase();
- * if (isSome(dbOption)) {
- *   const db = dbOption.value;
- *   const rows = db.prepare('SELECT * FROM settings').all();
- *   console.log('設定:', rows);
- * }
- *
- * // アプリケーション終了時
- * closeDatabase();
  * ```
  */
 
 // ============================================================
-// 接続管理
+// D1接続管理
 // ============================================================
 
-export {
-	/** データベース接続をクローズ */
-	closeDatabase,
-	/** 初期化済みデータベース接続を取得 */
-	getDatabase,
-	/** データベースを初期化（マイグレーション自動実行） */
-	initializeDatabase,
-	/** データベースが初期化済みかどうかを確認 */
-	isDatabaseInitialized,
-} from "./connection";
+export { getD1Connection } from "./d1-connection";
 
 // ============================================================
 // 型定義
@@ -105,4 +79,4 @@ export {
 // リポジトリ
 // ============================================================
 
-export { SqliteEventRepository } from "./event-repository";
+export { D1EventRepository } from "./d1-event-repository";
