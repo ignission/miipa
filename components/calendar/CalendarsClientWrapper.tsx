@@ -196,7 +196,9 @@ export function CalendarsClientWrapper() {
 				});
 
 				if (!response.ok) {
-					const data = await response.json();
+					const data = (await response.json()) as {
+						error?: { message?: string };
+					};
 					setNotification({
 						type: "error",
 						message: data.error?.message || "カレンダーの更新に失敗しました",

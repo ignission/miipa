@@ -321,6 +321,19 @@ export class SqliteEventRepository implements EventRepository {
 		}
 	}
 
+	/**
+	 * カレンダーレコードの存在を保証（SQLite版スタブ）
+	 */
+	async ensureCalendarRecord(
+		_calendarId: CalendarId,
+		_name: string,
+		_type: string,
+		_config: string,
+		_isActive: boolean,
+	): Promise<Result<void, DbError>> {
+		return ok(undefined);
+	}
+
 	// ============================================================
 	// プライベートメソッド
 	// ============================================================

@@ -5,21 +5,19 @@
  * 認証コードを受け取り、トークンに交換してカレンダーを設定に追加します。
  *
  * @endpoint GET /api/auth/google/callback
- *
- * @example
- * ```
- * // Google OAuth からのリダイレクト
- * GET /api/auth/google/callback?code=xxx&state=xxx
- *
- * // 成功時: /settings/calendars?calendar=success にリダイレクト
- * // 失敗時: /settings/calendars?calendar=error&message=xxx にリダイレクト
- * ```
  */
 
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { completeGoogleAuth } from "@/lib/application/calendar";
-import { isOk } from "@/lib/domain/shared";
+import { createCalendarContext } from "@/lib/context/calendar-context";
+import { isOk } from "@/lib/domain/shared/result";
+import {
+	getD1Database,
+	getEncryptionKey,
+} from "@/lib/infrastructure/cloudflare/bindings";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 /** code_verifier を保存する Cookie 名 */
 const CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
@@ -58,8 +56,35 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 		);
 	}
 
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
+		return redirectToCalendarsWithError(
+			"認証が必要です。ログインしてください。",
+		);
+	}
+
+	// D1コンテキスト作成
+	const dbResult = getD1Database();
+	if (!isOk(dbResult)) {
+		return redirectToCalendarsWithError("データベース接続エラー");
+	}
+	const keyResult = getEncryptionKey();
+	if (!isOk(keyResult)) {
+		return redirectToCalendarsWithError("暗号化キー取得エラー");
+	}
+	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+	if (!isOk(cryptoKeyResult)) {
+		return redirectToCalendarsWithError("暗号化キーインポートエラー");
+	}
+	const ctx = createCalendarContext(
+		dbResult.value,
+		session.user.id,
+		cryptoKeyResult.value,
+	);
+
 	// 認証を完了し、カレンダーを追加
-	const result = await completeGoogleAuth(code, codeVerifier);
+	const result = await completeGoogleAuth(ctx, code, codeVerifier);
 
 	// デバッグログ
 	if (!isOk(result)) {

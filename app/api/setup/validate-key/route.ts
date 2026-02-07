@@ -37,6 +37,7 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { validateApiKey } from "@/lib/application/setup";
 import { isOk } from "@/lib/domain/shared";
 
@@ -57,6 +58,20 @@ interface ValidateKeyRequest {
  * @returns 検証結果（valid: true/false, error?: エラー情報）
  */
 export async function POST(request: NextRequest) {
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "UNAUTHORIZED",
+					message: "認証が必要です",
+				},
+			},
+			{ status: 401 },
+		);
+	}
+
 	const body = (await request.json()) as ValidateKeyRequest;
 
 	// 必須パラメータのバリデーション

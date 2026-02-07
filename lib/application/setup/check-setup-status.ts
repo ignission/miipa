@@ -2,7 +2,8 @@
  * セットアップ状態確認ユースケースモジュール
  *
  * SoloDayアプリケーションのセットアップ状態を確認する機能を提供します。
- * 設定ファイルの存在確認、プロバイダ設定の取得、APIキーの有無確認を行います。
+ * CalendarContextを通じて設定リポジトリとシークレットリポジトリにアクセスし、
+ * プロバイダ設定の取得、APIキーの有無確認を行います。
  *
  * すべての操作はResult型を返し、例外をスローしません。
  *
@@ -12,9 +13,12 @@
  * ```typescript
  * import { checkSetupStatus, isFirstLaunch } from '@/lib/application/setup/check-setup-status';
  * import { isOk, match } from '@/lib/domain/shared';
+ * import { createCalendarContext } from '@/lib/context/calendar-context';
+ *
+ * const ctx = createCalendarContext(db, userId, encryptionKey);
  *
  * // セットアップ状態の確認
- * const statusResult = await checkSetupStatus();
+ * const statusResult = await checkSetupStatus(ctx);
  *
  * match(statusResult, {
  *   ok: (status) => {
@@ -28,17 +32,19 @@
  * });
  *
  * // 初回起動判定
- * const firstLaunchResult = await isFirstLaunch();
+ * const firstLaunchResult = await isFirstLaunch(ctx);
  * if (isOk(firstLaunchResult) && firstLaunchResult.value) {
  *   console.log('初回起動です');
  * }
  * ```
  */
 
-import { configExists, loadConfig } from "@/lib/config/loader";
+import type { LLMProvider } from "@/lib/config/types";
+import { isLLMProvider } from "@/lib/config/types";
+import type { CalendarContext } from "@/lib/context/calendar-context";
 import type { ConfigError } from "@/lib/domain/shared";
 import { isErr, ok, type Result } from "@/lib/domain/shared";
-import { hasSecret, type SecretError } from "@/lib/infrastructure/secret";
+import type { SecretError } from "@/lib/infrastructure/secret";
 
 import {
 	createSetupStatus,
@@ -53,7 +59,7 @@ import {
 /**
  * セットアップ状態確認時に発生しうるエラー型
  *
- * ConfigError: 設定ファイルの読み込みエラー
+ * ConfigError: 設定の読み込みエラー
  * SecretError: シークレットストレージアクセスエラー
  */
 export type SetupStatusError = ConfigError | SecretError;
@@ -66,15 +72,16 @@ export type SetupStatusError = ConfigError | SecretError;
  * セットアップ状態を確認する
  *
  * 以下の順序でセットアップ状態を確認します:
- * 1. 設定ファイル（~/.soloday/config.json）の存在確認
- * 2. 設定ファイルが存在する場合、設定を読み込みプロバイダを取得
- * 3. プロバイダに対応するAPIキーがKeychainに存在するか確認
+ * 1. D1のuser_settingsからllm_provider設定の有無を確認
+ * 2. プロバイダが設定されている場合、対応するAPIキーの存在を確認
+ * 3. カレンダー設定数を確認
  *
+ * @param ctx - CalendarContext（依存性注入コンテナ）
  * @returns セットアップ状態を含むResult
  *
  * @example
  * ```typescript
- * const result = await checkSetupStatus();
+ * const result = await checkSetupStatus(ctx);
  *
  * match(result, {
  *   ok: (status) => {
@@ -88,17 +95,18 @@ export type SetupStatusError = ConfigError | SecretError;
  * });
  * ```
  */
-export async function checkSetupStatus(): Promise<
-	Result<SetupStatus, SetupStatusError>
-> {
-	// 1. 設定ファイルの存在確認
-	const existsResult = await configExists();
-	if (isErr(existsResult)) {
-		return existsResult;
+export async function checkSetupStatus(
+	ctx: CalendarContext,
+): Promise<Result<SetupStatus, SetupStatusError>> {
+	// 1. プロバイダ設定の取得
+	const providerResult = await ctx.configRepository.getSetting("llm_provider");
+	if (isErr(providerResult)) {
+		return providerResult;
 	}
 
-	// 設定ファイルが存在しない場合は初期状態を返す
-	if (!existsResult.value) {
+	// プロバイダ設定が存在しない場合は初期状態を返す
+	const providerValue = providerResult.value;
+	if (providerValue === null || !isLLMProvider(providerValue)) {
 		return ok(
 			createSetupStatus({
 				currentProvider: undefined,
@@ -108,20 +116,28 @@ export async function checkSetupStatus(): Promise<
 		);
 	}
 
-	// 2. 設定ファイルを読み込んでプロバイダを取得
-	const configResult = await loadConfig();
-	if (isErr(configResult)) {
-		return configResult;
-	}
+	const currentProvider: LLMProvider = providerValue;
 
-	const config = configResult.value;
-	const currentProvider = config.llm.provider;
-
-	// 3. プロバイダに対応するAPIキーの存在確認
+	// 2. プロバイダに対応するAPIキーの存在確認
 	const secretKey = getSecretKeyForProvider(currentProvider);
-	const hasSecretResult = await hasSecret(secretKey);
+	const hasSecretResult = await ctx.secretRepository.hasSecret(secretKey);
 	if (isErr(hasSecretResult)) {
 		return hasSecretResult;
+	}
+
+	// 3. カレンダー数の取得
+	const calendarsResult = await ctx.configRepository.getSetting("calendars");
+	let calendarCount = 0;
+	if (isErr(calendarsResult)) {
+		return calendarsResult;
+	}
+	if (calendarsResult.value !== null) {
+		try {
+			calendarCount = (JSON.parse(calendarsResult.value) as unknown[]).length;
+		} catch {
+			// パース失敗時は0として扱う
+			calendarCount = 0;
+		}
 	}
 
 	// セットアップ状態を生成して返す
@@ -129,7 +145,7 @@ export async function checkSetupStatus(): Promise<
 		createSetupStatus({
 			currentProvider,
 			hasApiKey: hasSecretResult.value,
-			calendarCount: config.calendars.length,
+			calendarCount,
 		}),
 	);
 }
@@ -137,14 +153,15 @@ export async function checkSetupStatus(): Promise<
 /**
  * 初回起動かどうかを判定する
  *
- * 設定ファイルが存在しない場合を「初回起動」と判定します。
- * この関数はcheckSetupStatusよりも軽量で、設定ファイルの存在確認のみを行います。
+ * プロバイダ設定が存在しない場合を「初回起動」と判定します。
+ * この関数はcheckSetupStatusよりも軽量で、プロバイダ設定の存在確認のみを行います。
  *
+ * @param ctx - CalendarContext（依存性注入コンテナ）
  * @returns 初回起動の場合はOk(true)、そうでない場合はOk(false)
  *
  * @example
  * ```typescript
- * const result = await isFirstLaunch();
+ * const result = await isFirstLaunch(ctx);
  *
  * if (isOk(result) && result.value) {
  *   // 初回起動時の処理（セットアップ画面へリダイレクトなど）
@@ -152,17 +169,17 @@ export async function checkSetupStatus(): Promise<
  * }
  * ```
  */
-export async function isFirstLaunch(): Promise<
-	Result<boolean, SetupStatusError>
-> {
-	const existsResult = await configExists();
+export async function isFirstLaunch(
+	ctx: CalendarContext,
+): Promise<Result<boolean, SetupStatusError>> {
+	const providerResult = await ctx.configRepository.getSetting("llm_provider");
 
-	if (isErr(existsResult)) {
-		return existsResult;
+	if (isErr(providerResult)) {
+		return providerResult;
 	}
 
-	// 設定ファイルが存在しない = 初回起動
-	return ok(!existsResult.value);
+	// プロバイダ設定が存在しない = 初回起動
+	return ok(providerResult.value === null);
 }
 
 /**
@@ -170,11 +187,12 @@ export async function isFirstLaunch(): Promise<
  *
  * checkSetupStatusの結果からisCompleteを取得する便利関数です。
  *
+ * @param ctx - CalendarContext（依存性注入コンテナ）
  * @returns セットアップ完了の場合はOk(true)、そうでない場合はOk(false)
  *
  * @example
  * ```typescript
- * const result = await isSetupComplete();
+ * const result = await isSetupComplete(ctx);
  *
  * if (isOk(result) && result.value) {
  *   // セットアップ完了済み、メイン画面を表示
@@ -185,10 +203,10 @@ export async function isFirstLaunch(): Promise<
  * }
  * ```
  */
-export async function isSetupComplete(): Promise<
-	Result<boolean, SetupStatusError>
-> {
-	const statusResult = await checkSetupStatus();
+export async function isSetupComplete(
+	ctx: CalendarContext,
+): Promise<Result<boolean, SetupStatusError>> {
+	const statusResult = await checkSetupStatus(ctx);
 
 	if (isErr(statusResult)) {
 		return statusResult;

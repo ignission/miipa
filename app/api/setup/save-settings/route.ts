@@ -1,77 +1,26 @@
 /**
  * 設定保存 API エンドポイント
  *
- * セットアップ設定をKeychain（APIキー）と設定ファイル（プロバイダ情報）に保存します。
- * 既存のAPIキーが存在する場合は確認を要求します。
+ * セットアップ設定を保存します。
+ * Auth.js認証チェック後、D1コンテキストを使用して設定を保存します。
  *
  * @endpoint POST /api/setup/save-settings
- *
- * @example
- * ```typescript
- * // リクエスト（Claude/OpenAI）
- * const response = await fetch('/api/setup/save-settings', {
- *   method: 'POST',
- *   headers: { 'Content-Type': 'application/json' },
- *   body: JSON.stringify({
- *     provider: 'claude',
- *     apiKey: 'sk-ant-xxx'
- *   })
- * });
- *
- * // リクエスト（Ollama）
- * const response = await fetch('/api/setup/save-settings', {
- *   method: 'POST',
- *   headers: { 'Content-Type': 'application/json' },
- *   body: JSON.stringify({
- *     provider: 'ollama',
- *     baseUrl: 'http://localhost:11434',
- *     model: 'llama2'
- *   })
- * });
- *
- * // 成功レスポンス
- * // { success: true }
- *
- * // 既存キーが存在し上書き確認が必要な場合
- * // {
- * //   success: false,
- * //   requiresConfirmation: true,
- * //   error: { code: 'KEY_EXISTS', message: '既にAPIキーが設定されています。上書きしますか？' }
- * // }
- *
- * // 上書き確認後のリクエスト
- * const response = await fetch('/api/setup/save-settings', {
- *   method: 'POST',
- *   headers: { 'Content-Type': 'application/json' },
- *   body: JSON.stringify({
- *     provider: 'claude',
- *     apiKey: 'sk-ant-xxx',
- *     overwriteExisting: true
- *   })
- * });
- *
- * // バリデーションエラー (400)
- * // {
- * //   success: false,
- * //   error: { code: 'INVALID_REQUEST', message: 'プロバイダが指定されていません' }
- * // }
- *
- * // サーバーエラー (500)
- * // {
- * //   success: false,
- * //   error: { code: 'KEYCHAIN_ERROR', message: '認証情報の保存に失敗しました' }
- * // }
- * ```
  */
 
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import {
 	type SaveOptions,
 	type SetupSettings,
 	saveSetupSettings,
 } from "@/lib/application/setup";
-import { isErr, isOk } from "@/lib/domain/shared";
-import { initializeDatabase } from "@/lib/infrastructure/db";
+import { createCalendarContext } from "@/lib/context/calendar-context";
+import { isOk } from "@/lib/domain/shared/result";
+import {
+	getD1Database,
+	getEncryptionKey,
+} from "@/lib/infrastructure/cloudflare/bindings";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 /**
  * 設定保存リクエストボディ
@@ -88,6 +37,66 @@ interface SaveSettingsRequest extends SetupSettings {
  * @returns 保存結果（success: true/false, requiresConfirmation?: boolean, error?: エラー情報）
  */
 export async function POST(request: NextRequest) {
+	// 認証チェック
+	const session = await auth();
+	if (!session?.user?.id) {
+		return NextResponse.json(
+			{
+				error: {
+					code: "UNAUTHORIZED",
+					message: "認証が必要です",
+				},
+			},
+			{ status: 401 },
+		);
+	}
+
+	// D1コンテキスト作成
+	const dbResult = getD1Database();
+	if (!isOk(dbResult)) {
+		return NextResponse.json(
+			{
+				success: false,
+				error: {
+					code: "DB_ERROR",
+					message: "データベース接続エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const keyResult = getEncryptionKey();
+	if (!isOk(keyResult)) {
+		return NextResponse.json(
+			{
+				success: false,
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キー取得エラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+	if (!isOk(cryptoKeyResult)) {
+		return NextResponse.json(
+			{
+				success: false,
+				error: {
+					code: "CONFIG_ERROR",
+					message: "暗号化キーインポートエラー",
+				},
+			},
+			{ status: 500 },
+		);
+	}
+	const ctx = createCalendarContext(
+		dbResult.value,
+		session.user.id,
+		cryptoKeyResult.value,
+	);
+
 	const body = (await request.json()) as SaveSettingsRequest;
 
 	// 必須パラメータのバリデーション
@@ -104,21 +113,6 @@ export async function POST(request: NextRequest) {
 		);
 	}
 
-	// データベースを初期化
-	const dbResult = initializeDatabase();
-	if (isErr(dbResult)) {
-		return NextResponse.json(
-			{
-				success: false,
-				error: {
-					code: "DATABASE_ERROR",
-					message: `データベースの初期化に失敗しました: ${dbResult.error.message}`,
-				},
-			},
-			{ status: 500 },
-		);
-	}
-
 	// SetupSettings型に変換（overwriteExistingは除外）
 	const settings: SetupSettings = {
 		provider: body.provider,
@@ -132,7 +126,7 @@ export async function POST(request: NextRequest) {
 		overwriteExisting: body.overwriteExisting ?? false,
 	};
 
-	const result = await saveSetupSettings(settings, options);
+	const result = await saveSetupSettings(ctx, settings, options);
 
 	if (isOk(result)) {
 		return NextResponse.json({ success: true });

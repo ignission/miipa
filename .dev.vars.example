@@ -1,0 +1,15 @@
+# SoloDay ローカル開発環境変数
+# このファイルを .dev.vars にコピーして値を設定してください
+# cp .dev.vars.example .dev.vars
+
+# Google OAuth設定
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# NextAuth設定
+NEXTAUTH_SECRET=your-nextauth-secret-generate-with-openssl-rand-base64-32
+NEXTAUTH_URL=http://localhost:3000
+
+# 暗号化キー（32バイトのBase64文字列）
+# 生成コマンド: openssl rand -base64 32
+ENCRYPTION_KEY=your-encryption-key-generate-with-openssl-rand-base64-32

@@ -12,7 +12,7 @@
  * import { isOk, isErr } from '@/lib/domain/shared';
  *
  * // URLのみを指定（名前はiCalメタデータから自動取得）
- * const result = await addICalCalendar('https://example.com/calendar.ics');
+ * const result = await addICalCalendar(ctx, 'https://example.com/calendar.ics');
  *
  * if (isOk(result)) {
  *   console.log(`カレンダーを追加しました: ${result.value.name}`);
@@ -22,14 +22,15 @@
  *
  * // カスタム名を指定
  * const namedResult = await addICalCalendar(
+ *   ctx,
  *   'https://example.com/holidays.ics',
  *   '日本の祝日'
  * );
  * ```
  */
 
-import { loadOrInitializeConfig, saveConfig } from "@/lib/config/loader";
 import type { CalendarConfig } from "@/lib/config/types";
+import type { CalendarContext } from "@/lib/context/calendar-context";
 import {
 	type CalendarError,
 	createCalendarId,
@@ -122,6 +123,7 @@ function generateUniqueCalendarId() {
  * 4. CalendarConfigを作成
  * 5. 設定ファイルに保存
  *
+ * @param ctx - カレンダーコンテキスト（依存性注入コンテナ）
  * @param url - iCal URLを指定
  * @param name - カレンダー名（省略時はiCalメタデータから取得）
  * @returns 成功時はOk<CalendarConfig>、失敗時はErr<AddICalCalendarError>
@@ -129,7 +131,7 @@ function generateUniqueCalendarId() {
  * @example
  * ```typescript
  * // 基本的な使い方
- * const result = await addICalCalendar('https://example.com/calendar.ics');
+ * const result = await addICalCalendar(ctx, 'https://example.com/calendar.ics');
  *
  * if (isOk(result)) {
  *   const config = result.value;
@@ -158,6 +160,7 @@ function generateUniqueCalendarId() {
  * ```
  */
 export async function addICalCalendar(
+	ctx: CalendarContext,
 	url: string,
 	name?: string,
 ): Promise<Result<CalendarConfig, AddICalCalendarError>> {
@@ -198,30 +201,33 @@ export async function addICalCalendar(
 	};
 
 	// ------------------------------------------------------------
-	// 5. 設定ファイルに保存
+	// 5. 設定を保存
 	// ------------------------------------------------------------
-	const configResult = await loadOrInitializeConfig();
-	if (isErr(configResult)) {
+	// 既存のカレンダー設定を取得
+	const existingCalendarsResult =
+		await ctx.configRepository.getSetting("calendars");
+	if (isErr(existingCalendarsResult)) {
 		return err(
 			configSaveError(
-				"設定ファイルの読み込みに失敗しました",
-				configResult.error,
+				"設定の読み込みに失敗しました",
+				existingCalendarsResult.error,
 			),
 		);
 	}
+	const existingCalendars: CalendarConfig[] = existingCalendarsResult.value
+		? (JSON.parse(existingCalendarsResult.value) as CalendarConfig[])
+		: [];
 
 	// 既存のカレンダー設定に追加
-	const updatedConfig = {
-		...configResult.value,
-		calendars: [...configResult.value.calendars, calendarConfig],
-	};
+	const updatedCalendars = [...existingCalendars, calendarConfig];
 
-	// 設定ファイルを保存
-	const saveResult = await saveConfig(updatedConfig);
+	// 設定を保存
+	const saveResult = await ctx.configRepository.setSetting(
+		"calendars",
+		JSON.stringify(updatedCalendars),
+	);
 	if (isErr(saveResult)) {
-		return err(
-			configSaveError("設定ファイルの保存に失敗しました", saveResult.error),
-		);
+		return err(configSaveError("設定の保存に失敗しました", saveResult.error));
 	}
 
 	return ok(calendarConfig);

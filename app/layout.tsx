@@ -5,6 +5,22 @@ import "@/styled-system/styles.css";
 export const metadata: Metadata = {
 	title: "SoloDay",
 	description: "一人社長向けカレンダー統合AIアシスタント",
+	manifest: "/manifest.json",
+	themeColor: "#F59E0B",
+	appleWebApp: {
+		capable: true,
+		statusBarStyle: "default",
+		title: "SoloDay",
+	},
+	viewport: {
+		width: "device-width",
+		initialScale: 1,
+		maximumScale: 1,
+	},
+	icons: {
+		icon: "/favicon.ico",
+		apple: "/icons/icon-192.png",
+	},
 };
 
 /**
@@ -37,7 +53,21 @@ export default function RootLayout({
 			<head>
 				<script dangerouslySetInnerHTML={{ __html: darkModeScript }} />
 			</head>
-			<body>{children}</body>
+			<body>
+				{children}
+				{/* Service Worker登録 */}
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `
+if ('serviceWorker' in navigator) {
+	window.addEventListener('load', function() {
+		navigator.serviceWorker.register('/sw.js');
+	});
+}
+`,
+					}}
+				/>
+			</body>
 		</html>
 	);
 }

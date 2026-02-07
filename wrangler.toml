@@ -1,0 +1,18 @@
+# SoloDay - Cloudflare Workers設定
+name = "soloday"
+main = ".open-next/worker.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# D1データベース
+[[d1_databases]]
+binding = "DB"
+database_name = "soloday-db"
+database_id = "e7f76aa8-06b3-49eb-a3ff-71531c4efd78"
+
+[vars]
+NEXTAUTH_URL = "https://soloday.ignission.workers.dev"

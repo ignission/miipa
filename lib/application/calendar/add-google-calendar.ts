@@ -36,12 +36,8 @@
  * ```
  */
 
-import { google } from "googleapis";
-import {
-	type CalendarConfig,
-	loadOrInitializeConfig,
-	saveConfig,
-} from "@/lib/config";
+import type { CalendarConfig } from "@/lib/config";
+import type { CalendarContext } from "@/lib/context/calendar-context";
 import type { CalendarError } from "@/lib/domain/calendar";
 import { apiError, networkError } from "@/lib/domain/calendar";
 import { err, isErr, ok, type Result } from "@/lib/domain/shared";
@@ -52,9 +48,8 @@ import {
 	GoogleCalendarProvider,
 	generateAuthUrl,
 	type OAuthTokens,
-	saveTokens,
 } from "@/lib/infrastructure/calendar";
-import { initializeDatabase } from "@/lib/infrastructure/db";
+import { createGoogleOAuthKey } from "@/lib/infrastructure/secret/types";
 
 // ============================================================
 // 型定義
@@ -178,12 +173,6 @@ function configSaveError(cause: unknown): AddGoogleCalendarError {
 // 内部ユーティリティ
 // ============================================================
 
-/** Google OAuth クライアントID（環境変数から取得） */
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-
-/** Google OAuth クライアントシークレット（環境変数から取得） */
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-
 /**
  * Google UserInfo API を使用してユーザーのメールアドレスを取得
  *
@@ -193,24 +182,30 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 async function getUserEmail(
 	tokens: OAuthTokens,
 ): Promise<Result<string, CalendarError>> {
-	const oauth2Client = new google.auth.OAuth2(
-		GOOGLE_CLIENT_ID,
-		GOOGLE_CLIENT_SECRET,
-	);
-	oauth2Client.setCredentials({
-		access_token: tokens.accessToken,
-		refresh_token: tokens.refreshToken,
-	});
-
 	try {
-		const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
-		const response = await oauth2.userinfo.get();
+		const response = await fetch(
+			"https://www.googleapis.com/oauth2/v2/userinfo",
+			{
+				headers: { Authorization: `Bearer ${tokens.accessToken}` },
+			},
+		);
 
-		if (!response.data.email) {
+		if (!response.ok) {
+			return err(
+				apiError(
+					`ユーザー情報の取得に失敗しました: ${response.statusText}`,
+					response.status,
+				),
+			);
+		}
+
+		const data = (await response.json()) as { email?: string };
+
+		if (!data.email) {
 			return err(apiError("メールアドレスが取得できませんでした", 400));
 		}
 
-		return ok(response.data.email);
+		return ok(data.email);
 	} catch (error) {
 		return err(networkError("ユーザー情報の取得に失敗しました", error));
 	}
@@ -246,6 +241,7 @@ function generateCalendarConfigId(
  * 返された `codeVerifier` と `state` は、コールバック処理時まで
  * 安全に保存しておく必要があります。
  *
+ * @param loginHint - Google認証画面で事前選択するメールアドレス（オプション）
  * @returns 認証URL情報、またはエラー
  *
  * @example
@@ -259,10 +255,15 @@ function generateCalendarConfigId(
  *   // ユーザーをリダイレクト
  *   redirect(url);
  * }
+ *
+ * // login_hint を指定してアカウントを事前選択
+ * const resultWithHint = startGoogleAuth('user@example.com');
  * ```
  */
-export function startGoogleAuth(): Result<AuthUrlInfo, AddGoogleCalendarError> {
-	const authUrlResult = generateAuthUrl();
+export async function startGoogleAuth(
+	loginHint?: string,
+): Promise<Result<AuthUrlInfo, AddGoogleCalendarError>> {
+	const authUrlResult = await generateAuthUrl(loginHint);
 
 	if (isErr(authUrlResult)) {
 		return err(authUrlGenerationError(authUrlResult.error));
@@ -306,6 +307,7 @@ export function startGoogleAuth(): Result<AuthUrlInfo, AddGoogleCalendarError> {
  * ```
  */
 export async function completeGoogleAuth(
+	ctx: CalendarContext,
 	code: string,
 	codeVerifier: string,
 ): Promise<Result<AddGoogleCalendarResult, AddGoogleCalendarError>> {
@@ -328,15 +330,12 @@ export async function completeGoogleAuth(
 	const accountEmail = emailResult.value;
 
 	// ------------------------------------------------------------
-	// 3. トークンを暗号化DBに保存
+	// 3. トークンをシークレットリポジトリに保存
 	// ------------------------------------------------------------
-	// データベースを初期化
-	const dbResult = initializeDatabase();
-	if (isErr(dbResult)) {
-		return err(tokenSaveError(dbResult.error));
-	}
-
-	const saveTokenResult = await saveTokens(accountEmail, tokens);
+	const saveTokenResult = await ctx.secretRepository.setSecret(
+		createGoogleOAuthKey(accountEmail),
+		JSON.stringify(tokens),
+	);
 	if (isErr(saveTokenResult)) {
 		return err(tokenSaveError(saveTokenResult.error));
 	}
@@ -354,14 +353,17 @@ export async function completeGoogleAuth(
 	// ------------------------------------------------------------
 	// 5. 各カレンダーを設定に保存
 	// ------------------------------------------------------------
-	const configResult = await loadOrInitializeConfig();
-	if (isErr(configResult)) {
-		return err(configSaveError(configResult.error));
+	// 既存のカレンダー設定を取得
+	const existingCalendarsResult =
+		await ctx.configRepository.getSetting("calendars");
+	if (isErr(existingCalendarsResult)) {
+		return err(configSaveError(existingCalendarsResult.error));
 	}
-
-	const existingConfig = configResult.value;
+	const existingCalendars: CalendarConfig[] = existingCalendarsResult.value
+		? (JSON.parse(existingCalendarsResult.value) as CalendarConfig[])
+		: [];
 	const existingCalendarIds = new Set(
-		existingConfig.calendars.map((c) => c.id as string),
+		existingCalendars.map((c) => c.id as string),
 	);
 
 	// 新しいカレンダー設定を作成（既存のものと重複しない）
@@ -387,13 +389,12 @@ export async function completeGoogleAuth(
 		newCalendars.push(calendarConfig);
 	}
 
-	// 設定を更新して保存
-	const updatedConfig = {
-		...existingConfig,
-		calendars: [...existingConfig.calendars, ...newCalendars],
-	};
-
-	const saveResult = await saveConfig(updatedConfig);
+	// 更新されたカレンダー設定を保存
+	const updatedCalendars = [...existingCalendars, ...newCalendars];
+	const saveResult = await ctx.configRepository.setSetting(
+		"calendars",
+		JSON.stringify(updatedCalendars),
+	);
 	if (isErr(saveResult)) {
 		return err(configSaveError(saveResult.error));
 	}

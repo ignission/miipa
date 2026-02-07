@@ -38,7 +38,7 @@
  * }
  *
  * // Google Calendar プロバイダの例
- * const provider = new GoogleCalendarProvider('user@gmail.com', tokens);
+ * const provider = new GoogleCalendarProvider('user@gmail.com', tokens, secretRepo);
  * const calendars = await provider.getCalendars();
  *
  * // iCal プロバイダの例

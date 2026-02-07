@@ -270,4 +270,33 @@ export interface EventRepository {
 		calendarId: CalendarId,
 		time: Date,
 	): Promise<Result<void, DbError>>;
+
+	/**
+	 * カレンダーレコードの存在を保証
+	 *
+	 * calendar_events / calendar_sync_state テーブルの外部キー制約を
+	 * 満たすために、calendars テーブルにレコードを確保します。
+	 * 既存レコードがある場合は何もしません。
+	 *
+	 * @param calendarId - カレンダーID
+	 * @param name - カレンダー名
+	 * @param type - カレンダータイプ (google / ical)
+	 * @param config - カレンダー設定JSON
+	 * @param isActive - 有効かどうか
+	 * @returns 成功時はvoid、失敗時はDBエラー
+	 *
+	 * @example
+	 * ```typescript
+	 * // FK制約対応: イベント保存前にカレンダーレコードを保証
+	 * await repo.ensureCalendarRecord(calendarId, name, type, configJson, true);
+	 * await repo.saveMany(events);
+	 * ```
+	 */
+	ensureCalendarRecord(
+		calendarId: CalendarId,
+		name: string,
+		type: string,
+		config: string,
+		isActive: boolean,
+	): Promise<Result<void, DbError>>;
 }

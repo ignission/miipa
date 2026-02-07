@@ -1,8 +1,8 @@
 /**
  * セットアップ設定保存ユースケース
  *
- * セットアップ設定を暗号化DBと設定ファイルに保存する機能を提供します。
- * APIキーは暗号化されてDBに、プロバイダ設定はconfig.jsonに保存されます。
+ * セットアップ設定を暗号化DBとD1設定テーブルに保存する機能を提供します。
+ * APIキーは暗号化されてD1に、プロバイダ設定はuser_settingsテーブルに保存されます。
  *
  * @module lib/application/setup/save-setup-settings
  *
@@ -11,13 +11,16 @@
  * import { saveSetupSettings } from '@/lib/application/setup/save-setup-settings';
  * import type { SetupSettings } from '@/lib/application/setup/types';
  * import { isOk, isErr } from '@/lib/domain/shared';
+ * import { createCalendarContext } from '@/lib/context/calendar-context';
+ *
+ * const ctx = createCalendarContext(db, userId, encryptionKey);
  *
  * const settings: SetupSettings = {
  *   provider: 'claude',
  *   apiKey: 'sk-ant-xxx',
  * };
  *
- * const result = await saveSetupSettings(settings);
+ * const result = await saveSetupSettings(ctx, settings);
  *
  * if (isOk(result)) {
  *   console.log('設定を保存しました');
@@ -27,10 +30,9 @@
  * ```
  */
 
-import { loadOrInitializeConfig, saveConfig } from "@/lib/config/loader";
+import type { CalendarContext } from "@/lib/context/calendar-context";
 import { err, isErr, ok } from "@/lib/domain/shared";
 import type { Result } from "@/lib/domain/shared/result";
-import { hasSecret, setSecret } from "@/lib/infrastructure/secret";
 import {
 	getSecretKeyForProvider,
 	type SaveOptions,
@@ -77,7 +79,7 @@ function secretStoreError(cause: unknown): SaveSettingsError {
 }
 
 /**
- * 設定ファイルエラーを生成
+ * 設定保存エラーを生成
  *
  * @param cause - 元のエラー
  * @returns CONFIG_ERRORエラー
@@ -85,7 +87,7 @@ function secretStoreError(cause: unknown): SaveSettingsError {
 function configError(cause: unknown): SaveSettingsError {
 	return {
 		code: "CONFIG_ERROR",
-		message: "設定ファイルの保存に失敗しました。",
+		message: "設定の保存に失敗しました。",
 		cause,
 	};
 }
@@ -97,7 +99,7 @@ function configError(cause: unknown): SaveSettingsError {
 /**
  * セットアップ設定を保存
  *
- * セットアップ設定をKeychainと設定ファイルに保存します。
+ * セットアップ設定を暗号化DBとD1設定テーブルに保存します。
  *
  * ## 処理フロー
  * 1. 既存APIキーの存在確認
@@ -105,12 +107,13 @@ function configError(cause: unknown): SaveSettingsError {
  * 3. 暗号化DBへの保存
  *    - Claude/OpenAI: apiKeyを保存
  *    - Ollama: baseUrlを保存（未指定の場合はデフォルト値）
- * 4. 設定ファイルの更新（llm.providerを更新）
+ * 4. D1設定テーブルの更新（llm_providerを更新）
  *
  * ## セキュリティ
- * - APIキーは暗号化されてDBに保存され、設定ファイルには含まれません
+ * - APIキーは暗号化されてDBに保存され、設定テーブルには含まれません
  * - 入力されたapiKeyは参照渡しではなくコピーとして処理されます
  *
+ * @param ctx - CalendarContext（依存性注入コンテナ）
  * @param settings - セットアップ設定
  * @param options - 保存オプション（オプション）
  * @returns 成功時はOk<void>、失敗時はErr<SaveSettingsError>
@@ -118,19 +121,20 @@ function configError(cause: unknown): SaveSettingsError {
  * @example
  * ```typescript
  * // Claude設定を保存
- * const result = await saveSetupSettings({
+ * const result = await saveSetupSettings(ctx, {
  *   provider: 'claude',
  *   apiKey: 'sk-ant-xxx',
  * });
  *
  * // 既存キーを上書き
  * const overwriteResult = await saveSetupSettings(
+ *   ctx,
  *   { provider: 'openai', apiKey: 'sk-xxx' },
  *   { overwriteExisting: true }
  * );
  *
  * // Ollama設定（APIキー不要）
- * const ollamaResult = await saveSetupSettings({
+ * const ollamaResult = await saveSetupSettings(ctx, {
  *   provider: 'ollama',
  *   baseUrl: 'http://localhost:11434',
  *   model: 'llama2',
@@ -138,6 +142,7 @@ function configError(cause: unknown): SaveSettingsError {
  * ```
  */
 export async function saveSetupSettings(
+	ctx: CalendarContext,
 	settings: SetupSettings,
 	options: SaveOptions = {},
 ): Promise<Result<void, SaveSettingsError>> {
@@ -150,7 +155,7 @@ export async function saveSetupSettings(
 	// ------------------------------------------------------------
 	// 1. 既存APIキーの存在確認
 	// ------------------------------------------------------------
-	const hasKeyResult = await hasSecret(secretKey);
+	const hasKeyResult = await ctx.secretRepository.hasSecret(secretKey);
 	if (isErr(hasKeyResult)) {
 		return err(secretStoreError(hasKeyResult.error));
 	}
@@ -173,31 +178,22 @@ export async function saveSetupSettings(
 
 	// シークレット値が存在する場合のみ保存
 	if (secretValue !== undefined) {
-		const setResult = await setSecret(secretKey, secretValue);
+		const setResult = await ctx.secretRepository.setSecret(
+			secretKey,
+			secretValue,
+		);
 		if (isErr(setResult)) {
 			return err(secretStoreError(setResult.error));
 		}
 	}
 
 	// ------------------------------------------------------------
-	// 3. 設定ファイルの更新
+	// 3. D1設定テーブルの更新
 	// ------------------------------------------------------------
-	const configResult = await loadOrInitializeConfig();
-	if (isErr(configResult)) {
-		return err(configError(configResult.error));
-	}
-
-	// llm.providerを更新した新しい設定を作成
-	const updatedConfig = {
-		...configResult.value,
-		llm: {
-			...configResult.value.llm,
-			provider,
-		},
-	};
-
-	// 設定ファイルを保存
-	const saveResult = await saveConfig(updatedConfig);
+	const saveResult = await ctx.configRepository.setSetting(
+		"llm_provider",
+		provider,
+	);
 	if (isErr(saveResult)) {
 		return err(configError(saveResult.error));
 	}

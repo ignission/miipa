@@ -19,7 +19,7 @@
  * import type { OAuthTokens } from '@/lib/infrastructure/calendar/token-store';
  *
  * // プロバイダを作成
- * const provider = new GoogleCalendarProvider('user@gmail.com', tokens);
+ * const provider = new GoogleCalendarProvider('user@gmail.com', tokens, secretRepo);
  *
  * // カレンダー一覧を取得
  * const calendarsResult = await provider.getCalendars();
@@ -37,7 +37,6 @@
  * ```
  */
 
-import { type calendar_v3, google } from "googleapis";
 import {
 	apiError,
 	authExpired,
@@ -52,18 +51,36 @@ import {
 	type TimeRange,
 } from "@/lib/domain/calendar";
 import { err, ok, type Result } from "@/lib/domain/shared";
+import type { D1SecretRepository } from "@/lib/infrastructure/secret/d1-secret-repository";
 import { type OAuthTokens, refreshToken } from "./oauth-service";
 import * as tokenStore from "./token-store";
 
 // ============================================================
-// 定数
+// Google Calendar API レスポンス型
 // ============================================================
 
-/** Google OAuth クライアントID（環境変数から取得） */
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+/** Google Calendar API のイベント型 */
+interface GoogleCalendarEvent {
+	id?: string;
+	summary?: string;
+	start?: { dateTime?: string; date?: string };
+	end?: { dateTime?: string; date?: string };
+	location?: string;
+	description?: string;
+}
 
-/** Google OAuth クライアントシークレット（環境変数から取得） */
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+/** Google Calendar API のカレンダーリストエントリ型 */
+interface GoogleCalendarListEntry {
+	id?: string;
+	summary?: string;
+	primary?: boolean;
+	backgroundColor?: string;
+}
+
+/** Google Calendar API のリストレスポンス型 */
+interface GoogleApiListResponse<T> {
+	items?: T[];
+}
 
 // ============================================================
 // Google Calendar プロバイダ
@@ -85,10 +102,12 @@ export class GoogleCalendarProvider implements CalendarProvider {
 	 *
 	 * @param accountEmail - Google アカウントのメールアドレス
 	 * @param tokens - OAuth トークン（アクセストークン、リフレッシュトークン、有効期限）
+	 * @param secretRepo - D1SecretRepositoryインスタンス（トークンリフレッシュ時の保存用、省略可）
 	 */
 	constructor(
 		private readonly accountEmail: string,
 		private tokens: OAuthTokens,
+		private readonly secretRepo?: D1SecretRepository,
 	) {}
 
 	/**
@@ -116,21 +135,29 @@ export class GoogleCalendarProvider implements CalendarProvider {
 		}
 
 		try {
-			const calendar = this.createCalendarClient();
-			const response = await calendar.calendarList.list();
-
-			const calendars: ProviderCalendar[] = (response.data.items || []).map(
-				(item) => ({
-					id: item.id || "",
-					name: item.summary || "Unknown",
-					primary: item.primary || false,
-					color: item.backgroundColor ?? undefined,
-				}),
+			const response = await fetch(
+				"https://www.googleapis.com/calendar/v3/users/me/calendarList",
+				{
+					headers: { Authorization: `Bearer ${this.tokens.accessToken}` },
+				},
 			);
+
+			if (!response.ok) {
+				return await this.handleFetchError(response);
+			}
+
+			const data =
+				(await response.json()) as GoogleApiListResponse<GoogleCalendarListEntry>;
+			const calendars: ProviderCalendar[] = (data.items || []).map((item) => ({
+				id: item.id || "",
+				name: item.summary || "Unknown",
+				primary: item.primary || false,
+				color: item.backgroundColor ?? undefined,
+			}));
 
 			return ok(calendars);
 		} catch (error) {
-			return this.handleApiError(error);
+			return err(networkError("API呼び出しに失敗しました", error));
 		}
 	}
 
@@ -164,47 +191,39 @@ export class GoogleCalendarProvider implements CalendarProvider {
 		}
 
 		try {
-			const calendar = this.createCalendarClient();
-			const response = await calendar.events.list({
-				calendarId: calendarId as string,
+			const params = new URLSearchParams({
 				timeMin: range.start.toISOString(),
 				timeMax: range.end.toISOString(),
-				singleEvents: true,
+				singleEvents: "true",
 				orderBy: "startTime",
 			});
 
-			const events = (response.data.items || []).map((item) =>
+			const response = await fetch(
+				`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId as string)}/events?${params.toString()}`,
+				{
+					headers: { Authorization: `Bearer ${this.tokens.accessToken}` },
+				},
+			);
+
+			if (!response.ok) {
+				return await this.handleFetchError(response);
+			}
+
+			const data =
+				(await response.json()) as GoogleApiListResponse<GoogleCalendarEvent>;
+			const events = (data.items || []).map((item) =>
 				this.convertToCalendarEvent(item, calendarId),
 			);
 
 			return ok(events);
 		} catch (error) {
-			return this.handleApiError(error);
+			return err(networkError("API呼び出しに失敗しました", error));
 		}
 	}
 
 	// ============================================================
 	// 内部メソッド
 	// ============================================================
-
-	/**
-	 * Google Calendar API クライアントを作成
-	 *
-	 * 現在のトークンを使用して認証済みのクライアントを返します。
-	 *
-	 * @returns 認証済みの Calendar API クライアント
-	 */
-	private createCalendarClient(): calendar_v3.Calendar {
-		const oauth2Client = new google.auth.OAuth2(
-			GOOGLE_CLIENT_ID,
-			GOOGLE_CLIENT_SECRET,
-		);
-		oauth2Client.setCredentials({
-			access_token: this.tokens.accessToken,
-			refresh_token: this.tokens.refreshToken,
-		});
-		return google.calendar({ version: "v3", auth: oauth2Client });
-	}
 
 	/**
 	 * トークンが有効かどうかを確認し、必要に応じてリフレッシュ
@@ -230,18 +249,21 @@ export class GoogleCalendarProvider implements CalendarProvider {
 
 		// 新しいトークンを保存
 		this.tokens = refreshResult.value;
-		const saveResult = await tokenStore.saveTokens(
-			this.accountEmail,
-			this.tokens,
-		);
-
-		// 保存に失敗してもAPI呼び出しは可能なので、ここではエラーを無視
-		// ただしログ出力などの対応は検討の余地あり
-		if (saveResult._tag === "Err") {
-			console.warn(
-				`トークンの保存に失敗しました: ${this.accountEmail}`,
-				saveResult.error,
+		if (this.secretRepo) {
+			const saveResult = await tokenStore.saveTokens(
+				this.secretRepo,
+				this.accountEmail,
+				this.tokens,
 			);
+
+			// 保存に失敗してもAPI呼び出しは可能なので、ここではエラーを無視
+			// ただしログ出力などの対応は検討の余地あり
+			if (saveResult._tag === "Err") {
+				console.warn(
+					`トークンの保存に失敗しました: ${this.accountEmail}`,
+					saveResult.error,
+				);
+			}
 		}
 
 		return ok(undefined);
@@ -257,7 +279,7 @@ export class GoogleCalendarProvider implements CalendarProvider {
 	 * @returns CalendarEvent エンティティ
 	 */
 	private convertToCalendarEvent(
-		item: calendar_v3.Schema$Event,
+		item: GoogleCalendarEvent,
 		calendarId: CalendarId,
 	): CalendarEvent {
 		// 終日イベントかどうかを判定
@@ -290,28 +312,24 @@ export class GoogleCalendarProvider implements CalendarProvider {
 	}
 
 	/**
-	 * Google Calendar API エラーをハンドリング
+	 * fetch レスポンスエラーをハンドリング
 	 *
 	 * HTTP ステータスコードに応じて適切な CalendarError を生成します。
 	 *
-	 * @param error - 発生したエラー
+	 * @param response - fetch のレスポンス
 	 * @returns Err(CalendarError)
 	 */
-	private handleApiError(error: unknown): Result<never, CalendarError> {
-		// googleapis のエラーオブジェクトには code プロパティがある場合がある
-		if (error instanceof Error && "code" in error) {
-			const code = (error as Error & { code?: number }).code;
+	private async handleFetchError(
+		response: Response,
+	): Promise<Result<never, CalendarError>> {
+		const status = response.status;
 
-			// 認証エラー（401: Unauthorized, 403: Forbidden）
-			if (code === 401 || code === 403) {
-				return err(authExpired(this.accountEmail, "認証が必要です"));
-			}
-
-			// その他の API エラー
-			return err(apiError(error.message, code || 500));
+		// 認証エラー（401: Unauthorized, 403: Forbidden）
+		if (status === 401 || status === 403) {
+			return err(authExpired(this.accountEmail, "認証が必要です"));
 		}
 
-		// ネットワークエラーやその他の例外
-		return err(networkError("API呼び出しに失敗しました", error));
+		const body = await response.text().catch(() => "");
+		return err(apiError(body || response.statusText, status));
 	}
 }

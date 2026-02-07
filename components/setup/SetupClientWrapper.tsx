@@ -145,7 +145,11 @@ export function SetupClientWrapper({
 				body: JSON.stringify(body),
 			});
 
-			const result = await response.json();
+			const result = (await response.json()) as {
+				success?: boolean;
+				requiresConfirmation?: boolean;
+				error?: { message?: string };
+			};
 
 			if (result.success) {
 				setStep("complete");
@@ -157,7 +161,10 @@ export function SetupClientWrapper({
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(body),
 				});
-				const retryResult = await retryResponse.json();
+				const retryResult = (await retryResponse.json()) as {
+					success?: boolean;
+					error?: { message?: string };
+				};
 				if (retryResult.success) {
 					setStep("complete");
 				} else {

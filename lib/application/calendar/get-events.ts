@@ -12,13 +12,13 @@
  * import { isOk } from '@/lib/domain/shared';
  *
  * // 今日のイベントを取得
- * const todayResult = await getEventsForToday();
+ * const todayResult = await getEventsForToday(ctx);
  * if (isOk(todayResult)) {
  *   console.log(`今日のイベント: ${todayResult.value.length}件`);
  * }
  *
  * // 今週のイベントを取得
- * const weekResult = await getEventsForWeek();
+ * const weekResult = await getEventsForWeek(ctx);
  * if (isOk(weekResult)) {
  *   for (const event of weekResult.value) {
  *     console.log(`${event.title}: ${event.startTime}`);
@@ -27,7 +27,8 @@
  * ```
  */
 
-import { type CalendarConfig, loadConfig } from "@/lib/config";
+import type { CalendarConfig } from "@/lib/config";
+import type { CalendarContext } from "@/lib/context/calendar-context";
 import {
 	type CalendarError,
 	type CalendarEvent,
@@ -38,6 +39,7 @@ import {
 	sortEventsByStartTime,
 	type TimeRange,
 } from "@/lib/domain/calendar";
+import type { EventRepository } from "@/lib/domain/calendar/repository";
 import {
 	err,
 	isErr,
@@ -51,10 +53,10 @@ import type { DbError } from "@/lib/domain/shared/errors";
 import type { CalendarId } from "@/lib/domain/shared/types";
 import {
 	GoogleCalendarProvider,
-	getTokens,
 	ICalProvider,
+	type OAuthTokens,
 } from "@/lib/infrastructure/calendar";
-import { getDatabase, SqliteEventRepository } from "@/lib/infrastructure/db";
+import { createGoogleOAuthKey } from "@/lib/infrastructure/secret/types";
 
 // ============================================================
 // 定数
@@ -75,13 +77,11 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
  * - DATABASE_ERROR: データベースアクセスエラー
  * - CONFIG_ERROR: 設定ファイル読み込みエラー
  * - PROVIDER_ERROR: カレンダープロバイダからの取得エラー
- * - NO_DATABASE: データベースが初期化されていない
  */
 export type GetEventsErrorCode =
 	| "DATABASE_ERROR"
 	| "CONFIG_ERROR"
-	| "PROVIDER_ERROR"
-	| "NO_DATABASE";
+	| "PROVIDER_ERROR";
 
 /**
  * イベント取得エラー
@@ -138,16 +138,6 @@ function providerError(cause: CalendarError): GetEventsError {
 	};
 }
 
-/**
- * データベース未初期化エラーを生成
- */
-function noDatabaseError(): GetEventsError {
-	return {
-		code: "NO_DATABASE",
-		message: "データベースが初期化されていません",
-	};
-}
-
 // ============================================================
 // ユーティリティ関数
 // ============================================================
@@ -170,10 +160,12 @@ function isCacheStale(lastSyncTime: Option<Date>): boolean {
 /**
  * カレンダー設定からプロバイダを作成
  *
+ * @param ctx - カレンダーコンテキスト
  * @param config - カレンダー設定
  * @returns カレンダープロバイダ、またはnull（トークンが無い場合など）
  */
 async function createProviderFromConfig(
+	ctx: CalendarContext,
 	config: CalendarConfig,
 ): Promise<CalendarProvider | null> {
 	if (config.type === "google") {
@@ -182,20 +174,27 @@ async function createProviderFromConfig(
 			return null;
 		}
 
-		const tokensResult = await getTokens(config.googleAccountEmail);
-		if (isErr(tokensResult)) {
-			return null;
-		}
-
-		const tokensOption = tokensResult.value;
-		if (!isSome(tokensOption)) {
-			return null;
-		}
-
-		return new GoogleCalendarProvider(
-			config.googleAccountEmail,
-			tokensOption.value,
+		const tokensJson = await ctx.secretRepository.getSecret(
+			createGoogleOAuthKey(config.googleAccountEmail),
 		);
+		if (isErr(tokensJson)) {
+			return null;
+		}
+		if (!tokensJson.value) {
+			return null;
+		}
+
+		const stored = JSON.parse(tokensJson.value) as {
+			accessToken: string;
+			refreshToken: string;
+			expiresAt: string;
+		};
+		const tokens: OAuthTokens = {
+			...stored,
+			expiresAt: new Date(stored.expiresAt),
+		};
+
+		return new GoogleCalendarProvider(config.googleAccountEmail, tokens);
 	}
 
 	if (config.type === "ical") {
@@ -214,24 +213,36 @@ async function createProviderFromConfig(
  * プロバイダからイベントを取得し、キャッシュを更新
  *
  * @param provider - カレンダープロバイダ
- * @param calendarId - カレンダーID（Google用）またはプロバイダ固有ID
+ * @param providerCalendarId - プロバイダに渡すカレンダーID（Google APIのcalendarId等）
+ * @param cacheCalendarId - DB保存用のカレンダーID（calendarsテーブルのFK）
+ * @param calendarName - カレンダー名（イベントのsource情報に設定）
  * @param range - 取得する時間範囲
  * @param repository - イベントリポジトリ
  * @returns 取得したイベント、またはエラー
  */
 async function fetchAndCacheEvents(
 	provider: CalendarProvider,
-	calendarId: CalendarId,
+	providerCalendarId: CalendarId,
+	cacheCalendarId: CalendarId,
+	calendarName: string,
 	range: TimeRange,
-	repository: SqliteEventRepository,
+	repository: EventRepository,
 ): Promise<Result<CalendarEvent[], GetEventsError>> {
 	// プロバイダからイベントを取得
-	const eventsResult = await provider.getEvents(calendarId, range);
+	const eventsResult = await provider.getEvents(providerCalendarId, range);
 	if (isErr(eventsResult)) {
 		return err(providerError(eventsResult.error));
 	}
 
-	const events = eventsResult.value;
+	// イベントのcalendarIdをキャッシュ用IDに変換
+	const events = eventsResult.value.map((event) => ({
+		...event,
+		calendarId: cacheCalendarId,
+		source: {
+			...event.source,
+			calendarName,
+		},
+	}));
 
 	// キャッシュに保存
 	const saveResult = await repository.saveMany(events);
@@ -244,7 +255,7 @@ async function fetchAndCacheEvents(
 
 	// 同期時刻を更新
 	const syncTimeResult = await repository.updateLastSyncTime(
-		calendarId,
+		cacheCalendarId,
 		new Date(),
 	);
 	if (isErr(syncTimeResult)) {
@@ -266,13 +277,14 @@ async function fetchAndCacheEvents(
  * キャッシュを優先し、キャッシュが古い場合（1時間以上経過）は
  * プロバイダから再取得します。
  *
+ * @param ctx - カレンダーコンテキスト
  * @param range - 取得する時間範囲
  * @returns イベントの配列、またはエラー
  *
  * @example
  * ```typescript
  * const range = createTimeRange(new Date(), addDays(new Date(), 7));
- * const result = await getEventsForRange(range);
+ * const result = await getEventsForRange(ctx, range);
  *
  * if (isOk(result)) {
  *   console.log(`${result.value.length}件のイベントを取得`);
@@ -280,26 +292,24 @@ async function fetchAndCacheEvents(
  * ```
  */
 export async function getEventsForRange(
+	ctx: CalendarContext,
 	range: TimeRange,
 ): Promise<Result<CalendarEvent[], GetEventsError>> {
-	// データベース接続を取得
-	const dbOption = getDatabase();
-	if (!isSome(dbOption)) {
-		return err(noDatabaseError());
-	}
-
-	const repository = new SqliteEventRepository(dbOption.value);
+	const repository = ctx.eventRepository;
 
 	// 設定を読み込み
-	const configResult = await loadConfig();
-	if (isErr(configResult)) {
+	const calendarsJson = await ctx.configRepository.getSetting("calendars");
+	if (isErr(calendarsJson)) {
 		return err(
-			configError("設定ファイルの読み込みに失敗しました", configResult.error),
+			configError("設定の読み込みに失敗しました", calendarsJson.error),
 		);
 	}
 
-	const config = configResult.value;
-	const enabledCalendars = config.calendars.filter((cal) => cal.enabled);
+	const enabledCalendars: CalendarConfig[] = calendarsJson.value
+		? (JSON.parse(calendarsJson.value) as CalendarConfig[]).filter(
+				(cal) => cal.enabled,
+			)
+		: [];
 
 	if (enabledCalendars.length === 0) {
 		// 有効なカレンダーがない場合は空配列を返す
@@ -322,7 +332,7 @@ export async function getEventsForRange(
 
 		if (isCacheStale(lastSyncTime)) {
 			// キャッシュが古い場合はプロバイダから取得
-			const provider = await createProviderFromConfig(calendarConfig);
+			const provider = await createProviderFromConfig(ctx, calendarConfig);
 
 			if (provider === null) {
 				// プロバイダを作成できない場合はキャッシュから取得を試みる
@@ -338,14 +348,25 @@ export async function getEventsForRange(
 			}
 
 			// プロバイダからイベントを取得
-			const calendarId =
+			const providerCalendarId =
 				calendarConfig.type === "google" && calendarConfig.googleCalendarId
 					? (calendarConfig.googleCalendarId as CalendarId)
 					: calendarConfig.id;
 
+			// カレンダーレコードの存在を保証（FK制約対応）
+			await repository.ensureCalendarRecord(
+				calendarConfig.id,
+				calendarConfig.name,
+				calendarConfig.type,
+				JSON.stringify(calendarConfig),
+				calendarConfig.enabled,
+			);
+
 			const fetchResult = await fetchAndCacheEvents(
 				provider,
-				calendarId,
+				providerCalendarId,
+				calendarConfig.id,
+				calendarConfig.name,
 				range,
 				repository,
 			);
@@ -394,11 +415,12 @@ export async function getEventsForRange(
  *
  * 今日の0時から23時59分59秒999ミリ秒までのイベントを取得します。
  *
+ * @param ctx - カレンダーコンテキスト
  * @returns 今日のイベントの配列、またはエラー
  *
  * @example
  * ```typescript
- * const result = await getEventsForToday();
+ * const result = await getEventsForToday(ctx);
  *
  * if (isOk(result)) {
  *   console.log(`今日のイベント: ${result.value.length}件`);
@@ -408,12 +430,12 @@ export async function getEventsForRange(
  * }
  * ```
  */
-export async function getEventsForToday(): Promise<
-	Result<CalendarEvent[], GetEventsError>
-> {
+export async function getEventsForToday(
+	ctx: CalendarContext,
+): Promise<Result<CalendarEvent[], GetEventsError>> {
 	const todayRange = getTodayRange();
 	const range = createTimeRange(todayRange.startDate, todayRange.endDate);
-	return getEventsForRange(range);
+	return getEventsForRange(ctx, range);
 }
 
 /**
@@ -422,11 +444,12 @@ export async function getEventsForToday(): Promise<
  * 今週の月曜日から日曜日までのイベントを取得します。
  * 月曜日が週の始まりです。
  *
+ * @param ctx - カレンダーコンテキスト
  * @returns 今週のイベントの配列、またはエラー
  *
  * @example
  * ```typescript
- * const result = await getEventsForWeek();
+ * const result = await getEventsForWeek(ctx);
  *
  * if (isOk(result)) {
  *   console.log(`今週のイベント: ${result.value.length}件`);
@@ -436,10 +459,10 @@ export async function getEventsForToday(): Promise<
  * }
  * ```
  */
-export async function getEventsForWeek(): Promise<
-	Result<CalendarEvent[], GetEventsError>
-> {
+export async function getEventsForWeek(
+	ctx: CalendarContext,
+): Promise<Result<CalendarEvent[], GetEventsError>> {
 	const weekRange = getWeekRange();
 	const range = createTimeRange(weekRange.startDate, weekRange.endDate);
-	return getEventsForRange(range);
+	return getEventsForRange(ctx, range);
 }

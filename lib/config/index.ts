@@ -5,15 +5,6 @@
  *
  * ## 提供する機能
  *
- * ### パス定数
- * - `SOLODAY_DIR`: データディレクトリ (~/.soloday)
- * - `CONFIG_PATH`: 設定ファイルパス (~/.soloday/config.json)
- * - `DB_PATH`: データベースファイルパス (~/.soloday/db.sqlite)
- *
- * ### ディレクトリ初期化
- * - `ensureDirectory()`: SoloDayデータディレクトリを作成
- * - `ensureDirectoryAt()`: 任意のディレクトリパスを作成
- *
  * ### 設定型定義
  * - `AppConfig`: アプリケーション設定のルート型
  * - `LLMConfig`: LLMプロバイダ設定
@@ -26,21 +17,10 @@
  * @example
  * ```typescript
  * import {
- *   SOLODAY_DIR,
- *   CONFIG_PATH,
- *   DB_PATH,
- *   ensureDirectory,
  *   type AppConfig,
  *   AppConfigSchema,
  *   DEFAULT_CONFIG,
  * } from '@/lib/config';
- *
- * // アプリケーション初期化時にディレクトリを確保
- * const result = await ensureDirectory();
- * if (isErr(result)) {
- *   console.error('初期化失敗:', result.error.message);
- *   process.exit(1);
- * }
  *
  * // 設定のバリデーション
  * const configResult = AppConfigSchema.safeParse(jsonData);
@@ -49,23 +29,6 @@
  * }
  * ```
  */
-
-// ============================================================
-// パス定数とディレクトリ初期化
-// ============================================================
-
-export {
-	/** 設定ファイルパス (~/.soloday/config.json) */
-	CONFIG_PATH,
-	/** SQLiteデータベースファイルパス (~/.soloday/db.sqlite) */
-	DB_PATH,
-	/** SoloDayデータディレクトリを作成 */
-	ensureDirectory,
-	/** 指定されたディレクトリパスを作成 */
-	ensureDirectoryAt,
-	/** SoloDayのデータディレクトリパス (~/.soloday) */
-	SOLODAY_DIR,
-} from "./paths";
 
 // ============================================================
 // 設定型定義とZodスキーマ
@@ -116,29 +79,6 @@ export {
 	/** UI設定のZodスキーマ */
 	UIConfigSchema,
 } from "./types";
-
-// ============================================================
-// 設定ローダー
-// ============================================================
-
-/**
- * 設定ローダーのエクスポート
- *
- * 設定ファイルの読み込み、保存、初期化機能を提供します。
- * すべての操作はResult型を返し、例外をスローしません。
- */
-export {
-	/** 設定ファイルが存在するかを確認 */
-	configExists,
-	/** デフォルト設定を生成してファイルに保存 */
-	initializeConfig,
-	/** 設定ファイルを読み込みバリデーション */
-	loadConfig,
-	/** 設定を読み込むか、存在しない場合は初期化 */
-	loadOrInitializeConfig,
-	/** 設定をファイルに保存 */
-	saveConfig,
-} from "./loader";
 
 // ============================================================
 // バリデーター
