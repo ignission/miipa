@@ -1,23 +1,17 @@
 /**
- * カレンダー設定ページ（Server Component）
+ * アカウント設定ページ（Server Component）
  *
- * カレンダー管理UIのエントリーポイントとなるServer Componentです。
- * カレンダー一覧の表示、追加、削除、同期機能を提供します。
+ * ユーザー情報の表示、サインアウト、アカウント削除を提供する設定ページです。
  *
- * @module app/settings/calendars/page
- *
- * @example
- * ブラウザで /settings/calendars にアクセスするとカレンダー設定画面が表示されます。
+ * @module app/settings/account/page
  */
 
 import Link from "next/link";
-import { Suspense } from "react";
-import { CalendarsClientWrapper } from "@/components/calendar";
+import { auth } from "@/auth";
 import { css } from "@/styled-system/css";
+import { AccountSettingsClient } from "./AccountSettingsClient";
 
-/**
- * 戻るアイコン（SVG）
- */
+/** 戻るアイコン（SVG） */
 function BackIcon() {
 	return (
 		<svg
@@ -37,32 +31,15 @@ function BackIcon() {
 }
 
 /**
- * ローディングフォールバック
+ * アカウント設定ページ
+ *
+ * ユーザー情報の閲覧、サインアウト、アカウント削除を行う設定ページです。
  */
-function CalendarsLoading() {
-	return (
-		<div
-			className={css({
-				display: "flex",
-				alignItems: "center",
-				justifyContent: "center",
-				py: "12",
-				color: "fg.muted",
-			})}
-		>
-			読み込み中...
-		</div>
-	);
-}
+export default async function AccountSettingsPage() {
+	const session = await auth();
+	const userName = session?.user?.name ?? "";
+	const userEmail = session?.user?.email ?? "";
 
-/**
- * カレンダー設定ページ
- *
- * カレンダーの管理（一覧表示、追加、削除、同期）を行う設定ページです。
- *
- * @returns カレンダー設定ページ要素
- */
-export default function CalendarsSettingsPage() {
 	return (
 		<div
 			className={css({
@@ -102,7 +79,7 @@ export default function CalendarsSettingsPage() {
 					<BackIcon />
 				</Link>
 				<h1 className={css({ fontSize: "xl", fontWeight: "bold" })}>
-					カレンダー設定
+					アカウント
 				</h1>
 			</header>
 
@@ -116,9 +93,7 @@ export default function CalendarsSettingsPage() {
 					width: "full",
 				})}
 			>
-				<Suspense fallback={<CalendarsLoading />}>
-					<CalendarsClientWrapper />
-				</Suspense>
+				<AccountSettingsClient userName={userName} userEmail={userEmail} />
 			</main>
 		</div>
 	);

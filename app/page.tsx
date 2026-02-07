@@ -114,7 +114,7 @@ export default async function HomePage() {
 				{/* 右: 設定リンク */}
 				{/* WCAG: タッチターゲット44px以上、コントラスト比3:1以上 */}
 				<Link
-					href="/settings/calendars"
+					href="/settings"
 					className={css({
 						display: "flex",
 						alignItems: "center",
@@ -145,7 +145,7 @@ export default async function HomePage() {
 							transform: "rotate(45deg) scale(0.95)",
 						},
 					})}
-					aria-label="カレンダー設定"
+					aria-label="設定"
 				>
 					<SettingsIcon />
 				</Link>

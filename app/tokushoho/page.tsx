@@ -25,7 +25,11 @@ type TableRow = {
 const rows: TableRow[] = [
 	{ label: "事業者", value: "合同会社Ignission" },
 	{ label: "運営責任者", value: "西立野 翔磨" },
-	{ label: "所在地", value: "〒103-0007 東京都中央区日本橋浜町三丁目19番4号 WAVES日本橋浜町 1201" },
+	{
+		label: "所在地",
+		value:
+			"〒103-0007 東京都中央区日本橋浜町三丁目19番4号 WAVES日本橋浜町 1201",
+	},
 	{ label: "連絡先", value: "miipa@ignission.tech" },
 	{ label: "販売価格", value: "無料" },
 	{
