@@ -138,7 +138,7 @@ export default function SettingsPage() {
 				})}
 			>
 				<Link
-					href="/"
+					href="/home"
 					className={css({
 						display: "flex",
 						alignItems: "center",

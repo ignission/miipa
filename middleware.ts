@@ -12,6 +12,10 @@ const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
 	if (!req.auth) {
+		// ルートパスは未認証でもアクセス許可（LP表示）
+		if (req.nextUrl.pathname === "/") {
+			return NextResponse.next();
+		}
 		const signInUrl = new URL("/auth/signin", req.url);
 		return NextResponse.redirect(signInUrl);
 	}
