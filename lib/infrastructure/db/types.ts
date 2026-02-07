@@ -11,7 +11,7 @@
  * import type { DatabaseConfig, DatabaseConnection, MigrationInfo } from '@/lib/infrastructure/db/types';
  *
  * const config: DatabaseConfig = {
- *   path: '~/.soloday/db.sqlite',
+ *   path: '~/.miipa/db.sqlite',
  *   verbose: true,
  * };
  * ```

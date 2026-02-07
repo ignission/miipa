@@ -61,7 +61,7 @@ export default function SignInPage() {
 				{/* ミーアキャットキャラクター */}
 				<Image
 					src="/icons/meerkat-celebration.svg"
-					alt="SoloDay ミーアキャット"
+					alt="miipa ミーアキャット"
 					width={128}
 					height={128}
 					className={css({ width: "32", height: "32" })}
@@ -77,7 +77,7 @@ export default function SignInPage() {
 					})}
 				>
 					<h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
-						SoloDayへようこそ
+						miipaへようこそ
 					</h1>
 					<p className={css({ color: "fg.muted", fontSize: "sm" })}>
 						一人社長向けカレンダー統合AIアシスタント

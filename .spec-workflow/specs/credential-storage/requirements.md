@@ -6,7 +6,7 @@ keytarからDB暗号化への認証情報保存方式の移行。macOS Keychain�
 
 ## Alignment with Product Vision
 
-SoloDayは「npxで簡単に始められる」一人社長向けツール。現在はローカル実行のみだが、スマホからのアクセス需要に対応するためクラウドデプロイが必要。そのための前提条件としてmacOS Keychain依存を排除する。
+miipaは「npxで簡単に始められる」一人社長向けツール。現在はローカル実行のみだが、スマホからのアクセス需要に対応するためクラウドデプロイが必要。そのための前提条件としてmacOS Keychain依存を排除する。
 
 ## 背景
 
@@ -22,7 +22,7 @@ SoloDayは「npxで簡単に始められる」一人社長向けツール。現�
 
 ### ゴール
 - SQLiteにAES-256-GCM暗号化で保存
-- 暗号化キーは環境変数（SOLODAY_ENCRYPTION_KEY）
+- 暗号化キーは環境変数（MIIPA_ENCRYPTION_KEY）
 - 既存インターフェース（Result型）を維持
 
 ## Requirements
@@ -35,7 +35,7 @@ SoloDayは「npxで簡単に始められる」一人社長向けツール。現�
 
 1. WHEN 暗号化関数が呼び出される THEN システム SHALL AES-256-GCMで暗号化し、IV + AuthTag + 暗号文を結合して返す
 2. WHEN 復号化関数が呼び出される THEN システム SHALL IV + AuthTag + 暗号文を分離し、平文を返す
-3. IF SOLODAY_ENCRYPTION_KEY環境変数が未設定 THEN システム SHALL 明確なエラーを返す
+3. IF MIIPA_ENCRYPTION_KEY環境変数が未設定 THEN システム SHALL 明確なエラーを返す
 4. WHEN 不正な暗号文で復号化が試みられる THEN システム SHALL DecryptionError を返す（例外をスローしない）
 
 ### Requirement 2: 暗号化認証情報リポジトリの実装
@@ -66,7 +66,7 @@ SoloDayは「npxで簡単に始められる」一人社長向けツール。現�
 
 #### Acceptance Criteria
 
-1. IF SOLODAY_ENCRYPTION_KEY未設定でアプリ起動 THEN システム SHALL キー生成コマンド例を表示する
+1. IF MIIPA_ENCRYPTION_KEY未設定でアプリ起動 THEN システム SHALL キー生成コマンド例を表示する
 2. WHEN セットアップ画面を表示 THEN システム SHALL 暗号化キー設定状態を表示する
 
 ### Requirement 5: keytar依存の完全削除

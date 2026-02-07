@@ -14,7 +14,7 @@
 # - lib/config/paths.ts のDB_PATH定数を使用
 #
 # データ保存先:
-# - ~/.soloday/db.sqlite
+# - ~/.miipa/db.sqlite
 #
 # 配置ファイル:
 # - lib/infrastructure/db/index.ts（DB初期化・接続管理）

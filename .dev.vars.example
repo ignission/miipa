@@ -1,4 +1,4 @@
-# SoloDay ローカル開発環境変数
+# miipa ローカル開発環境変数
 # このファイルを .dev.vars にコピーして値を設定してください
 # cp .dev.vars.example .dev.vars
 

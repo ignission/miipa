@@ -113,7 +113,7 @@
   - Purpose: 利用者が暗号化キーを設定できるようにする
   - _Leverage: lib/infrastructure/crypto/encryption.ts_
   - _Requirements: 4.1_
-  - _Prompt: Implement the task for spec credential-storage, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Developer Experience Engineer | Task: Ensure getEncryptionKey() returns helpful error message including: 1) What SOLODAY_ENCRYPTION_KEY is for, 2) How to generate it (openssl rand -base64 32), 3) Where to set it (.env file or environment) | Restrictions: Error message should be concise but complete | Success: Error message guides user to successfully set up encryption key | After completion: Mark task as [-] in tasks.md before starting, use log-implementation tool to record artifacts, then mark as [x]_
+  - _Prompt: Implement the task for spec credential-storage, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Developer Experience Engineer | Task: Ensure getEncryptionKey() returns helpful error message including: 1) What MIIPA_ENCRYPTION_KEY is for, 2) How to generate it (openssl rand -base64 32), 3) Where to set it (.env file or environment) | Restrictions: Error message should be concise but complete | Success: Error message guides user to successfully set up encryption key | After completion: Mark task as [-] in tasks.md before starting, use log-implementation tool to record artifacts, then mark as [x]_
 
 ## Phase 7: keytar削除
 
@@ -148,4 +148,4 @@
   - 環境変数設定 → npm run dev → セットアップフロー → LLM APIキー保存 → 再起動後も読み込めることを確認
   - Purpose: エンドツーエンドの動作確認
   - _Requirements: All_
-  - _Prompt: Implement the task for spec credential-storage, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: 1) Set SOLODAY_ENCRYPTION_KEY env var, 2) Run npm run dev, 3) Complete setup flow with LLM API key, 4) Restart app, 5) Verify API key is still available | Restrictions: Document any issues found | Success: Full flow works, data persists across restarts | After completion: Mark task as [-] in tasks.md before starting, use log-implementation tool to record artifacts, then mark as [x]_
+  - _Prompt: Implement the task for spec credential-storage, first run spec-workflow-guide to get the workflow guide then implement the task: Role: QA Engineer | Task: 1) Set MIIPA_ENCRYPTION_KEY env var, 2) Run npm run dev, 3) Complete setup flow with LLM API key, 4) Restart app, 5) Verify API key is still available | Restrictions: Document any issues found | Success: Full flow works, data persists across restarts | After completion: Mark task as [-] in tasks.md before starting, use log-implementation tool to record artifacts, then mark as [x]_

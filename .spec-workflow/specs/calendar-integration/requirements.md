@@ -2,7 +2,7 @@
 
 ## Introduction
 
-SoloDayのコア機能であるカレンダー統合を実装する。Google Calendar（複数アカウント対応）とiCal URLからの予定取得を可能にし、「今日/今週の自分を30秒で把握」というプロダクトビジョンの実現基盤を構築する。
+miipaのコア機能であるカレンダー統合を実装する。Google Calendar（複数アカウント対応）とiCal URLからの予定取得を可能にし、「今日/今週の自分を30秒で把握」というプロダクトビジョンの実現基盤を構築する。
 
 ## Alignment with Product Vision
 

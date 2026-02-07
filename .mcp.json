@@ -6,7 +6,7 @@
 			"args": [
 				"-y",
 				"@pimzino/spec-workflow-mcp@latest",
-				"/Users/01045822/dev/github.com/ignission/soloday"
+				"/Users/01045822/dev/github.com/ignission/miipa"
 			],
 			"env": {}
 		}

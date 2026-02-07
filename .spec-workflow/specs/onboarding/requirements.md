@@ -2,13 +2,13 @@
 
 ## Introduction
 
-SoloDayの初回起動時にユーザーがスムーズにセットアップを完了できるオンボーディングフローを提供します。
+miipaの初回起動時にユーザーがスムーズにセットアップを完了できるオンボーディングフローを提供します。
 
 一人社長が「30秒で設定完了」できるシンプルなUXを最優先とし、LLMプロバイダの選択からAPIキーの安全な保存まで、最小限のステップで完了できることを目指します。
 
 ## Alignment with Product Vision
 
-このオンボーディング機能は、SoloDayの「今日/今週の自分を30秒で把握」というビジョンを実現するための入り口となります。
+このオンボーディング機能は、miipaの「今日/今週の自分を30秒で把握」というビジョンを実現するための入り口となります。
 
 - **シンプルさ**: 情報過多にしない、必要最小限のステップ
 - **セキュリティ**: APIキーはmacOS Keychainに安全に保存（平文禁止）
@@ -20,7 +20,7 @@ SoloDayの初回起動時にユーザーがスムーズにセットアップを�
 以下の基盤がproject-setupで実装済み:
 
 - Keychain統合（`getSecret`, `setSecret`, `deleteSecret`, `hasSecret`）
-- 設定ファイル管理（`~/.soloday/config.json`）
+- 設定ファイル管理（`~/.miipa/config.json`）
 - 設定ローダー（`loadOrInitializeConfig`, `saveConfig`）
 - Result型・Option型によるエラーハンドリング
 
@@ -32,7 +32,7 @@ SoloDayの初回起動時にユーザーがスムーズにセットアップを�
 
 #### Acceptance Criteria
 
-1. WHEN ユーザーがアプリケーションを起動する AND 設定ファイル（`~/.soloday/config.json`）が存在しない THEN システム SHALL セットアップ画面（`/setup`）にリダイレクトする
+1. WHEN ユーザーがアプリケーションを起動する AND 設定ファイル（`~/.miipa/config.json`）が存在しない THEN システム SHALL セットアップ画面（`/setup`）にリダイレクトする
 
 2. WHEN ユーザーがアプリケーションを起動する AND 設定ファイルは存在する AND LLMプロバイダのAPIキーがKeychainに保存されていない THEN システム SHALL セットアップ画面（`/setup`）にリダイレクトする
 
@@ -98,7 +98,7 @@ SoloDayの初回起動時にユーザーがスムーズにセットアップを�
    - OpenAI: `openai-api-key`
    - Ollama: `ollama-api-key`（Ollamaの場合は接続URLを保存）
 
-3. WHEN Keychainへの保存が成功する THEN システム SHALL 設定ファイル（`~/.soloday/config.json`）の`llm.provider`を更新する
+3. WHEN Keychainへの保存が成功する THEN システム SHALL 設定ファイル（`~/.miipa/config.json`）の`llm.provider`を更新する
 
 4. WHEN Keychainへの保存が失敗する THEN システム SHALL エラーメッセージを表示し、リトライを促す
 
@@ -115,9 +115,9 @@ SoloDayの初回起動時にユーザーがスムーズにセットアップを�
 2. WHEN 完了画面を表示する THEN システム SHALL 以下を表示する:
    - 設定完了メッセージ（ミーアキャットキャラクターの祝福イラスト付き）
    - 選択したプロバイダ名の確認
-   - 「SoloDayを始める」ボタン
+   - 「miipaを始める」ボタン
 
-3. WHEN ユーザーが「SoloDayを始める」ボタンをクリックする THEN システム SHALL メイン画面（`/`）に遷移する
+3. WHEN ユーザーが「miipaを始める」ボタンをクリックする THEN システム SHALL メイン画面（`/`）に遷移する
 
 4. WHEN 完了画面表示後5秒間操作がない THEN システム SHALL 自動的にメイン画面へ遷移する（オプション機能）
 

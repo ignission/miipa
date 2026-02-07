@@ -1,6 +1,6 @@
 <div align="center">
 
-# SoloDay
+# miipa
 
 **一人社長のための、30秒で今日を把握するAIアシスタント**
 
@@ -62,8 +62,8 @@
 ### インストール
 
 ```bash
-git clone https://github.com/ignission/soloday.git
-cd soloday
+git clone https://github.com/ignission/miipa.git
+cd miipa
 npm install
 ```
 
@@ -155,7 +155,7 @@ lib/
 ## Data Storage
 
 ```
-~/.soloday/
+~/.miipa/
 ├── config.json        # 非機密設定のみ
 ├── db.sqlite          # カレンダーキャッシュ、セッション
 └── (credentials)      # → OS Keychain に保存

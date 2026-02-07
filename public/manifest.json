@@ -1,6 +1,6 @@
 {
-	"name": "SoloDay",
-	"short_name": "SoloDay",
+	"name": "miipa",
+	"short_name": "miipa",
 	"description": "一人社長向けカレンダー統合AIアシスタント",
 	"start_url": "/",
 	"display": "standalone",

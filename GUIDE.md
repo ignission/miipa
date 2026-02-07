@@ -1,9 +1,9 @@
-# SoloDay - Claude Code 引き継ぎガイド
+# miipa - Claude Code 引き継ぎガイド
 
 ## このドキュメントについて
 
 このドキュメントは Claude Code での開発を開始するためのガイドです。
-詳細な仕様は `SOLODAY_SPEC.md` を参照してください。
+詳細な仕様は `MIIPA_SPEC.md` を参照してください。
 
 ---
 
@@ -13,8 +13,8 @@
 
 ```bash
 # ghq でリポジトリ作成
-ghq create soloday
-cd $(ghq root)/github.com/<your-username>/soloday
+ghq create miipa
+cd $(ghq root)/github.com/<your-username>/miipa
 
 # CLAUDE.md を配置
 cp /path/to/CLAUDE.md .
@@ -30,7 +30,7 @@ claude mcp add spec-workflow npx -y @pimzino/spec-workflow-mcp@latest $(pwd)
 ### 2. 仕様駆動で開発を開始
 
 ```
-「spec-workflow で SoloDay の Requirements を作成して」
+「spec-workflow で miipa の Requirements を作成して」
 
 流れ:
 1. Requirements（要件定義）
@@ -47,10 +47,10 @@ claude mcp add spec-workflow npx -y @pimzino/spec-workflow-mcp@latest $(pwd)
 
 ```bash
 # プロジェクト作成
-npx create-next-app@latest soloday --typescript --app --tailwind=false
+npx create-next-app@latest miipa --typescript --app --tailwind=false
 
 # Panda CSS + Park UI
-cd soloday
+cd miipa
 npm install -D @pandacss/dev
 npx panda init
 npm install @park-ui/panda-preset
@@ -96,7 +96,7 @@ npm install -D @types/better-sqlite3
 ## ディレクトリ構成（案）
 
 ```
-soloday/
+miipa/
 ├── app/
 │   ├── layout.tsx
 │   ├── page.tsx              # メイン画面
@@ -170,5 +170,5 @@ soloday/
 
 ## 質問があれば
 
-仕様の詳細は `SOLODAY_SPEC.md` を参照。
+仕様の詳細は `MIIPA_SPEC.md` を参照。
 不明点があれば聞いてください。

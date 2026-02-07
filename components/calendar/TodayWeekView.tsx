@@ -28,7 +28,7 @@ import { WeekView } from "./WeekView";
 /**
  * localStorageのキー
  */
-const STORAGE_KEY = "soloday-view-tab";
+const STORAGE_KEY = "miipa-view-tab";
 
 /**
  * デフォルトのビュー

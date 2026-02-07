@@ -244,7 +244,7 @@ export function SetupClientWrapper({
 							カレンダーを設定
 						</h2>
 						<p className={css({ color: "fg.muted" })}>
-							SoloDayで使用するカレンダーを連携してください
+							miipaで使用するカレンダーを連携してください
 						</p>
 					</div>
 
@@ -261,7 +261,7 @@ export function SetupClientWrapper({
 							AIプロバイダを設定
 						</h2>
 						<p className={css({ color: "fg.muted" })}>
-							SoloDayで使用するAIプロバイダを選択してください
+							miipaで使用するAIプロバイダを選択してください
 						</p>
 					</div>
 

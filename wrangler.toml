@@ -1,5 +1,5 @@
-# SoloDay - Cloudflare Workers設定
-name = "soloday"
+# miipa - Cloudflare Workers設定
+name = "miipa"
 main = ".open-next/worker.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
@@ -11,8 +11,8 @@ binding = "ASSETS"
 # D1データベース
 [[d1_databases]]
 binding = "DB"
-database_name = "soloday-db"
+database_name = "miipa-db"
 database_id = "e7f76aa8-06b3-49eb-a3ff-71531c4efd78"
 
 [vars]
-NEXTAUTH_URL = "https://soloday.ignission.workers.dev"
+NEXTAUTH_URL = "https://miipa.ignission.workers.dev"

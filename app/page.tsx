@@ -77,7 +77,7 @@ export default async function HomePage() {
 				>
 					<Image
 						src="/icons/meerkat-celebration.svg"
-						alt="SoloDay"
+						alt="miipa"
 						width={40}
 						height={40}
 						className={css({ width: "10", height: "10" })}
@@ -96,7 +96,7 @@ export default async function HomePage() {
 								color: "fg.default",
 							})}
 						>
-							SoloDay
+							miipa
 						</h1>
 						<span
 							className={css({
@@ -175,7 +175,7 @@ export default async function HomePage() {
 					borderColor: "border.default",
 				})}
 			>
-				SoloDay v1.0
+				miipa v1.0
 			</footer>
 		</div>
 	);

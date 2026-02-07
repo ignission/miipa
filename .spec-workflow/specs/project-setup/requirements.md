@@ -2,9 +2,9 @@
 
 ## Introduction
 
-SoloDayプロジェクトの初期セットアップ要件を定義する。本仕様では、Next.js (App Router) + Mastra + Panda CSS + Biome を用いた開発環境の構築、およびプロジェクト構造の初期化を行う。
+miipaプロジェクトの初期セットアップ要件を定義する。本仕様では、Next.js (App Router) + Mastra + Panda CSS + Biome を用いた開発環境の構築、およびプロジェクト構造の初期化を行う。
 
-SoloDayは一人社長向けのカレンダー統合AIアシスタントであり、ミーアキャットをキャラクターとして「今日/今週の自分を30秒で把握」できるローカル実行ツールを目指す。
+miipaは一人社長向けのカレンダー統合AIアシスタントであり、ミーアキャットをキャラクターとして「今日/今週の自分を30秒で把握」できるローカル実行ツールを目指す。
 
 ## Alignment with Product Vision
 
@@ -90,9 +90,9 @@ SoloDayは一人社長向けのカレンダー統合AIアシスタントであ�
 
 #### Acceptance Criteria
 
-1. WHEN アプリケーションを初回起動 THEN システム SHALL `~/.soloday/` ディレクトリを作成する
-2. IF 設定ファイルが必要 THEN システム SHALL `~/.soloday/config.json` に非機密設定を保存する
-3. WHEN SQLite データベースが必要 THEN システム SHALL `~/.soloday/db.sqlite` を使用する
+1. WHEN アプリケーションを初回起動 THEN システム SHALL `~/.miipa/` ディレクトリを作成する
+2. IF 設定ファイルが必要 THEN システム SHALL `~/.miipa/config.json` に非機密設定を保存する
+3. WHEN SQLite データベースが必要 THEN システム SHALL `~/.miipa/db.sqlite` を使用する
 4. IF 機密情報を保存 THEN システム SHALL macOS Keychain (keytar) を使用する（平文ファイル禁止）
 
 ### Requirement 7: 開発スクリプト設定

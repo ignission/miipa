@@ -2,7 +2,7 @@
 
 ## 概要
 
-このタスクリストは、SoloDayオンボーディング機能の実装タスクを定義します。
+このタスクリストは、miipaオンボーディング機能の実装タスクを定義します。
 
 - Requirements: `.spec-workflow/specs/onboarding/requirements.md`
 - Design: `.spec-workflow/specs/onboarding/design.md`
@@ -88,7 +88,7 @@
   - Purpose: セットアップ完了の確認と次のアクションへの誘導
   - _Leverage: Park UI（Card, Button, Text）, Panda CSS, Next.js（useRouter）_
   - _Requirements: 5_
-  - _Prompt: Role: React/TypeScript開発者、UXとアニメーションに精通 | Task: (1)`public/icons/meerkat-celebration.svg` - シンプルなミーアキャットの祝福イラスト（既存SVGアセットがあれば流用、なければプレースホルダ） (2)`SetupComplete.tsx`を実装。props: `{provider: LLMProvider, onStart: () => void, autoRedirectSeconds?: number}`（デフォルト5）。UI: ミーアキャットイラスト、「セットアップが完了しました！」メッセージ、選択プロバイダ名表示、「SoloDayを始める」ボタン（クリックでonStart()）。useEffectで自動リダイレクト: autoRedirectSeconds秒後にonStart()呼び出し、カウントダウン表示（「5秒後に自動的に移動します...」）。 | Restrictions: アニメーションは控えめに、アクセシビリティ配慮 | Success: 完了画面が表示され、ボタンクリックまたは5秒後に自動でメイン画面に遷移_
+  - _Prompt: Role: React/TypeScript開発者、UXとアニメーションに精通 | Task: (1)`public/icons/meerkat-celebration.svg` - シンプルなミーアキャットの祝福イラスト（既存SVGアセットがあれば流用、なければプレースホルダ） (2)`SetupComplete.tsx`を実装。props: `{provider: LLMProvider, onStart: () => void, autoRedirectSeconds?: number}`（デフォルト5）。UI: ミーアキャットイラスト、「セットアップが完了しました！」メッセージ、選択プロバイダ名表示、「miipaを始める」ボタン（クリックでonStart()）。useEffectで自動リダイレクト: autoRedirectSeconds秒後にonStart()呼び出し、カウントダウン表示（「5秒後に自動的に移動します...」）。 | Restrictions: アニメーションは控えめに、アクセシビリティ配慮 | Success: 完了画面が表示され、ボタンクリックまたは5秒後に自動でメイン画面に遷移_
 
 - [x] 10. セットアップページの実装
   - File: `app/setup/page.tsx`, `app/setup/layout.tsx`, `components/setup/SetupClientWrapper.tsx`
@@ -97,7 +97,7 @@
   - Purpose: セットアップフロー全体の状態管理とUI統合
   - _Leverage: 全components/setup/*コンポーネント, `lib/application/setup`ユースケース, Next.js App Router_
   - _Requirements: 1, 2, 3, 4, 5_
-  - _Prompt: Role: Next.js App Router開発者、状態管理に精通 | Task: (1)`app/setup/layout.tsx` - セットアップ専用レイアウト（ヘッダー「SoloDay セットアップ」、中央寄せコンテンツ） (2)`components/setup/SetupClientWrapper.tsx` - 'use client'、useState: currentStep('provider'/'key'/'complete'), selectedProvider, isValidated, apiKeyValue, isExistingSetup。ステップ遷移ロジック: プロバイダ選択→次へで'key'へ（Ollamaの場合はOllamaConnector表示）、検証成功→'complete'へ。設定保存: POST /api/setup/save-settings呼び出し。 (3)`app/setup/page.tsx` - Server Component、GET /api/setup/check-statusで初期状態取得、isComplete=trueなら設定変更モードとしてSetupClientWrapperに渡す。 | Restrictions: Server Componentで初期データ取得、Client Componentで状態管理 | Success: 3ステップのセットアップフローが正しく動作し、設定が保存される_
+  - _Prompt: Role: Next.js App Router開発者、状態管理に精通 | Task: (1)`app/setup/layout.tsx` - セットアップ専用レイアウト（ヘッダー「miipa セットアップ」、中央寄せコンテンツ） (2)`components/setup/SetupClientWrapper.tsx` - 'use client'、useState: currentStep('provider'/'key'/'complete'), selectedProvider, isValidated, apiKeyValue, isExistingSetup。ステップ遷移ロジック: プロバイダ選択→次へで'key'へ（Ollamaの場合はOllamaConnector表示）、検証成功→'complete'へ。設定保存: POST /api/setup/save-settings呼び出し。 (3)`app/setup/page.tsx` - Server Component、GET /api/setup/check-statusで初期状態取得、isComplete=trueなら設定変更モードとしてSetupClientWrapperに渡す。 | Restrictions: Server Componentで初期データ取得、Client Componentで状態管理 | Success: 3ステップのセットアップフローが正しく動作し、設定が保存される_
 
 - [x] 11. メイン画面からのリダイレクトロジックの実装
   - File: `app/page.tsx`（修正）, `middleware.ts`（新規）
@@ -105,7 +105,7 @@
   - Purpose: 初回起動時のスムーズなセットアップ誘導
   - _Leverage: Next.js middleware, `/api/setup/check-status`_
   - _Requirements: 1_
-  - _Prompt: Role: Next.js開発者、middlewareとルーティングに精通 | Task: (1)`middleware.ts`を新規作成。`/`アクセス時にGET /api/setup/check-statusを呼び出し、isComplete=falseなら`/setup`にリダイレクト。matcher: ['/((?!api|_next|icons|setup).*)']で/setupと静的アセットを除外。 (2)`app/page.tsx`修正 - 既存のメイン画面コンポーネントに、セットアップ完了後のコンテンツを表示（現時点では「SoloDayへようこそ」のプレースホルダ）。 | Restrictions: middlewareはedge runtimeで動作、重い処理は避ける、/api/setup/check-statusの結果をキャッシュしない | Success: 未セットアップ状態で/アクセス時に/setupにリダイレクトされる_
+  - _Prompt: Role: Next.js開発者、middlewareとルーティングに精通 | Task: (1)`middleware.ts`を新規作成。`/`アクセス時にGET /api/setup/check-statusを呼び出し、isComplete=falseなら`/setup`にリダイレクト。matcher: ['/((?!api|_next|icons|setup).*)']で/setupと静的アセットを除外。 (2)`app/page.tsx`修正 - 既存のメイン画面コンポーネントに、セットアップ完了後のコンテンツを表示（現時点では「miipaへようこそ」のプレースホルダ）。 | Restrictions: middlewareはedge runtimeで動作、重い処理は避ける、/api/setup/check-statusの結果をキャッシュしない | Success: 未セットアップ状態で/アクセス時に/setupにリダイレクトされる_
 
 - [x] 12. 設定変更（再セットアップ）対応の実装
   - File: `components/setup/SetupClientWrapper.tsx`（修正）

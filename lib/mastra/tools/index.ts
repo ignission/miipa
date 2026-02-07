@@ -1,7 +1,7 @@
 /**
- * SoloDay Mastra ツール集
+ * miipa Mastra ツール集
  *
- * このファイルはSoloDayエージェントで使用するツールをエクスポートします。
+ * このファイルはmiipaエージェントで使用するツールをエクスポートします。
  * ツールはMastraフレームワークの createTool を使用して定義します。
  *
  * 今後追加予定のツール:
@@ -18,7 +18,7 @@
  * 全ツールをまとめたオブジェクト
  * Agentのtoolsプロパティにそのまま渡せる形式
  */
-export const solodayTools = {
+export const miipaTools = {
 	// 後続タスクでツールを追加
 	// 例:
 	// getCalendarEvents,
@@ -40,5 +40,5 @@ export const solodayTools = {
  *
  * 3. このファイルでエクスポート
  *
- * 4. src/mastra/agents/soloday-agent.ts の tools に追加
+ * 4. src/mastra/agents/miipa-agent.ts の tools に追加
  */

@@ -2,9 +2,9 @@
 
 ## Overview
 
-本文書は、SoloDayプロジェクトの初期セットアップに関する設計を定義する。Next.js (App Router) + Mastra + Panda CSS + Biome を用いた開発環境の構築、DDDレイヤーアーキテクチャ、関数型プログラミングの基盤型（Result型、Option型）の設計を含む。
+本文書は、miipaプロジェクトの初期セットアップに関する設計を定義する。Next.js (App Router) + Mastra + Panda CSS + Biome を用いた開発環境の構築、DDDレイヤーアーキテクチャ、関数型プログラミングの基盤型（Result型、Option型）の設計を含む。
 
-SoloDayは一人社長向けのカレンダー統合AIアシスタントであり、「今日/今週の自分を30秒で把握」できるローカル実行ツールを目指す。本セットアップでは、その基盤となるプロジェクト構造と型システムを構築する。
+miipaは一人社長向けのカレンダー統合AIアシスタントであり、「今日/今週の自分を30秒で把握」できるローカル実行ツールを目指す。本セットアップでは、その基盤となるプロジェクト構造と型システムを構築する。
 
 ## 使用ライブラリバージョン（2026年1月時点）
 
@@ -51,7 +51,7 @@ SoloDayは一人社長向けのカレンダー統合AIアシスタントであ�
 CLAUDE.md で定義されたディレクトリ構成に準拠:
 
 ```
-soloday/
+miipa/
 ├── app/                    # Next.js App Router
 ├── lib/
 │   ├── domain/            # ドメイン層
@@ -77,7 +77,7 @@ soloday/
 
 ### Integration Points
 
-- **ファイルシステム**: `~/.soloday/` ディレクトリでの設定・データ永続化
+- **ファイルシステム**: `~/.miipa/` ディレクトリでの設定・データ永続化
 - **macOS Keychain**: keytar を介した機密情報管理
 - **LLM プロバイダ**: Mastra 経由での Claude/OpenAI/Ollama 接続
 
@@ -348,9 +348,9 @@ function saveConfig(config: AppConfig): Promise<Result<void, ConfigError>>;
 function initializeConfig(): Promise<Result<AppConfig, ConfigError>>;
 
 // lib/config/paths.ts
-const SOLODAY_DIR: string;  // ~/.soloday
-const CONFIG_PATH: string;  // ~/.soloday/config.json
-const DB_PATH: string;      // ~/.soloday/db.sqlite
+const MIIPA_DIR: string;  // ~/.miipa
+const CONFIG_PATH: string;  // ~/.miipa/config.json
+const DB_PATH: string;      // ~/.miipa/db.sqlite
 ```
 
 **Dependencies:**
@@ -413,7 +413,7 @@ export const mastra: Mastra;
 // lib/mastra/agent.ts
 import { Agent } from '@mastra/core';
 
-export const solodayAgent: Agent;
+export const miipaAgent: Agent;
 ```
 
 **Dependencies:**
@@ -485,7 +485,7 @@ interface UIConfig {
 }
 ```
 
-**保存場所:** `~/.soloday/config.json`
+**保存場所:** `~/.miipa/config.json`
 
 ### Model 2: 共有型定義
 
@@ -530,7 +530,7 @@ graph LR
 
 #### 1. 設定ファイル読み込みエラー
 
-**Scenario:** `~/.soloday/config.json` が存在しない、または破損している
+**Scenario:** `~/.miipa/config.json` が存在しない、または破損している
 
 **Handling:**
 ```typescript
@@ -590,7 +590,7 @@ match(dbResult, {
   ok: (db) => startApp(db),
   err: (error) => {
     // ディレクトリ作成の再試行
-    const dirResult = await ensureDirectory(SOLODAY_DIR);
+    const dirResult = await ensureDirectory(MIIPA_DIR);
     if (isErr(dirResult)) {
       showFatalError('データ保存先を作成できません', error);
       process.exit(1);
@@ -694,7 +694,7 @@ describe('Config Loader', () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = await mkdtemp(join(tmpdir(), 'soloday-test-'));
+    testDir = await mkdtemp(join(tmpdir(), 'miipa-test-'));
     // テスト用のパスを設定
   });
 
@@ -740,7 +740,7 @@ describe('Config Loader', () => {
 最終的なディレクトリ構成:
 
 ```
-soloday/
+miipa/
 ├── app/
 │   ├── layout.tsx                 # ルートレイアウト
 │   ├── page.tsx                   # メイン画面
@@ -839,7 +839,7 @@ soloday/
 
 ### 初期化順序
 
-1. `~/.soloday/` ディレクトリの作成
+1. `~/.miipa/` ディレクトリの作成
 2. `config.json` の読み込み/初期化
 3. SQLite データベースの初期化
 4. Mastra Agent の初期化

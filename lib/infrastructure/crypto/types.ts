@@ -79,7 +79,7 @@ export type CryptoErrorCode =
  *
  * // Result型との組み合わせ
  * function encrypt(data: string): Result<EncryptedData, CryptoError> {
- *   if (!process.env.SOLODAY_ENCRYPTION_KEY) {
+ *   if (!process.env.MIIPA_ENCRYPTION_KEY) {
  *     return err(encryptionKeyMissing());
  *   }
  *   // ...
@@ -136,7 +136,7 @@ export interface EncryptedData {
 /**
  * 暗号化キー未設定エラーを生成
  *
- * 環境変数 SOLODAY_ENCRYPTION_KEY が設定されていない場合に使用します。
+ * 環境変数 MIIPA_ENCRYPTION_KEY が設定されていない場合に使用します。
  *
  * @param message - エラーメッセージ
  * @param cause - エラーの原因
@@ -144,7 +144,7 @@ export interface EncryptedData {
  *
  * @example
  * ```typescript
- * if (!process.env.SOLODAY_ENCRYPTION_KEY) {
+ * if (!process.env.MIIPA_ENCRYPTION_KEY) {
  *   return err(encryptionKeyMissing());
  * }
  * ```
@@ -157,7 +157,7 @@ export function encryptionKeyMissing(
 		code: "ENCRYPTION_KEY_MISSING",
 		message:
 			message ??
-			"暗号化キーが設定されていません。環境変数 SOLODAY_ENCRYPTION_KEY を設定してください。",
+			"暗号化キーが設定されていません。環境変数 MIIPA_ENCRYPTION_KEY を設定してください。",
 		cause,
 	} as const;
 }
@@ -173,7 +173,7 @@ export function encryptionKeyMissing(
  *
  * @example
  * ```typescript
- * const key = Buffer.from(process.env.SOLODAY_ENCRYPTION_KEY, 'base64');
+ * const key = Buffer.from(process.env.MIIPA_ENCRYPTION_KEY, 'base64');
  * if (key.length !== 32) {
  *   return err(encryptionKeyInvalid(`キー長が不正です: ${key.length}バイト（32バイト必要）`));
  * }
@@ -307,5 +307,5 @@ export const CRYPTO_CONSTANTS = {
 	/** 暗号化キーのバイト長 */
 	KEY_LENGTH: 32,
 	/** 環境変数名 */
-	ENV_KEY_NAME: "SOLODAY_ENCRYPTION_KEY",
+	ENV_KEY_NAME: "MIIPA_ENCRYPTION_KEY",
 } as const;

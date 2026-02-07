@@ -39,7 +39,7 @@ export default function SetupLayout({ children }: { children: ReactNode }) {
 				})}
 			>
 				<h1 className={css({ fontSize: "xl", fontWeight: "bold" })}>
-					SoloDay セットアップ
+					miipa セットアップ
 				</h1>
 			</header>
 

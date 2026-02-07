@@ -292,11 +292,11 @@ function decrypt(encrypted: EncryptedData, key: Buffer): Result<string, CryptoEr
 
 ```typescript
 function getEncryptionKey(): Result<Buffer, CryptoError> {
-  const keyBase64 = process.env.SOLODAY_ENCRYPTION_KEY;
+  const keyBase64 = process.env.MIIPA_ENCRYPTION_KEY;
 
   if (!keyBase64) {
     return err(encryptionKeyMissing(
-      "SOLODAY_ENCRYPTION_KEY is not set. " +
+      "MIIPA_ENCRYPTION_KEY is not set. " +
       "Generate with: openssl rand -base64 32"
     ));
   }

@@ -105,7 +105,7 @@ export function SetupComplete({
 				<p className={css({ color: "fg.muted" })}>
 					{info
 						? `${info.name} を使用する準備ができました`
-						: "SoloDayを使用する準備ができました"}
+						: "miipaを使用する準備ができました"}
 				</p>
 			</div>
 
@@ -158,7 +158,7 @@ export function SetupComplete({
 						_hover: { bg: "accent.emphasized", transform: "scale(1.02)" },
 					})}
 				>
-					SoloDayを始める
+					miipaを始める
 				</button>
 
 				{/* カレンダー設定ボタン */}

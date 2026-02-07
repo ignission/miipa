@@ -82,7 +82,7 @@ export type ConfigErrorCode =
  * ```typescript
  * const error: ConfigError = {
  *   code: 'CONFIG_NOT_FOUND',
- *   message: '設定ファイルが見つかりません: ~/.soloday/config.json',
+ *   message: '設定ファイルが見つかりません: ~/.miipa/config.json',
  * };
  * ```
  */
@@ -100,7 +100,7 @@ export interface ConfigError extends AppError {
  *
  * @example
  * ```typescript
- * return err(configNotFound('~/.soloday/config.json が見つかりません'));
+ * return err(configNotFound('~/.miipa/config.json が見つかりません'));
  * ```
  */
 export function configNotFound(message?: string, cause?: unknown): ConfigError {
@@ -215,7 +215,7 @@ export type FileSystemErrorCode =
  * const error: FileSystemError = {
  *   code: 'FILE_NOT_FOUND',
  *   message: 'ファイルが見つかりません',
- *   path: '~/.soloday/db.sqlite',
+ *   path: '~/.miipa/db.sqlite',
  * };
  * ```
  */
@@ -367,7 +367,7 @@ export type KeychainErrorCode =
  * const error: KeychainError = {
  *   code: 'KEYCHAIN_ACCESS_DENIED',
  *   message: 'Keychainへのアクセスが拒否されました',
- *   service: 'com.soloday.app',
+ *   service: 'com.miipa.app',
  * };
  * ```
  */
@@ -391,7 +391,7 @@ export interface KeychainError extends AppError {
  * @example
  * ```typescript
  * // ユーザーがKeychainアクセスを拒否した場合
- * return err(keychainAccessDenied('com.soloday.app'));
+ * return err(keychainAccessDenied('com.miipa.app'));
  * ```
  */
 export function keychainAccessDenied(
@@ -423,7 +423,7 @@ export function keychainAccessDenied(
  * ```typescript
  * const secret = await keytar.getPassword(service, key);
  * if (secret === null) {
- *   return err(keychainItemNotFound('com.soloday.app', `キー "${key}" が見つかりません`));
+ *   return err(keychainItemNotFound('com.miipa.app', `キー "${key}" が見つかりません`));
  * }
  * ```
  */
@@ -457,7 +457,7 @@ export function keychainItemNotFound(
  * try {
  *   await keytar.setPassword(service, key, value);
  * } catch (e) {
- *   return err(keychainWriteFailed('com.soloday.app', '認証情報の保存に失敗しました', e));
+ *   return err(keychainWriteFailed('com.miipa.app', '認証情報の保存に失敗しました', e));
  * }
  * ```
  */
