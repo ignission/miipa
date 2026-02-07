@@ -29,80 +29,91 @@ const CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
  * @returns セットアップページへのリダイレクトレスポンス
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-	const searchParams = request.nextUrl.searchParams;
-	const code = searchParams.get("code");
-	const _state = searchParams.get("state");
-	const error = searchParams.get("error");
+	try {
+		const searchParams = request.nextUrl.searchParams;
+		const code = searchParams.get("code");
+		const _state = searchParams.get("state");
+		const error = searchParams.get("error");
 
-	// Google から エラーが返された場合
-	if (error) {
-		const errorDescription =
-			searchParams.get("error_description") || "認証がキャンセルされました";
-		return redirectToCalendarsWithError(errorDescription);
-	}
+		// Google から エラーが返された場合
+		if (error) {
+			const errorDescription =
+				searchParams.get("error_description") || "認証がキャンセルされました";
+			return redirectToCalendarsWithError(errorDescription);
+		}
 
-	// 認証コードがない場合
-	if (!code) {
-		return redirectToCalendarsWithError("認証コードが見つかりません");
-	}
+		// 認証コードがない場合
+		if (!code) {
+			return redirectToCalendarsWithError("認証コードが見つかりません");
+		}
 
-	// Cookie から code_verifier を取得
-	const cookieStore = await cookies();
-	const codeVerifier = cookieStore.get(CODE_VERIFIER_COOKIE)?.value;
+		// Cookie から code_verifier を取得
+		console.log("[Google OAuth Callback] step: cookies");
+		const cookieStore = await cookies();
+		const codeVerifier = cookieStore.get(CODE_VERIFIER_COOKIE)?.value;
 
-	if (!codeVerifier) {
-		return redirectToCalendarsWithError(
-			"認証セッションが無効です。もう一度お試しください。",
+		if (!codeVerifier) {
+			return redirectToCalendarsWithError(
+				"認証セッションが無効です。もう一度お試しください。",
+			);
+		}
+
+		// 認証チェック
+		console.log("[Google OAuth Callback] step: auth");
+		const session = await auth();
+		if (!session?.user?.id) {
+			return redirectToCalendarsWithError(
+				"認証が必要です。ログインしてください。",
+			);
+		}
+
+		// D1コンテキスト作成
+		console.log("[Google OAuth Callback] step: context");
+		const dbResult = getD1Database();
+		if (!isOk(dbResult)) {
+			return redirectToCalendarsWithError("データベース接続エラー");
+		}
+		const keyResult = getEncryptionKey();
+		if (!isOk(keyResult)) {
+			return redirectToCalendarsWithError("暗号化キー取得エラー");
+		}
+		const cryptoKeyResult = await importEncryptionKey(keyResult.value);
+		if (!isOk(cryptoKeyResult)) {
+			return redirectToCalendarsWithError("暗号化キーインポートエラー");
+		}
+		const ctx = createCalendarContext(
+			dbResult.value,
+			session.user.id,
+			cryptoKeyResult.value,
 		);
+
+		// 認証を完了し、カレンダーを追加
+		console.log("[Google OAuth Callback] step: completeGoogleAuth");
+		const result = await completeGoogleAuth(ctx, code, codeVerifier);
+
+		if (!isOk(result)) {
+			console.error(
+				"[Google OAuth Callback] completeGoogleAuth error:",
+				JSON.stringify(result.error, null, 2),
+			);
+		} else {
+			console.log(
+				`[Google OAuth Callback] success: ${result.value.addedCalendars.length} calendars added`,
+			);
+		}
+
+		// code_verifier Cookie を削除
+		const response = isOk(result)
+			? redirectToCalendarsWithSuccess()
+			: redirectToCalendarsWithError(result.error.message);
+
+		response.cookies.delete(CODE_VERIFIER_COOKIE);
+
+		return response;
+	} catch (error) {
+		console.error("[Google OAuth Callback] unhandled error:", error);
+		return redirectToCalendarsWithError("予期しないエラーが発生しました");
 	}
-
-	// 認証チェック
-	const session = await auth();
-	if (!session?.user?.id) {
-		return redirectToCalendarsWithError(
-			"認証が必要です。ログインしてください。",
-		);
-	}
-
-	// D1コンテキスト作成
-	const dbResult = getD1Database();
-	if (!isOk(dbResult)) {
-		return redirectToCalendarsWithError("データベース接続エラー");
-	}
-	const keyResult = getEncryptionKey();
-	if (!isOk(keyResult)) {
-		return redirectToCalendarsWithError("暗号化キー取得エラー");
-	}
-	const cryptoKeyResult = await importEncryptionKey(keyResult.value);
-	if (!isOk(cryptoKeyResult)) {
-		return redirectToCalendarsWithError("暗号化キーインポートエラー");
-	}
-	const ctx = createCalendarContext(
-		dbResult.value,
-		session.user.id,
-		cryptoKeyResult.value,
-	);
-
-	// 認証を完了し、カレンダーを追加
-	const result = await completeGoogleAuth(ctx, code, codeVerifier);
-
-	// デバッグログ
-	if (!isOk(result)) {
-		console.error(
-			"[Google OAuth] Error:",
-			JSON.stringify(result.error, null, 2),
-		);
-	}
-
-	// code_verifier Cookie を削除
-	const response = isOk(result)
-		? redirectToCalendarsWithSuccess()
-		: redirectToCalendarsWithError(result.error.message);
-
-	// Cookie を削除するために Response を変更
-	response.cookies.delete(CODE_VERIFIER_COOKIE);
-
-	return response;
 }
 
 /**

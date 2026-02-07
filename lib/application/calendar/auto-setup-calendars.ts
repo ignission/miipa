@@ -73,18 +73,6 @@ export async function autoSetupCalendars(
 		cryptoKeyResult.value,
 	);
 
-	// Auth.js JWT戦略ではusersテーブルにレコードが作成されないため、
-	// credentials/user_settings テーブルの外部キー制約を満たすために UPSERT する
-	try {
-		await dbResult.value
-			.prepare("INSERT OR IGNORE INTO users (id, email) VALUES (?, ?)")
-			.bind(userId, accountEmail)
-			.run();
-	} catch (e) {
-		console.error("[autoSetup] ユーザーレコード作成失敗:", e);
-		return;
-	}
-
 	// トークン保存
 	const tokens = {
 		accessToken,
