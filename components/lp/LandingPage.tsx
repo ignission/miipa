@@ -82,7 +82,7 @@ export default function LandingPage() {
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "center",
-					minHeight: { base: "auto", md: "90vh" },
+					minHeight: { base: "auto", md: "80vh" },
 					py: { base: "20", md: "24" },
 				})}
 			>
@@ -132,30 +132,136 @@ export default function LandingPage() {
 					>
 						複数のGoogleカレンダーを統合し、AIが一人社長の一日をスマートにナビゲート。
 					</p>
+				</div>
+			</section>
 
-					{/* CTAボタン */}
-					<form action={handleGoogleSignIn}>
-						<button type="submit" className={ctaButtonStyle}>
-							<Image
-								src="/icons/google.svg"
-								alt="Google"
-								width={24}
-								height={24}
-								className={css({ width: "6", height: "6" })}
-							/>
-							Googleで無料で始める
-						</button>
-					</form>
-
-					{/* 補足テキスト */}
-					<p
+			{/* ===== セクション: アプリ概要 ===== */}
+			<section
+				className={css({
+					py: { base: "16", md: "24" },
+					bg: "bg.default",
+				})}
+			>
+				<div
+					className={css({
+						...sectionBaseStyle,
+						display: "flex",
+						flexDirection: "column",
+						gap: { base: "10", md: "14" },
+					})}
+				>
+					<h2
 						className={css({
-							fontSize: "sm",
-							color: "fg.muted",
+							fontSize: { base: "2xl", md: "3xl" },
+							fontWeight: "bold",
+							textAlign: "center",
 						})}
 					>
-						無料で始める · クレジットカード不要
+						miipaとは
+					</h2>
+					<p
+						className={css({
+							fontSize: { base: "md", md: "lg" },
+							color: "fg.muted",
+							lineHeight: "relaxed",
+							textAlign: "center",
+							maxWidth: "3xl",
+							mx: "auto",
+						})}
+					>
+						miipa（ミーパ）は、一人社長・フリーランスのための
+						カレンダー統合アシスタントです。 仕事用・プライベート・副業など、
+						複数のGoogleカレンダーに散らばった予定を一つの画面にまとめ、
+						毎朝たった30秒で今日のスケジュールを把握できます。
 					</p>
+
+					{/* 課題と解決策 */}
+					<div
+						className={css({
+							display: "flex",
+							flexDirection: { base: "column", md: "row" },
+							gap: { base: "6", md: "8" },
+							maxWidth: "4xl",
+							mx: "auto",
+							width: "full",
+						})}
+					>
+						{/* 課題 */}
+						<div
+							className={css({
+								flex: "1",
+								p: { base: "6", md: "8" },
+								bg: "bg.subtle",
+								border: "1px solid",
+								borderColor: "border.default",
+								borderRadius: "xl",
+							})}
+						>
+							<h3
+								className={css({
+									fontSize: { base: "lg", md: "xl" },
+									fontWeight: "bold",
+									mb: "4",
+									color: "fg.muted",
+								})}
+							>
+								こんな悩みはありませんか？
+							</h3>
+							<ul
+								className={css({
+									display: "flex",
+									flexDirection: "column",
+									gap: "3",
+									color: "fg.muted",
+									fontSize: "sm",
+									lineHeight: "relaxed",
+								})}
+							>
+								<li>Googleカレンダーが複数あり、予定の全体像が見えない</li>
+								<li>
+									毎朝カレンダーを行き来して、今日の予定を確認するのが手間
+								</li>
+								<li>会議の合間の空き時間を把握しづらい</li>
+							</ul>
+						</div>
+
+						{/* 解決策 */}
+						<div
+							className={css({
+								flex: "1",
+								p: { base: "6", md: "8" },
+								bg: "bg.subtle",
+								border: "1px solid",
+								borderColor: "#C8893A",
+								borderRadius: "xl",
+							})}
+						>
+							<h3
+								className={css({
+									fontSize: { base: "lg", md: "xl" },
+									fontWeight: "bold",
+									mb: "4",
+									color: "#C8893A",
+								})}
+							>
+								miipaが解決します
+							</h3>
+							<ul
+								className={css({
+									display: "flex",
+									flexDirection: "column",
+									gap: "3",
+									color: "fg.default",
+									fontSize: "sm",
+									lineHeight: "relaxed",
+								})}
+							>
+								<li>全てのGoogleカレンダーを一画面に統合表示</li>
+								<li>今日・今週の予定をひと目で把握</li>
+								<li>読み取り専用なので、既存の予定を壊す心配なし</li>
+							</ul>
+						</div>
+					</div>
 				</div>
 			</section>
 
@@ -163,7 +269,6 @@ export default function LandingPage() {
 			<section
 				className={css({
 					py: { base: "16", md: "24" },
-					bg: "bg.default",
 				})}
 			>
 				<div className={sectionStyle}>
@@ -526,7 +631,7 @@ export default function LandingPage() {
 				</div>
 			</section>
 
-			{/* ===== セクション4: CTA（再度） ===== */}
+			{/* ===== セクション4: CTA ===== */}
 			<section
 				className={css({
 					py: { base: "16", md: "24" },
