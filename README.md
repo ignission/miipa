@@ -84,8 +84,8 @@ npm run deploy
 
 ### 必要条件
 
-- Node.js 20+
-- Cloudflare アカウント（デプロイ時）
+- Node.js 20+（ローカル開発はこれだけでOK）
+- Cloudflare アカウント（本番デプロイ時のみ）
 
 ---
 
