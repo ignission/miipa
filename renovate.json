@@ -1,0 +1,61 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended"],
+	"timezone": "Asia/Tokyo",
+	"schedule": ["after 9pm on sunday"],
+	"labels": ["dependencies"],
+	"packageRules": [
+		{
+			"description": "Automerge minor/patch updates for stable packages (v1.0.0+) after 3 days",
+			"matchUpdateTypes": ["minor", "patch"],
+			"matchCurrentVersion": ">=1.0.0",
+			"automerge": true,
+			"minimumReleaseAge": "3 days"
+		},
+		{
+			"description": "Automerge devDependencies minor/patch updates",
+			"matchDepTypes": ["devDependencies"],
+			"matchUpdateTypes": ["minor", "patch"],
+			"automerge": true
+		},
+		{
+			"description": "Group React related packages",
+			"groupName": "React",
+			"matchPackageNames": [
+				"react",
+				"react-dom",
+				"@types/react",
+				"@types/react-dom"
+			]
+		},
+		{
+			"description": "Group Next.js related packages",
+			"groupName": "Next.js",
+			"matchPackageNames": ["next", "@opennextjs/cloudflare"]
+		},
+		{
+			"description": "Group Cloudflare related packages",
+			"groupName": "Cloudflare",
+			"matchPackageNames": ["wrangler", "@cloudflare/workers-types"]
+		},
+		{
+			"description": "Group UI framework packages (Panda CSS, Park UI, Ark UI)",
+			"groupName": "UI",
+			"matchPackageNames": [
+				"@pandacss/dev",
+				"@park-ui/panda-preset",
+				"@ark-ui/react"
+			]
+		},
+		{
+			"description": "next-auth is currently on beta (5.0.0-beta.30). Disable Renovate updates until stable release to avoid breaking changes.",
+			"matchPackageNames": ["next-auth"],
+			"enabled": false
+		}
+	],
+	"lockFileMaintenance": {
+		"enabled": true,
+		"schedule": ["before 4am on monday"],
+		"automerge": true
+	}
+}
