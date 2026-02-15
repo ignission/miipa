@@ -36,7 +36,7 @@ import { getD1Database } from "@/lib/infrastructure/cloudflare/bindings";
 const MAX_TOOL_CALL_ITERATIONS = 5;
 
 /** LLMに送信するメッセージの最大件数 */
-const MAX_CONTEXT_MESSAGES = 20;
+const MAX_CONTEXT_MESSAGES = 6;
 
 /** ユーザーメッセージ1件あたりの最大文字数 */
 const MAX_MESSAGE_CONTENT_LENGTH = 10000;

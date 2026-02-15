@@ -96,6 +96,7 @@ function buildRequestBody(
 
 	if (options.tools && options.tools.length > 0) {
 		body.tools = buildTools(options.tools);
+		body.tool_choice = "auto";
 	}
 
 	if (stream) {
@@ -245,6 +246,7 @@ export function createOpenAIProvider(
 			}
 
 			const data = (await response.json()) as OpenAIResponse;
+
 			return parseResponse(data);
 		},
 
