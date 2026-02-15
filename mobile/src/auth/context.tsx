@@ -12,10 +12,13 @@ import * as WebBrowser from "expo-web-browser";
 import { AUTH_CONFIG } from "./config";
 import {
 	deleteToken,
+	deleteRefreshToken,
 	deleteUser,
 	getToken,
+	getRefreshToken,
 	getUser,
 	saveToken,
+	saveRefreshToken,
 	saveUser,
 } from "./storage";
 import type { StoredUser } from "./storage";
@@ -52,6 +55,86 @@ export function useAuth(): AuthState {
 	return context;
 }
 
+/**
+ * JWTペイロードをデコードして有効期限切れかチェック
+ *
+ * @param token - JWT文字列
+ * @returns 期限切れならtrue
+ */
+function isTokenExpired(token: string): boolean {
+	try {
+		const parts = token.split(".");
+		if (parts.length !== 3) {
+			return true;
+		}
+		// Base64URLデコード（+/-と//_の変換、パディング補完）
+		const payload = parts[1]
+			.replace(/-/g, "+")
+			.replace(/_/g, "/");
+		const decoded = JSON.parse(atob(payload)) as { exp?: number };
+
+		if (!decoded.exp) {
+			return true;
+		}
+
+		// 期限の30秒前をバッファとして持たせる
+		return decoded.exp - 30 < Math.floor(Date.now() / 1000);
+	} catch {
+		return true;
+	}
+}
+
+/**
+ * SecureStoreに保存されたリフレッシュトークンで新しいアクセストークンを取得
+ *
+ * @returns 成功ならtrue
+ */
+async function refreshWithStoredToken(): Promise<boolean> {
+	const refreshToken = await getRefreshToken();
+	if (!refreshToken) {
+		return false;
+	}
+
+	try {
+		const res = await fetch(
+			`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.tokenEndpoint}`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					grantType: "refresh_token",
+					refreshToken,
+				}),
+			},
+		);
+
+		if (!res.ok) {
+			return false;
+		}
+
+		const data = await res.json();
+		const {
+			token: newJwt,
+			refreshToken: newRefreshToken,
+			user: userData,
+		} = data as {
+			token: string;
+			refreshToken: string;
+			user: StoredUser;
+		};
+
+		await Promise.all([
+			saveToken(newJwt),
+			saveRefreshToken(newRefreshToken),
+			saveUser(userData),
+		]);
+
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 interface AuthProviderProps {
 	children: ReactNode;
 }
@@ -70,7 +153,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		clientId: AUTH_CONFIG.googleClientId,
 	});
 
-	// 起動時にトークンを復元
+	// 起動時にトークンを復元（有効期限切れの場合はリフレッシュ）
 	useEffect(() => {
 		(async () => {
 			try {
@@ -78,10 +161,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
 					getToken(),
 					getUser(),
 				]);
-				if (savedToken && savedUser) {
-					setToken(savedToken);
-					setUser(savedUser);
+
+				if (!savedToken || !savedUser) {
+					return;
 				}
+
+				// JWTの有効期限をチェック
+				if (isTokenExpired(savedToken)) {
+					// リフレッシュトークンで新しいアクセストークンを取得
+					const refreshed = await refreshWithStoredToken();
+					if (!refreshed) {
+						// リフレッシュ失敗: ログアウト状態にする
+						await Promise.all([
+							deleteToken(),
+							deleteRefreshToken(),
+							deleteUser(),
+						]);
+						return;
+					}
+
+					// リフレッシュ成功: 新しいトークンとユーザー情報を設定
+					const [newToken, newUser] = await Promise.all([
+						getToken(),
+						getUser(),
+					]);
+					if (newToken && newUser) {
+						setToken(newToken);
+						setUser(newUser);
+					}
+					return;
+				}
+
+				setToken(savedToken);
+				setUser(savedUser);
 			} finally {
 				setIsLoading(false);
 			}
@@ -120,12 +232,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			}
 
 			const data = await res.json();
-			const { token: jwt, user: userData } = data as {
+			const {
+				token: jwt,
+				refreshToken: newRefreshToken,
+				user: userData,
+			} = data as {
 				token: string;
+				refreshToken: string;
 				user: StoredUser;
 			};
 
-			await Promise.all([saveToken(jwt), saveUser(userData)]);
+			await Promise.all([
+				saveToken(jwt),
+				saveRefreshToken(newRefreshToken),
+				saveUser(userData),
+			]);
 			setToken(jwt);
 			setUser(userData);
 		} catch (error) {
@@ -141,7 +262,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	}, [promptAsync]);
 
 	const signOut = useCallback(async () => {
-		await Promise.all([deleteToken(), deleteUser()]);
+		await Promise.all([deleteToken(), deleteRefreshToken(), deleteUser()]);
 		setToken(null);
 		setUser(null);
 	}, []);

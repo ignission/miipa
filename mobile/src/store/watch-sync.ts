@@ -2,6 +2,15 @@ import { Platform } from "react-native";
 import type { UICalendarEvent } from "../hooks/useEvents";
 import { DEFAULT_CALENDAR_COLOR } from "../theme";
 
+// iOSのみで利用可能なため、モジュール読み込みに失敗した場合はnullにフォールバック
+let watchConnectivity: typeof import("react-native-watch-connectivity") | null =
+	null;
+try {
+	watchConnectivity = require("react-native-watch-connectivity");
+} catch {
+	// Android等、パッケージが利用できない環境では無視する
+}
+
 /**
  * Apple Watch にイベントデータを送信
  *
@@ -10,10 +19,9 @@ import { DEFAULT_CALENDAR_COLOR } from "../theme";
  */
 export async function syncToWatch(events: UICalendarEvent[]): Promise<void> {
 	if (Platform.OS !== "ios") return;
+	if (!watchConnectivity) return;
 
 	try {
-		const { sendMessage } = require("react-native-watch-connectivity");
-
 		const watchData = {
 			events: events.slice(0, 10).map((e) => ({
 				id: e.id,
@@ -27,7 +35,7 @@ export async function syncToWatch(events: UICalendarEvent[]): Promise<void> {
 			lastUpdated: new Date().toISOString(),
 		};
 
-		await sendMessage(
+		await watchConnectivity.sendMessage(
 			{ type: "updateEvents", data: JSON.stringify(watchData) },
 			(reply: unknown) => {
 				console.log("[watch] 同期完了:", reply);

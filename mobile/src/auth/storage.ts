@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = "miipa_jwt_token";
+const REFRESH_TOKEN_KEY = "miipa_refresh_token";
 const USER_KEY = "miipa_user";
 
 export interface StoredUser {
@@ -29,6 +30,27 @@ export async function getToken(): Promise<string | null> {
  */
 export async function deleteToken(): Promise<void> {
 	await SecureStore.deleteItemAsync(TOKEN_KEY);
+}
+
+/**
+ * リフレッシュトークンを安全に保存
+ */
+export async function saveRefreshToken(token: string): Promise<void> {
+	await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+}
+
+/**
+ * リフレッシュトークンを取得
+ */
+export async function getRefreshToken(): Promise<string | null> {
+	return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+}
+
+/**
+ * リフレッシュトークンを削除
+ */
+export async function deleteRefreshToken(): Promise<void> {
+	await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
 }
 
 /**

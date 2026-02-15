@@ -35,11 +35,14 @@ function formatSectionHeader(date: Date, isToday: boolean): string {
 		: `${month}/${day}（${weekday}）`;
 }
 
+/** SectionListのセクションデータ型（予定なしの日は null を含む） */
+type SectionItem = UICalendarEvent | null;
+
 interface Section {
 	title: string;
 	isToday: boolean;
 	eventCount: number;
-	data: UICalendarEvent[];
+	data: SectionItem[];
 }
 
 export default function WeekScreen() {
@@ -76,7 +79,7 @@ export default function WeekScreen() {
 				title: formatSectionHeader(date, isToday),
 				isToday,
 				eventCount: dayEvents.length,
-				data: dayEvents.length > 0 ? dayEvents : [null as unknown as UICalendarEvent],
+				data: dayEvents.length > 0 ? dayEvents : [null],
 			};
 		});
 	}, [events]);
@@ -103,7 +106,9 @@ export default function WeekScreen() {
 		<SectionList
 			style={styles.container}
 			sections={sections}
-			keyExtractor={(item, index) => item?.id ?? `empty-${index}`}
+			keyExtractor={(item: SectionItem, index: number) =>
+				item !== null ? item.id : `empty-${index}`
+			}
 			refreshControl={
 				<RefreshControl
 					refreshing={isRefreshing}
@@ -146,8 +151,8 @@ export default function WeekScreen() {
 					</Text>
 				</View>
 			)}
-			renderItem={({ item }) => {
-				if (!item) {
+			renderItem={({ item }: { item: SectionItem }) => {
+				if (item === null) {
 					return (
 						<View style={styles.emptyDay}>
 							<Text style={styles.emptyDayText}>
