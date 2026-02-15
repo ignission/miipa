@@ -37,10 +37,14 @@ struct SmallWidgetProvider: TimelineProvider {
         var entries: [SmallWidgetEntry] = []
         entries.append(SmallWidgetEntry(date: currentDate, nextEvent: nextEvent))
 
-        // 次のイベント終了時に更新
+        // 次のイベント終了時に更新（過去の日時にならないよう保護）
         let nextUpdateDate: Date
         if let event = nextEvent {
-            nextUpdateDate = event.endDate
+            let eventEnd = event.endDate
+            // endDateが過去の場合は15分後にフォールバック
+            nextUpdateDate = eventEnd > currentDate
+                ? eventEnd
+                : currentDate.addingTimeInterval(15 * 60)
         } else {
             // イベントがない場合は1時間後に更新
             nextUpdateDate = Calendar.current.date(byAdding: .hour, value: 1, to: currentDate) ?? currentDate

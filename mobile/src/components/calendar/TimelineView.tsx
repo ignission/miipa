@@ -44,7 +44,14 @@ function getEventPosition(event: UICalendarEvent): {
  * タイムラインビューコンポーネント
  */
 export function TimelineView({ events, currentTime }: TimelineViewProps) {
-	const timeEvents = events.filter((e) => !e.isAllDay);
+	// 終日でないイベントのうち、表示時間帯（DAY_START_HOUR〜DAY_END_HOUR）と
+	// 重なるもののみ表示する。範囲外イベントのゴーストブロック描画を防止する。
+	const timeEvents = events.filter((e) => {
+		if (e.isAllDay) return false;
+		const endHour = e.endTime.getHours() + e.endTime.getMinutes() / 60;
+		const startHour = e.startTime.getHours() + e.startTime.getMinutes() / 60;
+		return endHour > DAY_START_HOUR && startHour < DAY_END_HOUR;
+	});
 	const allDayEvents = events.filter((e) => e.isAllDay);
 
 	const hours = Array.from(

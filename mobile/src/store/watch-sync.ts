@@ -14,37 +14,51 @@ try {
 /**
  * Apple Watch にイベントデータを送信
  *
- * WatchConnectivity の transferCurrentComplicationUserInfo を使用。
- * 1日50回の制限あり。
+ * sendMessage（Watch画面アクティブ時のリアルタイム同期）と
+ * transferCurrentComplicationUserInfo（Complication更新用、1日50回制限）の
+ * 両方を使用し、どちらか一方が失敗しても他方の更新は行われるようにする。
  */
 export async function syncToWatch(events: UICalendarEvent[]): Promise<void> {
 	if (Platform.OS !== "ios") return;
 	if (!watchConnectivity) return;
 
-	try {
-		const watchData = {
-			events: events.slice(0, 10).map((e) => ({
-				id: e.id,
-				title: e.title,
-				startTime: e.startTime.toISOString(),
-				endTime: e.endTime.toISOString(),
-				isAllDay: e.isAllDay,
-				calendarColor: e.color ?? DEFAULT_CALENDAR_COLOR,
-				location: e.location ?? undefined,
-			})),
-			lastUpdated: new Date().toISOString(),
-		};
+	const watchData = {
+		events: events.slice(0, 10).map((e) => ({
+			id: e.id,
+			title: e.title,
+			startTime: e.startTime.toISOString(),
+			endTime: e.endTime.toISOString(),
+			isAllDay: e.isAllDay,
+			calendarColor: e.color ?? DEFAULT_CALENDAR_COLOR,
+			location: e.location ?? undefined,
+		})),
+		lastUpdated: new Date().toISOString(),
+	};
 
+	// sendMessage: Watch画面がアクティブな場合にリアルタイム同期
+	try {
 		await watchConnectivity.sendMessage(
 			{ type: "updateEvents", data: JSON.stringify(watchData) },
 			(reply: unknown) => {
-				console.log("[watch] 同期完了:", reply);
+				console.log("[watch] sendMessage同期完了:", reply);
 			},
 			(error: unknown) => {
-				console.error("[watch] 同期エラー:", error);
+				// Watch画面が非アクティブの場合は失敗するが、Complication更新で補完される
+				console.warn("[watch] sendMessageエラー（非アクティブの可能性）:", error);
 			},
 		);
 	} catch (error) {
-		console.error("[watch] Watch同期エラー:", error);
+		console.warn("[watch] sendMessageエラー:", error);
+	}
+
+	// transferCurrentComplicationUserInfo: Complication更新用（バックグラウンドでも動作）
+	try {
+		watchConnectivity.transferCurrentComplicationUserInfo({
+			type: "updateEvents",
+			data: JSON.stringify(watchData),
+		});
+		console.log("[watch] Complication更新データ送信完了");
+	} catch (error) {
+		console.error("[watch] Complication更新エラー:", error);
 	}
 }

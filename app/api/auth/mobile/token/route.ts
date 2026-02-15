@@ -229,22 +229,28 @@ async function findOrCreateUser(
 	name: string,
 	image: string,
 ): Promise<UserRow> {
-	const existing = await db
+	const id = crypto.randomUUID();
+
+	// INSERT OR IGNOREで競合時は無視し、その後SELECTで取得する
+	// SELECT→INSERTの間に別リクエストが割り込む競合条件を回避
+	await db
+		.prepare(
+			"INSERT OR IGNORE INTO users (id, name, email, image) VALUES (?, ?, ?, ?)",
+		)
+		.bind(id, name, email, image)
+		.run();
+
+	const user = await db
 		.prepare("SELECT * FROM users WHERE email = ?")
 		.bind(email)
 		.first<UserRow>();
 
-	if (existing) {
-		return existing;
+	// INSERT OR IGNOREの直後なので必ず存在するが、型安全のためチェック
+	if (!user) {
+		throw new Error(`ユーザーの作成に失敗しました: ${email}`);
 	}
 
-	const id = crypto.randomUUID();
-	await db
-		.prepare("INSERT INTO users (id, name, email, image) VALUES (?, ?, ?, ?)")
-		.bind(id, name, email, image)
-		.run();
-
-	return { id, name, email, image };
+	return user;
 }
 
 // ============================================================

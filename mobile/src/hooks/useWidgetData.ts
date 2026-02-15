@@ -8,8 +8,8 @@ import { DEFAULT_CALENDAR_COLOR } from "../theme";
  */
 export function useWidgetData(events: UICalendarEvent[]) {
 	useEffect(() => {
-		if (events.length === 0) return;
-
+		// eventsが空の場合もApp Groupストレージに空データを書き込み、
+		// Widgetに古いデータが残存しないようにする
 		const widgetData = {
 			events: events.map((e) => ({
 				id: e.id,

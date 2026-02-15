@@ -17,11 +17,12 @@ export default auth((req) => {
 			return NextResponse.next();
 		}
 
-		// Bearer トークンが存在するAPIリクエストは通過させる
+		// モバイルAPI: Bearerトークンが存在する場合のみ通過させる（ホワイトリスト方式）
+		const MOBILE_API_PATHS = ["/api/events", "/api/auth/mobile/token"];
 		const authHeader = req.headers.get("authorization");
 		if (
-			req.nextUrl.pathname.startsWith("/api/") &&
-			authHeader?.startsWith("Bearer ")
+			authHeader?.startsWith("Bearer ") &&
+			MOBILE_API_PATHS.some((p) => req.nextUrl.pathname.startsWith(p))
 		) {
 			return NextResponse.next();
 		}

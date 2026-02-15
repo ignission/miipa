@@ -57,12 +57,16 @@ export async function verifyMobileJwt(
 
 		// ペイロードデコード
 		const payloadJson = new TextDecoder().decode(base64UrlDecode(payloadB64));
-		const payload = JSON.parse(payloadJson) as JwtPayload;
+		const payload = JSON.parse(payloadJson) as Record<string, unknown>;
+
+		// ペイロードの必須フィールドを検証
+		if (typeof payload.sub !== 'string' || payload.sub.length === 0) return null;
+		if (typeof payload.exp !== 'number') return null;
 
 		// 有効期限チェック
 		if (payload.exp < Date.now() / 1000) return null;
 
-		return payload;
+		return payload as unknown as JwtPayload;
 	} catch {
 		return null;
 	}

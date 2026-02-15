@@ -1,5 +1,5 @@
 import { Redirect, Tabs } from "expo-router";
-import { useColorScheme } from "react-native";
+import { ActivityIndicator, useColorScheme, View } from "react-native";
 import { useAuth } from "../../src/auth";
 import { Colors } from "../../constants/Colors";
 import { TabBarIcon } from "../../components/navigation/TabBarIcon";
@@ -8,8 +8,17 @@ export default function AuthLayout() {
 	const { isAuthenticated, isLoading } = useAuth();
 	const colorScheme = useColorScheme();
 
+	// 認証状態の読み込み中はprotectedコンテンツを表示しない
+	if (isLoading) {
+		return (
+			<View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+				<ActivityIndicator size="large" color="#F97316" />
+			</View>
+		);
+	}
+
 	// 未認証ならサインイン画面にリダイレクト
-	if (!isLoading && !isAuthenticated) {
+	if (!isAuthenticated) {
 		return <Redirect href="/sign-in" />;
 	}
 

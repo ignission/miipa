@@ -18,7 +18,12 @@ export default function Root({ children }: { children: React.ReactNode }) {
         */}
         <ScrollViewStyleReset />
 
-        {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
+        {/*
+          dangerouslySetInnerHTML を使用しているが、responsiveBackground は
+          このファイル内で定義された静的な文字列定数であり、ユーザー入力や
+          外部データを一切含まないため安全である。
+          ダークモード時の背景色フリッカー防止のために使用。
+        */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         {/* Add any additional <head> elements that you want globally available on web... */}
       </head>

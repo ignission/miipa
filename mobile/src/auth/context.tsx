@@ -211,7 +211,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		if (response?.type === "error" || response?.type === "dismiss") {
 			setIsSigningIn(false);
 		}
-	}, [response]);
+	}, [response, exchangeToken]);
 
 	/**
 	 * Google ID Token をバックエンドのJWTに交換

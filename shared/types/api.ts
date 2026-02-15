@@ -12,7 +12,7 @@ export interface EventResponse {
 	source: {
 		type: "google" | "ical";
 		calendarName: string;
-		accountEmail?: string;
+		accountEmail?: string | null;
 	};
 }
 
