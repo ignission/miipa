@@ -66,8 +66,10 @@ struct LargeWidgetView: View {
                     ForEach(timeEvents) { event in
                         let startHour: Double = Double(Calendar.current.component(.hour, from: event.startDate))
                             + Double(Calendar.current.component(.minute, from: event.startDate)) / 60.0
-                        let endHour: Double = Double(Calendar.current.component(.hour, from: event.endDate))
+                        let rawEndHour: Double = Double(Calendar.current.component(.hour, from: event.endDate))
                             + Double(Calendar.current.component(.minute, from: event.endDate)) / 60.0
+                        // 深夜跨ぎイベント（例: 23:00→翌01:00）の場合、終了時刻を表示範囲終端に切り詰める
+                        let endHour: Double = rawEndHour < startHour ? dayEnd : rawEndHour
 
                         // 表示範囲外のイベントをスキップ（phantomブロック防止）
                         if endHour > dayStart && startHour < dayEnd {

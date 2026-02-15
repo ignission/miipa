@@ -67,10 +67,13 @@ function isTokenExpired(token: string): boolean {
 		if (parts.length !== 3) {
 			return true;
 		}
-		// Base64URLデコード（+/-と//_の変換、パディング補完）
-		const payload = parts[1]
+		// Base64URLデコード（文字置換とパディング補完）
+		let payload = parts[1]
 			.replace(/-/g, "+")
 			.replace(/_/g, "/");
+		const pad = payload.length % 4;
+		if (pad === 2) payload += "==";
+		else if (pad === 3) payload += "=";
 		const decoded = JSON.parse(atob(payload)) as { exp?: number };
 
 		if (!decoded.exp) {
@@ -249,6 +252,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			const { id_token: idToken } = response.params;
 			if (idToken) {
 				exchangeToken(idToken);
+			} else {
+				// id_tokenが取得できなかった場合、ローディング状態を解除
+				setIsSigningIn(false);
 			}
 		}
 		if (response?.type === "error" || response?.type === "dismiss") {
@@ -258,7 +264,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 	const signIn = useCallback(async () => {
 		setIsSigningIn(true);
-		await promptAsync();
+		try {
+			await promptAsync();
+		} catch {
+			// promptAsync()が例外をスローした場合、ローディング状態を解除
+			setIsSigningIn(false);
+		}
 	}, [promptAsync]);
 
 	const signOut = useCallback(async () => {
