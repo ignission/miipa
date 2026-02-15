@@ -73,10 +73,14 @@ const mobileTokenRequestSchema = z.union([
 	refreshTokenRequestSchema,
 ]);
 
-/** Google tokeninfo APIレスポンスのバリデーションスキーマ */
-const googleTokenInfoSchema = z.object({
+/** Google ID Tokenペイロードのバリデーションスキーマ */
+const googleIdTokenPayloadSchema = z.object({
+	/** 発行者（issuer） */
+	iss: z.string(),
 	/** Google ID Tokenの対象クライアントID */
 	aud: z.string(),
+	/** 有効期限（UNIXタイムスタンプ） */
+	exp: z.number(),
 	email: z.string().email("無効なメールアドレスです"),
 	name: z.string().optional(),
 	picture: z.string().url().optional(),
@@ -158,16 +162,128 @@ async function createJwt(
 }
 
 // ============================================================
+// Google JWKS（公開鍵）取得・キャッシュ
+// ============================================================
+
+/** Google公開鍵エンドポイント */
+const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
+
+/** Google ID Tokenで許可されるissuer */
+const GOOGLE_ISSUERS = [
+	"https://accounts.google.com",
+	"accounts.google.com",
+] as const;
+
+/** JWKSキャッシュの有効期間（ミリ秒）: 1時間 */
+const JWKS_CACHE_TTL_MS = 60 * 60 * 1000;
+
+/** JWK (JSON Web Key) の型定義 */
+interface GoogleJwk {
+	readonly kty: string;
+	readonly kid: string;
+	readonly alg: string;
+	readonly n: string;
+	readonly e: string;
+	readonly use: string;
+}
+
+/** JWKSレスポンスの型定義 */
+interface JwksResponse {
+	readonly keys: readonly GoogleJwk[];
+}
+
+/** JWKSキャッシュ: kid -> CryptoKeyのマップと取得時刻 */
+let jwksCache: { keys: Map<string, CryptoKey>; fetchedAt: number } | null =
+	null;
+
+/**
+ * GoogleのJWKS公開鍵を取得し、CryptoKeyに変換してキャッシュする
+ *
+ * キャッシュが有効（1時間以内）であればネットワークリクエストを省略します。
+ * キャッシュミスまたは有効期限切れの場合のみGoogle JWKSエンドポイントにアクセスします。
+ *
+ * @returns kid -> CryptoKey のマップ
+ */
+async function getGooglePublicKeys(): Promise<Map<string, CryptoKey>> {
+	const now = Date.now();
+
+	// キャッシュが有効ならそのまま返す
+	if (jwksCache && now - jwksCache.fetchedAt < JWKS_CACHE_TTL_MS) {
+		return jwksCache.keys;
+	}
+
+	const response = await fetch(GOOGLE_JWKS_URL);
+	if (!response.ok) {
+		throw new Error(
+			`Google JWKS取得に失敗しました: HTTP ${response.status}`,
+		);
+	}
+
+	const jwks: JwksResponse = await response.json();
+	const keys = new Map<string, CryptoKey>();
+
+	for (const jwk of jwks.keys) {
+		// RS256鍵のみをインポート
+		if (jwk.kty !== "RSA" || jwk.alg !== "RS256") {
+			continue;
+		}
+
+		const cryptoKey = await crypto.subtle.importKey(
+			"jwk",
+			{ kty: jwk.kty, n: jwk.n, e: jwk.e, alg: "RS256", ext: true },
+			{ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+			false,
+			["verify"],
+		);
+		keys.set(jwk.kid, cryptoKey);
+	}
+
+	jwksCache = { keys, fetchedAt: now };
+	return keys;
+}
+
+// ============================================================
 // Google ID Token検証
 // ============================================================
 
 /**
- * Google tokeninfo APIでID Tokenを検証
+ * Base64URL文字列をUint8Arrayにデコードする
  *
- * audフィールドがexpectedClientIdと一致することを検証し、
- * 別アプリ用トークンによる認証突破を防止します。
+ * JWTの各パート（ヘッダ・ペイロード・署名）のデコードに使用します。
  *
- * @param idToken - Google ID Token
+ * @param str - Base64URLエンコードされた文字列
+ * @returns デコード済みバイト配列
+ */
+function base64UrlDecode(str: string): Uint8Array {
+	// Base64URL -> 標準Base64に変換（-を+に、_を/に戻し、パディング補完）
+	const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+	const padded = base64.padEnd(
+		base64.length + ((4 - (base64.length % 4)) % 4),
+		"=",
+	);
+	const binary = atob(padded);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
+	}
+	return bytes;
+}
+
+/**
+ * Google公開鍵（JWKS）を使用してID Tokenの署名を暗号学的に検証
+ *
+ * tokeninfo API（デバッグ用途）ではなく、Googleの公開鍵で
+ * RS256署名を直接検証します。以下の検証を行います:
+ *
+ * 1. JWTの構造検証（header.payload.signatureの3パート）
+ * 2. ヘッダのkidに対応するGoogle公開鍵でRS256署名を検証
+ * 3. issuer が https://accounts.google.com であることを検証
+ * 4. audience が expectedClientId と一致することを検証
+ * 5. 有効期限（exp）が現在時刻より未来であることを検証
+ *
+ * OWASP参照: Authentication Cheat Sheet - Token-based Authentication
+ *
+ * @param idToken - Google ID Token（JWT形式）
  * @param expectedClientId - 期待するGoogle OAuthクライアントID
  * @returns 検証結果（メール、名前、画像URL）またはnull
  */
@@ -176,38 +292,136 @@ async function verifyGoogleIdToken(
 	expectedClientId: string,
 ): Promise<{ email: string; name: string; picture: string } | null> {
 	try {
-		const response = await fetch(
-			`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+		// JWTを3パートに分割: ヘッダ.ペイロード.署名
+		const parts = idToken.split(".");
+		if (parts.length !== 3) {
+			return null;
+		}
+
+		const [headerB64, payloadB64, signatureB64] = parts;
+
+		// ヘッダからkid（キーID）を取得
+		const header = JSON.parse(
+			new TextDecoder().decode(base64UrlDecode(headerB64)),
 		);
-
-		if (!response.ok) {
+		const kid: unknown = header.kid;
+		if (typeof kid !== "string" || !kid) {
 			return null;
 		}
 
-		const data = await response.json();
-		const parsed = googleTokenInfoSchema.safeParse(data);
-
-		if (!parsed.success) {
+		// アルゴリズムがRS256であることを検証（アルゴリズム混乱攻撃の防止）
+		if (header.alg !== "RS256") {
 			return null;
 		}
 
-		// aud（audience）がこのアプリのクライアントIDと一致するか検証
-		// 別アプリ用のGoogle ID Tokenでの認証突破を防止する
-		if (parsed.data.aud !== expectedClientId) {
-			console.error(
-				`[mobile/token] aud不一致: 期待値=${expectedClientId}, 実際=${parsed.data.aud}`,
+		// Google公開鍵を取得し、kidに対応する鍵を特定
+		const publicKeys = await getGooglePublicKeys();
+		const publicKey = publicKeys.get(kid);
+
+		// kidに対応する鍵が見つからない場合、キャッシュが古い可能性がある
+		// キャッシュをクリアして再取得を試みる（鍵ローテーション対応）
+		if (!publicKey) {
+			jwksCache = null;
+			const refreshedKeys = await getGooglePublicKeys();
+			const refreshedKey = refreshedKeys.get(kid);
+			if (!refreshedKey) {
+				console.error(
+					`[mobile/token] Google公開鍵が見つかりません: kid=${kid}`,
+				);
+				return null;
+			}
+			return verifyWithKey(
+				refreshedKey,
+				headerB64,
+				payloadB64,
+				signatureB64,
+				expectedClientId,
 			);
-			return null;
 		}
 
-		return {
-			email: parsed.data.email,
-			name: parsed.data.name ?? "",
-			picture: parsed.data.picture ?? "",
-		};
+		return verifyWithKey(
+			publicKey,
+			headerB64,
+			payloadB64,
+			signatureB64,
+			expectedClientId,
+		);
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * 指定された公開鍵でJWTの署名を検証し、ペイロードのクレームを検証する
+ *
+ * @param publicKey - Google RSA公開鍵（CryptoKey）
+ * @param headerB64 - Base64URLエンコードされたJWTヘッダ
+ * @param payloadB64 - Base64URLエンコードされたJWTペイロード
+ * @param signatureB64 - Base64URLエンコードされたJWT署名
+ * @param expectedClientId - 期待するGoogle OAuthクライアントID
+ * @returns 検証結果またはnull
+ */
+async function verifyWithKey(
+	publicKey: CryptoKey,
+	headerB64: string,
+	payloadB64: string,
+	signatureB64: string,
+	expectedClientId: string,
+): Promise<{ email: string; name: string; picture: string } | null> {
+	// RS256署名を暗号学的に検証
+	const signedData = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
+	const signature = base64UrlDecode(signatureB64);
+
+	const isValid = await crypto.subtle.verify(
+		{ name: "RSASSA-PKCS1-v1_5" },
+		publicKey,
+		signature,
+		signedData,
+	);
+
+	if (!isValid) {
+		console.error("[mobile/token] ID Tokenの署名検証に失敗しました");
+		return null;
+	}
+
+	// ペイロードをデコードしてバリデーション
+	const payloadJson = new TextDecoder().decode(base64UrlDecode(payloadB64));
+	const parsed = googleIdTokenPayloadSchema.safeParse(JSON.parse(payloadJson));
+
+	if (!parsed.success) {
+		return null;
+	}
+
+	const payload = parsed.data;
+
+	// issuer検証: Google発行のトークンであることを確認
+	if (!GOOGLE_ISSUERS.includes(payload.iss as (typeof GOOGLE_ISSUERS)[number])) {
+		console.error(
+			`[mobile/token] iss不正: ${payload.iss}`,
+		);
+		return null;
+	}
+
+	// audience検証: 別アプリ用トークンでの認証突破を防止
+	if (payload.aud !== expectedClientId) {
+		console.error(
+			`[mobile/token] aud不一致: 期待値=${expectedClientId}, 実際=${payload.aud}`,
+		);
+		return null;
+	}
+
+	// 有効期限検証: 期限切れトークンの使用を防止
+	const nowInSeconds = Math.floor(Date.now() / 1000);
+	if (payload.exp < nowInSeconds) {
+		console.error("[mobile/token] ID Tokenの有効期限切れです");
+		return null;
+	}
+
+	return {
+		email: payload.email,
+		name: payload.name ?? "",
+		picture: payload.picture ?? "",
+	};
 }
 
 // ============================================================
@@ -405,7 +619,7 @@ async function issueTokens(
  *
  * 処理フロー（Google ID Token認証）:
  * 1. リクエストボディのバリデーション（Zod）
- * 2. Google ID Tokenの検証（tokeninfo API + aud検証）
+ * 2. Google ID Tokenの検証（JWKS公開鍵によるRS256署名検証 + iss/aud/exp検証）
  * 3. ユーザーの検索または作成（D1）
  * 4. JWT + リフレッシュトークンの生成と返却
  *
