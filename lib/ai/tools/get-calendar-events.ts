@@ -103,7 +103,13 @@ export async function executeGetCalendarEvents(
 			return "エラー: custom指定時はstartDateとendDateが必要です。";
 
 		const startDate = new Date(startStr);
+		if (Number.isNaN(startDate.getTime())) {
+			return "エラー: 不正な開始日付形式です。YYYY-MM-DD形式で指定してください。";
+		}
 		const endDate = new Date(endStr);
+		if (Number.isNaN(endDate.getTime())) {
+			return "エラー: 不正な終了日付形式です。YYYY-MM-DD形式で指定してください。";
+		}
 		// 終了日の23:59:59.999に設定
 		endDate.setHours(23, 59, 59, 999);
 

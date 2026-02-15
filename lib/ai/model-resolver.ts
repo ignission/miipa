@@ -1,5 +1,5 @@
 import { createProvider, type LLMProvider } from "@/lib/ai/providers";
-import type { LLMConfig } from "@/lib/config/types";
+import { type LLMConfig, LLMConfigSchema } from "@/lib/config/types";
 import type { CalendarContext } from "@/lib/context/calendar-context";
 import { err, isOk, ok, type Result } from "@/lib/domain/shared/result";
 
@@ -37,9 +37,31 @@ export async function resolveLLMProvider(
 	}
 
 	// 設定がない場合はデフォルト(claude)を使用
-	const llmConfig: LLMConfig = settingResult.value
-		? (JSON.parse(settingResult.value) as LLMConfig)
-		: { provider: "claude" };
+	let llmConfig: LLMConfig;
+	if (settingResult.value) {
+		// JSON.parseの失敗とスキーマ不一致をZodのsafeParseで安全に処理
+		let rawJson: unknown;
+		try {
+			rawJson = JSON.parse(settingResult.value);
+		} catch {
+			console.error(
+				"LLM設定のJSONパースに失敗しました。デフォルト設定を使用します。",
+			);
+			rawJson = {};
+		}
+		const parseResult = LLMConfigSchema.safeParse(rawJson);
+		if (parseResult.success) {
+			llmConfig = parseResult.data;
+		} else {
+			console.error(
+				"LLM設定のバリデーションに失敗しました。デフォルト設定を使用します:",
+				parseResult.error.issues,
+			);
+			llmConfig = { provider: "claude" };
+		}
+	} else {
+		llmConfig = { provider: "claude" };
+	}
 
 	// 2. APIキーを取得（ollamaはAPIキー不要）
 	let apiKey = "";

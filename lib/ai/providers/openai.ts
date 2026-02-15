@@ -1,3 +1,4 @@
+import { createSSEReadableStream } from "./stream-utils";
 import type {
 	ChatMessage,
 	LLMProvider,
@@ -10,6 +11,13 @@ import type {
 
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_MODEL = "gpt-4o";
+
+/** OpenAI API の finish_reason を内部表現にマッピング */
+const STOP_REASON_MAP: Record<string, LLMResponse["stopReason"]> = {
+	stop: "end_turn",
+	tool_calls: "tool_use",
+	length: "max_tokens",
+};
 
 interface OpenAIToolCallDelta {
 	index: number;
@@ -115,14 +123,7 @@ function parseResponse(data: OpenAIResponse): LLMResponse {
 		return { id: tc.id, name: tc.function.name, arguments: args };
 	});
 
-	const stopReason =
-		choice.finish_reason === "stop"
-			? "end_turn"
-			: choice.finish_reason === "tool_calls"
-				? "tool_use"
-				: choice.finish_reason === "length"
-					? "max_tokens"
-					: "error";
+	const stopReason = STOP_REASON_MAP[choice.finish_reason] ?? "error";
 
 	return { content, toolCalls, stopReason };
 }
@@ -134,19 +135,17 @@ function createHeaders(apiKey: string): Record<string, string> {
 	};
 }
 
-function parseStreamEvents(
-	body: ReadableStream<Uint8Array>,
-): ReadableStream<StreamEvent> {
-	let buffer = "";
-	const decoder = new TextDecoder();
-
-	// ストリーム中のtool_callを蓄積
+/**
+ * OpenAI SSE の processLine コールバックを生成する。
+ * tool_call の蓄積状態をクロージャで管理する。
+ */
+function createProcessLine(): (line: string) => StreamEvent[] {
 	const pendingToolCalls = new Map<
 		number,
 		{ id: string; name: string; argsBuf: string }
 	>();
 
-	function processLine(line: string): StreamEvent[] {
+	return (line: string): StreamEvent[] => {
 		if (!line.startsWith("data: ")) return [];
 		const payload = line.slice(6).trim();
 
@@ -214,53 +213,7 @@ function parseStreamEvents(
 		}
 
 		return events;
-	}
-
-	return new ReadableStream<StreamEvent>({
-		async start(controller) {
-			const reader = body.getReader();
-
-			try {
-				for (;;) {
-					const { done, value } = await reader.read();
-					if (done) {
-						if (buffer.trim()) {
-							for (const evt of processLine(buffer.trim())) {
-								controller.enqueue(evt);
-							}
-						}
-						controller.enqueue({ type: "done" });
-						controller.close();
-						return;
-					}
-
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split("\n");
-					buffer = lines.pop() ?? "";
-
-					for (const line of lines) {
-						const trimmed = line.trim();
-						if (!trimmed) continue;
-
-						for (const evt of processLine(trimmed)) {
-							controller.enqueue(evt);
-							if (evt.type === "done" || evt.type === "error") {
-								controller.close();
-								reader.cancel();
-								return;
-							}
-						}
-					}
-				}
-			} catch (e) {
-				controller.enqueue({
-					type: "error",
-					error: e instanceof Error ? e.message : "ストリーム読み取りエラー",
-				});
-				controller.close();
-			}
-		},
-	});
+	};
 }
 
 export function createOpenAIProvider(
@@ -283,8 +236,12 @@ export function createOpenAIProvider(
 			});
 
 			if (!response.ok) {
-				await response.text();
-				return { content: "", toolCalls: [], stopReason: "error" };
+				const errorBody = await response.text();
+				return {
+					content: `APIエラー (${response.status}): ${errorBody.slice(0, 200)}`,
+					toolCalls: [],
+					stopReason: "error",
+				};
 			}
 
 			const data = (await response.json()) as OpenAIResponse;
@@ -315,7 +272,7 @@ export function createOpenAIProvider(
 				});
 			}
 
-			return parseStreamEvents(response.body);
+			return createSSEReadableStream(response.body, createProcessLine());
 		},
 	};
 }

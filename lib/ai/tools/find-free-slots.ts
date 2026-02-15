@@ -65,6 +65,9 @@ export async function executeFindFreeSlots(
 	if (!dateStr) return "エラー: dateパラメータが必要です。";
 
 	const date = new Date(dateStr);
+	if (Number.isNaN(date.getTime())) {
+		return "エラー: 不正な日付形式です。YYYY-MM-DD形式で指定してください。";
+	}
 
 	// その日全体の範囲で取得（JST 0:00-23:59:59.999）
 	const jstDate = new Date(date.getTime() + JST_OFFSET_MS);

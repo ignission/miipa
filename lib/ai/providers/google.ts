@@ -1,3 +1,4 @@
+import { createSSEReadableStream } from "./stream-utils";
 import type {
 	ChatMessage,
 	LLMProvider,
@@ -11,6 +12,12 @@ import type {
 const GEMINI_API_BASE =
 	"https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_MODEL = "gemini-2.0-flash";
+
+/** Gemini API の finishReason を内部表現にマッピング */
+const STOP_REASON_MAP: Record<string, LLMResponse["stopReason"]> = {
+	STOP: "end_turn",
+	MAX_TOKENS: "max_tokens",
+};
 
 interface GeminiPart {
 	text?: string;
@@ -89,7 +96,6 @@ function parseResponse(data: GeminiResponse): LLMResponse {
 
 	let content = "";
 	const toolCalls: ToolCall[] = [];
-	let toolCallIndex = 0;
 
 	for (const part of candidate.content.parts) {
 		if (part.text) {
@@ -97,21 +103,22 @@ function parseResponse(data: GeminiResponse): LLMResponse {
 		}
 		if (part.functionCall) {
 			toolCalls.push({
-				id: `call_${toolCallIndex++}`,
+				id: crypto.randomUUID(),
 				name: part.functionCall.name,
 				arguments: part.functionCall.args ?? {},
 			});
 		}
 	}
 
-	const stopReason =
-		candidate.finishReason === "STOP"
-			? "end_turn"
-			: candidate.finishReason === "MAX_TOKENS"
-				? "max_tokens"
-				: toolCalls.length > 0
-					? "tool_use"
-					: "end_turn";
+	// finishReasonがマッピングにある場合はそれを使用、なければfunctionCall検出で判定
+	const mappedReason = candidate.finishReason
+		? STOP_REASON_MAP[candidate.finishReason]
+		: undefined;
+	const stopReason: LLMResponse["stopReason"] = mappedReason
+		? mappedReason
+		: toolCalls.length > 0
+			? "tool_use"
+			: "end_turn";
 
 	return { content, toolCalls, stopReason };
 }
@@ -123,13 +130,11 @@ function createHeaders(apiKey: string): Record<string, string> {
 	};
 }
 
-function parseStreamEvents(
-	body: ReadableStream<Uint8Array>,
-): ReadableStream<StreamEvent> {
-	let buffer = "";
-	const decoder = new TextDecoder();
-
-	function processLine(line: string): StreamEvent[] {
+/**
+ * Gemini SSE の processLine コールバックを生成する。
+ */
+function createProcessLine(): (line: string) => StreamEvent[] {
+	return (line: string): StreamEvent[] => {
 		if (!line.startsWith("data: ")) return [];
 		const payload = line.slice(6).trim();
 		if (!payload) return [];
@@ -145,7 +150,6 @@ function parseStreamEvents(
 		if (!candidate) return [];
 
 		const events: StreamEvent[] = [];
-		let toolCallIndex = 0;
 
 		for (const part of candidate.content.parts) {
 			if (part.text) {
@@ -155,7 +159,7 @@ function parseStreamEvents(
 				events.push({
 					type: "tool_call",
 					toolCall: {
-						id: `call_${toolCallIndex++}`,
+						id: crypto.randomUUID(),
 						name: part.functionCall.name,
 						arguments: part.functionCall.args ?? {},
 					},
@@ -172,53 +176,7 @@ function parseStreamEvents(
 		}
 
 		return events;
-	}
-
-	return new ReadableStream<StreamEvent>({
-		async start(controller) {
-			const reader = body.getReader();
-
-			try {
-				for (;;) {
-					const { done, value } = await reader.read();
-					if (done) {
-						if (buffer.trim()) {
-							for (const evt of processLine(buffer.trim())) {
-								controller.enqueue(evt);
-							}
-						}
-						controller.enqueue({ type: "done" });
-						controller.close();
-						return;
-					}
-
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split("\n");
-					buffer = lines.pop() ?? "";
-
-					for (const line of lines) {
-						const trimmed = line.trim();
-						if (!trimmed) continue;
-
-						for (const evt of processLine(trimmed)) {
-							controller.enqueue(evt);
-							if (evt.type === "done" || evt.type === "error") {
-								controller.close();
-								reader.cancel();
-								return;
-							}
-						}
-					}
-				}
-			} catch (e) {
-				controller.enqueue({
-					type: "error",
-					error: e instanceof Error ? e.message : "ストリーム読み取りエラー",
-				});
-				controller.close();
-			}
-		},
-	});
+	};
 }
 
 export function createGoogleProvider(
@@ -239,8 +197,12 @@ export function createGoogleProvider(
 			});
 
 			if (!response.ok) {
-				await response.text();
-				return { content: "", toolCalls: [], stopReason: "error" };
+				const errorBody = await response.text();
+				return {
+					content: `APIエラー (${response.status}): ${errorBody.slice(0, 200)}`,
+					toolCalls: [],
+					stopReason: "error",
+				};
 			}
 
 			const data = (await response.json()) as GeminiResponse;
@@ -272,7 +234,7 @@ export function createGoogleProvider(
 				});
 			}
 
-			return parseStreamEvents(response.body);
+			return createSSEReadableStream(response.body, createProcessLine());
 		},
 	};
 }

@@ -1,3 +1,4 @@
+import { createSSEReadableStream } from "./stream-utils";
 import type {
 	LLMProvider,
 	LLMProviderOptions,
@@ -10,6 +11,13 @@ import type {
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 const DEFAULT_MAX_TOKENS = 4096;
+
+/** Anthropic API の stop_reason を内部表現にマッピング */
+const STOP_REASON_MAP: Record<string, LLMResponse["stopReason"]> = {
+	end_turn: "end_turn",
+	tool_use: "tool_use",
+	max_tokens: "max_tokens",
+};
 
 interface AnthropicContentBlock {
 	type: "text" | "tool_use";
@@ -80,16 +88,9 @@ function parseResponse(data: AnthropicResponse): LLMResponse {
 		}
 	}
 
-	const stopReason =
-		data.stop_reason === "end_turn"
-			? "end_turn"
-			: data.stop_reason === "tool_use"
-				? "tool_use"
-				: data.stop_reason === "max_tokens"
-					? "max_tokens"
-					: "error";
+	const stopReason = STOP_REASON_MAP[data.stop_reason] ?? "error";
 
-	return { content, toolCalls, stopReason } satisfies LLMResponse;
+	return { content, toolCalls, stopReason };
 }
 
 function createHeaders(apiKey: string): Record<string, string> {
@@ -100,28 +101,26 @@ function createHeaders(apiKey: string): Record<string, string> {
 	};
 }
 
-function parseStreamEvents(
-	body: ReadableStream<Uint8Array>,
-): ReadableStream<StreamEvent> {
-	let buffer = "";
-	const decoder = new TextDecoder();
-
-	// ストリーム中のtool_use blockを管理
+/**
+ * Anthropic SSE の processLine コールバックを生成する。
+ * tool_use ブロックの JSON 蓄積状態をクロージャで管理する。
+ */
+function createProcessLine(): (line: string) => StreamEvent[] {
 	const pendingToolCalls = new Map<
 		number,
 		{ id: string; name: string; jsonBuf: string }
 	>();
 
-	function processLine(line: string): StreamEvent | null {
-		if (!line.startsWith("data: ")) return null;
+	return (line: string): StreamEvent[] => {
+		if (!line.startsWith("data: ")) return [];
 		const json = line.slice(6).trim();
-		if (!json) return null;
+		if (!json) return [];
 
 		let event: Record<string, unknown>;
 		try {
 			event = JSON.parse(json) as Record<string, unknown>;
 		} catch {
-			return null;
+			return [];
 		}
 
 		const eventType = event.type as string;
@@ -136,15 +135,15 @@ function parseStreamEvents(
 					jsonBuf: "",
 				});
 			}
-			return null;
+			return [];
 		}
 
 		if (eventType === "content_block_delta") {
 			const delta = event.delta as Record<string, unknown> | undefined;
-			if (!delta) return null;
+			if (!delta) return [];
 
 			if (delta.type === "text_delta" && typeof delta.text === "string") {
-				return { type: "text", text: delta.text };
+				return [{ type: "text", text: delta.text }];
 			}
 
 			if (
@@ -156,9 +155,9 @@ function parseStreamEvents(
 				if (pending) {
 					pending.jsonBuf += delta.partial_json;
 				}
-				return null;
+				return [];
 			}
-			return null;
+			return [];
 		}
 
 		if (eventType === "content_block_stop") {
@@ -172,75 +171,36 @@ function parseStreamEvents(
 				} catch {
 					// JSON不正時は空オブジェクト
 				}
-				return {
-					type: "tool_call",
-					toolCall: { id: pending.id, name: pending.name, arguments: args },
-				};
+				return [
+					{
+						type: "tool_call",
+						toolCall: {
+							id: pending.id,
+							name: pending.name,
+							arguments: args,
+						},
+					},
+				];
 			}
-			return null;
+			return [];
 		}
 
 		if (eventType === "message_stop") {
-			return { type: "done" };
+			return [{ type: "done" }];
 		}
 
 		if (eventType === "error") {
 			const errorObj = event.error as Record<string, unknown> | undefined;
-			return {
-				type: "error",
-				error: (errorObj?.message as string) ?? "不明なストリームエラー",
-			};
+			return [
+				{
+					type: "error",
+					error: (errorObj?.message as string) ?? "不明なストリームエラー",
+				},
+			];
 		}
 
-		return null;
-	}
-
-	return new ReadableStream<StreamEvent>({
-		async start(controller) {
-			const reader = body.getReader();
-
-			try {
-				for (;;) {
-					const { done, value } = await reader.read();
-					if (done) {
-						// 残りのバッファを処理
-						if (buffer.trim()) {
-							const evt = processLine(buffer.trim());
-							if (evt) controller.enqueue(evt);
-						}
-						controller.enqueue({ type: "done" });
-						controller.close();
-						return;
-					}
-
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split("\n");
-					// 最後の不完全な行をバッファに残す
-					buffer = lines.pop() ?? "";
-
-					for (const line of lines) {
-						const trimmed = line.trim();
-						if (!trimmed) continue;
-						const evt = processLine(trimmed);
-						if (evt) {
-							controller.enqueue(evt);
-							if (evt.type === "done" || evt.type === "error") {
-								controller.close();
-								reader.cancel();
-								return;
-							}
-						}
-					}
-				}
-			} catch (e) {
-				controller.enqueue({
-					type: "error",
-					error: e instanceof Error ? e.message : "ストリーム読み取りエラー",
-				});
-				controller.close();
-			}
-		},
-	});
+		return [];
+	};
 }
 
 export function createAnthropicProvider(
@@ -260,12 +220,12 @@ export function createAnthropicProvider(
 			});
 
 			if (!response.ok) {
-				await response.text();
+				const errorBody = await response.text();
 				return {
-					content: "",
+					content: `APIエラー (${response.status}): ${errorBody.slice(0, 200)}`,
 					toolCalls: [],
 					stopReason: "error",
-				} satisfies LLMResponse;
+				};
 			}
 
 			const data = (await response.json()) as AnthropicResponse;
@@ -296,7 +256,7 @@ export function createAnthropicProvider(
 				});
 			}
 
-			return parseStreamEvents(response.body);
+			return createSSEReadableStream(response.body, createProcessLine());
 		},
 	};
 }
