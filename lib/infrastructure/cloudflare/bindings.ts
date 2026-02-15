@@ -47,6 +47,8 @@ declare global {
 		ENCRYPTION_KEY?: string;
 		/** モバイルアプリ用JWT署名シークレット（Cloudflare Secrets / .dev.vars） */
 		MOBILE_JWT_SECRET?: string;
+		/** Google OAuth クライアントID（モバイルトークン検証用） */
+		GOOGLE_CLIENT_ID?: string;
 	}
 }
 

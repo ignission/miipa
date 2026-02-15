@@ -10,6 +10,15 @@ import {
 
 const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://miipa.app";
 
+/** レスポンスボディが空かどうかを判定する */
+function isEmptyBody(response: Response): boolean {
+	return (
+		response.status === 204 ||
+		response.status === 205 ||
+		response.headers.get("content-length") === "0"
+	);
+}
+
 /** リフレッシュ処理の重複実行を防ぐためのロック */
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -120,6 +129,11 @@ export async function apiFetch<T>(
 				throw new ApiError(message, retryResponse.status);
 			}
 
+			// 空レスポンスの場合はJSONパースをスキップ
+			if (isEmptyBody(retryResponse)) {
+				return null as T;
+			}
+
 			return retryResponse.json() as Promise<T>;
 		}
 
@@ -136,6 +150,11 @@ export async function apiFetch<T>(
 		const body = await response.json().catch(() => null);
 		const message = body?.error?.message ?? body?.error ?? `API エラー: ${response.status}`;
 		throw new ApiError(message, response.status);
+	}
+
+	// 空レスポンスの場合はJSONパースをスキップ
+	if (isEmptyBody(response)) {
+		return null as T;
 	}
 
 	return response.json() as Promise<T>;

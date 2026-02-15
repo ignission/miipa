@@ -91,8 +91,10 @@ export default function SettingsScreen() {
 										)}
 									</View>
 								</View>
+								{/* TODO: バックエンドにカレンダーのenabled切り替えAPI実装後に有効化 */}
 								<Switch
 									value={calendar.enabled}
+									disabled
 									trackColor={{
 										false: "#D4D4D4",
 										true: "#FDBA74",

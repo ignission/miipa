@@ -31,20 +31,31 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        if let type = message["type"] as? String, type == "updateEvents",
-           let dataString = message["data"] as? String,
-           let data = dataString.data(using: .utf8) {
-            do {
-                let watchData = try JSONDecoder().decode(WatchEventData.self, from: data)
-                DispatchQueue.main.async {
-                    self.events = watchData.events.sorted { $0.startDate < $1.startDate }
-                    self.lastUpdated = ISO8601DateFormatter().date(from: watchData.lastUpdated)
-                    self.saveToStorage(dataString)
-                }
-                replyHandler(["status": "ok"])
-            } catch {
-                replyHandler(["status": "error", "message": error.localizedDescription])
+        // メッセージタイプの検証
+        guard let type = message["type"] as? String, type == "updateEvents" else {
+            // 未知のメッセージタイプの場合、エラーレスポンスを返す（タイムアウト防止）
+            replyHandler(["error": "unsupported", "message": "未知のメッセージタイプです"])
+            return
+        }
+
+        // データペイロードの検証
+        guard let dataString = message["data"] as? String,
+              let data = dataString.data(using: .utf8) else {
+            // データが不正な場合、エラーレスポンスを返す（タイムアウト防止）
+            replyHandler(["error": "invalid_data", "message": "データの形式が不正です"])
+            return
+        }
+
+        do {
+            let watchData = try JSONDecoder().decode(WatchEventData.self, from: data)
+            DispatchQueue.main.async {
+                self.events = watchData.events.sorted { $0.startDate < $1.startDate }
+                self.lastUpdated = ISO8601DateFormatter().date(from: watchData.lastUpdated)
+                self.saveToStorage(dataString)
             }
+            replyHandler(["status": "ok"])
+        } catch {
+            replyHandler(["status": "error", "message": error.localizedDescription])
         }
     }
 

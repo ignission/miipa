@@ -94,7 +94,7 @@ interface UserRow {
 interface RefreshTokenRow {
 	readonly id: string;
 	readonly user_id: string;
-	readonly token: string;
+	readonly token_hash: string;
 	readonly expires_at: string;
 }
 
@@ -252,6 +252,22 @@ async function findOrCreateUser(
 // ============================================================
 
 /**
+ * トークンをSHA-256でハッシュ化し、base64url文字列として返す
+ *
+ * DBにはハッシュのみを保存することで、DBリーク時のセッションハイジャックを防止します。
+ *
+ * @param token - ハッシュ対象のトークン文字列
+ * @returns SHA-256ハッシュのbase64url文字列
+ */
+async function hashToken(token: string): Promise<string> {
+	const digest = await crypto.subtle.digest(
+		"SHA-256",
+		new TextEncoder().encode(token),
+	);
+	return base64UrlEncode(new Uint8Array(digest));
+}
+
+/**
  * セキュアなリフレッシュトークンを生成
  *
  * crypto.randomUUID を2つ連結して十分なエントロピーを確保します。
@@ -263,11 +279,13 @@ function generateRefreshToken(): string {
 }
 
 /**
- * リフレッシュトークンをD1に保存
+ * リフレッシュトークンをSHA-256ハッシュ化してD1に保存
+ *
+ * クライアントには平文トークンを返しますが、DBにはハッシュのみを保存します。
  *
  * @param db - D1データベースインスタンス
  * @param userId - ユーザーID
- * @param token - リフレッシュトークン
+ * @param token - リフレッシュトークン（平文）
  * @param expiresInSeconds - 有効期限（秒）
  */
 async function saveRefreshToken(
@@ -280,33 +298,36 @@ async function saveRefreshToken(
 	const expiresAt = new Date(
 		Date.now() + expiresInSeconds * 1000,
 	).toISOString();
+	const tokenHash = await hashToken(token);
 
 	await db
 		.prepare(
-			"INSERT INTO refresh_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
+			"INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)",
 		)
-		.bind(id, userId, token, expiresAt)
+		.bind(id, userId, tokenHash, expiresAt)
 		.run();
 }
 
 /**
  * リフレッシュトークンを検証し、対応するユーザーを取得
  *
+ * 受け取った平文トークンをSHA-256ハッシュ化してからDB検索します。
  * 使用済みのリフレッシュトークンは削除し、トークンローテーションを実現します。
  *
  * @param db - D1データベースインスタンス
- * @param token - リフレッシュトークン
+ * @param token - リフレッシュトークン（平文）
  * @returns ユーザー情報またはnull
  */
 async function consumeRefreshToken(
 	db: D1Database,
 	token: string,
 ): Promise<UserRow | null> {
+	const tokenHash = await hashToken(token);
 	const row = await db
 		.prepare(
-			"SELECT rt.id, rt.user_id, rt.expires_at FROM refresh_tokens rt WHERE rt.token = ?",
+			"SELECT rt.id, rt.user_id, rt.expires_at FROM refresh_tokens rt WHERE rt.token_hash = ?",
 		)
-		.bind(token)
+		.bind(tokenHash)
 		.first<RefreshTokenRow>();
 
 	if (!row) {

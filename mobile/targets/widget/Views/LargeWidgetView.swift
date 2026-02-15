@@ -42,9 +42,13 @@ struct LargeWidgetView: View {
                     }
 
                     // 現在時刻インジケータ
-                    let now = Calendar.current.component(.hour, from: entry.date)
-                        + Double(Calendar.current.component(.minute, from: entry.date)) / 60.0
-                    if now >= Double(dayStartHour) && now <= Double(dayEndHour) {
+                    // Calendar.component は Int を返すため、明示的に Double へ変換してから演算する
+                    let currentHour: Double = Double(Calendar.current.component(.hour, from: entry.date))
+                    let currentMinute: Double = Double(Calendar.current.component(.minute, from: entry.date))
+                    let now: Double = currentHour + currentMinute / 60.0
+                    let dayStart: Double = Double(dayStartHour)
+                    let dayEnd: Double = Double(dayEndHour)
+                    if now >= dayStart && now <= dayEnd {
                         HStack(spacing: 2) {
                             Circle()
                                 .fill(Color.red)
@@ -53,20 +57,21 @@ struct LargeWidgetView: View {
                                 .fill(Color.red)
                                 .frame(height: 1)
                         }
-                        .offset(x: 22, y: CGFloat(now - Double(dayStartHour)) * hourHeight)
+                        .offset(x: 22, y: CGFloat(now - dayStart) * hourHeight)
                     }
 
                     // イベント
+                    // 各時刻を明示的に Double へ変換し、Int との混在演算を防止する
                     let timeEvents = entry.events.filter { !$0.isAllDay }
                     ForEach(timeEvents) { event in
-                        let startHour = Double(Calendar.current.component(.hour, from: event.startDate))
+                        let startHour: Double = Double(Calendar.current.component(.hour, from: event.startDate))
                             + Double(Calendar.current.component(.minute, from: event.startDate)) / 60.0
-                        let endHour = Double(Calendar.current.component(.hour, from: event.endDate))
+                        let endHour: Double = Double(Calendar.current.component(.hour, from: event.endDate))
                             + Double(Calendar.current.component(.minute, from: event.endDate)) / 60.0
-                        let clampedStart = max(startHour, Double(dayStartHour))
-                        let clampedEnd = min(endHour, Double(dayEndHour))
-                        let top = CGFloat(clampedStart - Double(dayStartHour)) * hourHeight
-                        let height = max(CGFloat(clampedEnd - clampedStart) * hourHeight, 14)
+                        let clampedStart: Double = max(startHour, dayStart)
+                        let clampedEnd: Double = min(endHour, dayEnd)
+                        let top: CGFloat = CGFloat(clampedStart - dayStart) * hourHeight
+                        let height: CGFloat = max(CGFloat(clampedEnd - clampedStart) * hourHeight, 14)
 
                         HStack(spacing: 3) {
                             RoundedRectangle(cornerRadius: 1)
