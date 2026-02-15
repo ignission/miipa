@@ -45,6 +45,8 @@ declare global {
 		DB?: D1Database;
 		/** 暗号化キー（Cloudflare Secrets / .dev.vars） */
 		ENCRYPTION_KEY?: string;
+		/** モバイルアプリ用JWT署名シークレット（Cloudflare Secrets / .dev.vars） */
+		MOBILE_JWT_SECRET?: string;
 	}
 }
 

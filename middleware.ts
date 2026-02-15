@@ -16,6 +16,16 @@ export default auth((req) => {
 		if (req.nextUrl.pathname === "/") {
 			return NextResponse.next();
 		}
+
+		// Bearer トークンが存在するAPIリクエストは通過させる
+		const authHeader = req.headers.get("authorization");
+		if (
+			req.nextUrl.pathname.startsWith("/api/") &&
+			authHeader?.startsWith("Bearer ")
+		) {
+			return NextResponse.next();
+		}
+
 		const signInUrl = new URL("/auth/signin", req.url);
 		return NextResponse.redirect(signInUrl);
 	}
@@ -36,6 +46,6 @@ export const config = {
 		// - /icons/* (PWAアイコン)
 		// - /manifest.json
 		// - /sw.js (Service Worker)
-		"/((?!api/auth|auth|privacy|terms|tokushoho|_next/static|_next/image|favicon\\.ico|icons|manifest\\.json|sw\\.js).*)",
+		"/((?!api/auth/mobile|api/auth|auth|privacy|terms|tokushoho|_next/static|_next/image|favicon\\.ico|icons|manifest\\.json|sw\\.js).*)",
 	],
 };

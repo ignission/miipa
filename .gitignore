@@ -56,3 +56,20 @@ coverage/
 .wrangler/
 .open-next/
 .dev.vars
+
+# React Native / Expo
+mobile/.expo/
+mobile/ios/
+mobile/android/
+mobile/node_modules/
+mobile/dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# shared パッケージ
+shared/dist/
+shared/node_modules/

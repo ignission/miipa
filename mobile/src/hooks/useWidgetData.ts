@@ -1,0 +1,28 @@
+import { useEffect } from "react";
+import type { UICalendarEvent } from "./useEvents";
+import { writeWidgetData } from "../store/app-group";
+import { DEFAULT_CALENDAR_COLOR } from "../theme";
+
+/**
+ * イベントデータが更新されたらApp GroupsにWidget用データを書き込むフック
+ */
+export function useWidgetData(events: UICalendarEvent[]) {
+	useEffect(() => {
+		if (events.length === 0) return;
+
+		const widgetData = {
+			events: events.map((e) => ({
+				id: e.id,
+				title: e.title,
+				startTime: e.startTime.toISOString(),
+				endTime: e.endTime.toISOString(),
+				isAllDay: e.isAllDay,
+				calendarColor: e.color ?? DEFAULT_CALENDAR_COLOR,
+				...(e.location ? { location: e.location } : {}),
+			})),
+			lastUpdated: new Date().toISOString(),
+		};
+
+		writeWidgetData(widgetData);
+	}, [events]);
+}
