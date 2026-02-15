@@ -73,6 +73,13 @@ function formatEvent(event: CalendarEvent): string {
 }
 
 // ============================================================
+// 定数
+// ============================================================
+
+/** JSTオフセット（ミリ秒） */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+// ============================================================
 // 実行関数
 // ============================================================
 
@@ -113,8 +120,12 @@ export async function executeGetCalendarEvents(
 		if (endDate < startDate) {
 			return "エラー: 終了日は開始日より前です。";
 		}
-		// 終了日の23:59:59.999に設定
-		endDate.setHours(23, 59, 59, 999);
+		// JSTの0:00 = UTCの前日15:00
+		startDate.setTime(startDate.getTime() - JST_OFFSET_MS);
+		// JSTの23:59:59.999 = UTCの14:59:59.999
+		endDate.setTime(
+			endDate.getTime() + (24 * 60 * 60 * 1000 - 1) - JST_OFFSET_MS,
+		);
 
 		const timeRange = createTimeRange(startDate, endDate);
 		const result = await getEventsForRange(ctx, timeRange);

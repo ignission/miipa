@@ -25,7 +25,7 @@ interface GeminiPart {
 }
 
 interface GeminiCandidate {
-	content: { parts: GeminiPart[] };
+	content?: { parts: GeminiPart[] };
 	finishReason?: string;
 }
 
@@ -97,7 +97,7 @@ function parseResponse(data: GeminiResponse): LLMResponse {
 	let content = "";
 	const toolCalls: ToolCall[] = [];
 
-	for (const part of candidate.content.parts) {
+	for (const part of candidate.content?.parts ?? []) {
 		if (part.text) {
 			content += part.text;
 		}
@@ -153,7 +153,7 @@ function createProcessLine(): (line: string) => StreamEvent[] {
 
 		const events: StreamEvent[] = [];
 
-		for (const part of candidate.content.parts) {
+		for (const part of candidate.content?.parts ?? []) {
 			if (part.text) {
 				events.push({ type: "text", text: part.text });
 			}

@@ -332,26 +332,35 @@ export async function POST(request: NextRequest): Promise<Response> {
 								lastUserMessage.role,
 							);
 						} else {
-							// ユーザーメッセージ保存
+							// ユーザーメッセージ保存（ミリ秒精度のタイムスタンプで順序を保証）
+							const userTimestamp = new Date().toISOString();
 							await db
 								.prepare(
-									"INSERT INTO chat_messages (id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+									"INSERT INTO chat_messages (id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)",
 								)
 								.bind(
 									crypto.randomUUID(),
 									userId,
 									lastUserMessage.role,
 									lastUserMessage.content,
+									userTimestamp,
 								)
 								.run();
 						}
 
-						// アシスタント応答保存
+						// アシスタント応答保存（ユーザーメッセージとは別のタイムスタンプを取得）
+						const assistantTimestamp = new Date().toISOString();
 						await db
 							.prepare(
-								"INSERT INTO chat_messages (id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+								"INSERT INTO chat_messages (id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)",
 							)
-							.bind(crypto.randomUUID(), userId, "assistant", finalText)
+							.bind(
+								crypto.randomUUID(),
+								userId,
+								"assistant",
+								finalText,
+								assistantTimestamp,
+							)
 							.run();
 					} catch {
 						// メッセージ保存が失敗してもチャット応答には影響させない
@@ -452,7 +461,7 @@ export async function GET(): Promise<NextResponse> {
 				`SELECT id, user_id, role, content, tool_calls, created_at
 				FROM chat_messages
 				WHERE user_id = ?
-				ORDER BY created_at DESC
+				ORDER BY created_at DESC, id DESC
 				LIMIT ?`,
 			)
 			.bind(userId, MAX_HISTORY_COUNT)
