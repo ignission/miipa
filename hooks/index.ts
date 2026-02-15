@@ -23,6 +23,8 @@ export type { UseAddICalCalendarResult } from "./useAddICalCalendar";
 export { useAddICalCalendar } from "./useAddICalCalendar";
 export type { UseCalendarsResult } from "./useCalendars";
 export { useCalendars } from "./useCalendars";
+export type { ChatMessage, UseChatReturn } from "./useChat";
+export { useChat } from "./useChat";
 export type { UseDeleteCalendarResult } from "./useDeleteCalendar";
 export { useDeleteCalendar } from "./useDeleteCalendar";
 export type { EventRange, UseEventsResult } from "./useEvents";
