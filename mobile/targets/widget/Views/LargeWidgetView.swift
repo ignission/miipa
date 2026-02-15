@@ -68,6 +68,9 @@ struct LargeWidgetView: View {
                             + Double(Calendar.current.component(.minute, from: event.startDate)) / 60.0
                         let endHour: Double = Double(Calendar.current.component(.hour, from: event.endDate))
                             + Double(Calendar.current.component(.minute, from: event.endDate)) / 60.0
+
+                        // 表示範囲外のイベントをスキップ（phantomブロック防止）
+                        if endHour > dayStart && startHour < dayEnd {
                         let clampedStart: Double = max(startHour, dayStart)
                         let clampedEnd: Double = min(endHour, dayEnd)
                         let top: CGFloat = CGFloat(clampedStart - dayStart) * hourHeight
@@ -88,6 +91,7 @@ struct LargeWidgetView: View {
                         .cornerRadius(3)
                         .offset(x: 26, y: top)
                         .frame(width: geometry.size.width - 30, alignment: .leading)
+                        }
                     }
                 }
             }

@@ -28,8 +28,10 @@ function getEventPosition(event: UICalendarEvent): {
 } {
 	const startHour =
 		event.startTime.getHours() + event.startTime.getMinutes() / 60;
-	const endHour =
+	const rawEndHour =
 		event.endTime.getHours() + event.endTime.getMinutes() / 60;
+	// 深夜跨ぎ（例: 23:00→翌01:00）の場合、表示範囲の終端まで描画する
+	const endHour = rawEndHour < startHour ? DAY_END_HOUR : rawEndHour;
 
 	const clampedStart = Math.max(startHour, DAY_START_HOUR);
 	const clampedEnd = Math.min(endHour, DAY_END_HOUR);
@@ -48,8 +50,10 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 	// 重なるもののみ表示する。範囲外イベントのゴーストブロック描画を防止する。
 	const timeEvents = events.filter((e) => {
 		if (e.isAllDay) return false;
-		const endHour = e.endTime.getHours() + e.endTime.getMinutes() / 60;
 		const startHour = e.startTime.getHours() + e.startTime.getMinutes() / 60;
+		const rawEndHour = e.endTime.getHours() + e.endTime.getMinutes() / 60;
+		// 深夜跨ぎ（例: 23:00→翌01:00）の場合、表示範囲の終端まで表示する
+		const endHour = rawEndHour < startHour ? DAY_END_HOUR : rawEndHour;
 		return endHour > DAY_START_HOUR && startHour < DAY_END_HOUR;
 	});
 	const allDayEvents = events.filter((e) => e.isAllDay);
@@ -61,7 +65,8 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 
 	// 現在時刻のインジケータ位置
 	const now = currentTime.getHours() + currentTime.getMinutes() / 60;
-	const showIndicator = now >= DAY_START_HOUR && now <= DAY_END_HOUR;
+	// DAY_END_HOUR丁度ではコンテナ境界にはみ出すため厳密な不等号を使用
+	const showIndicator = now >= DAY_START_HOUR && now < DAY_END_HOUR;
 	const indicatorTop = (now - DAY_START_HOUR) * HOUR_HEIGHT;
 
 	return (

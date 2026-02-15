@@ -29,9 +29,16 @@ struct MiipaComplicationProvider: TimelineProvider {
             eventCount: store.todayEvents.count
         )
 
-        let nextUpdate = store.nextEvent.map { $0.endDate }
-            ?? Calendar.current.date(byAdding: .hour, value: 1, to: Date())
-            ?? Date()
+        // endDateが過去の場合は15分後にフォールバック（SmallWidgetProviderと同様の保護）
+        let currentDate = Date()
+        let nextUpdate = store.nextEvent.map { event -> Date in
+            let eventEnd = event.endDate
+            return eventEnd > currentDate
+                ? eventEnd
+                : currentDate.addingTimeInterval(15 * 60)
+        }
+            ?? Calendar.current.date(byAdding: .hour, value: 1, to: currentDate)
+            ?? currentDate
 
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)

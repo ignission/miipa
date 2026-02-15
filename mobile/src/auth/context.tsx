@@ -200,19 +200,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		})();
 	}, []);
 
-	// Google OAuth レスポンス処理
-	useEffect(() => {
-		if (response?.type === "success") {
-			const { id_token: idToken } = response.params;
-			if (idToken) {
-				exchangeToken(idToken);
-			}
-		}
-		if (response?.type === "error" || response?.type === "dismiss") {
-			setIsSigningIn(false);
-		}
-	}, [response, exchangeToken]);
-
 	/**
 	 * Google ID Token をバックエンドのJWTに交換
 	 */
@@ -255,6 +242,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			setIsSigningIn(false);
 		}
 	}, []);
+
+	// Google OAuth レスポンス処理
+	useEffect(() => {
+		if (response?.type === "success") {
+			const { id_token: idToken } = response.params;
+			if (idToken) {
+				exchangeToken(idToken);
+			}
+		}
+		if (response?.type === "error" || response?.type === "dismiss") {
+			setIsSigningIn(false);
+		}
+	}, [response, exchangeToken]);
 
 	const signIn = useCallback(async () => {
 		setIsSigningIn(true);
