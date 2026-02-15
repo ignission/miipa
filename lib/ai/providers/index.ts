@@ -18,6 +18,10 @@ export function createProvider(config: LLMConfig, apiKey: string): LLMProvider {
 			);
 		case "gemini":
 			return createGoogleProvider(apiKey, config.model);
+		default: {
+			const _exhaustiveCheck: never = config.provider;
+			throw new Error(`未対応のプロバイダ: ${_exhaustiveCheck}`);
+		}
 	}
 }
 

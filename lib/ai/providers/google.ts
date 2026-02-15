@@ -116,9 +116,11 @@ function parseResponse(data: GeminiResponse): LLMResponse {
 		: undefined;
 	const stopReason: LLMResponse["stopReason"] = mappedReason
 		? mappedReason
-		: toolCalls.length > 0
-			? "tool_use"
-			: "end_turn";
+		: candidate.finishReason
+			? "error"
+			: toolCalls.length > 0
+				? "tool_use"
+				: "end_turn";
 
 	return { content, toolCalls, stopReason };
 }
@@ -168,10 +170,16 @@ function createProcessLine(): (line: string) => StreamEvent[] {
 		}
 
 		// finishReasonがある場合はストリーム終了
-		if (
-			candidate.finishReason === "STOP" ||
-			candidate.finishReason === "MAX_TOKENS"
-		) {
+		if (candidate.finishReason) {
+			if (
+				candidate.finishReason !== "STOP" &&
+				candidate.finishReason !== "MAX_TOKENS"
+			) {
+				events.push({
+					type: "error",
+					error: `Gemini finishReason: ${candidate.finishReason}`,
+				});
+			}
 			events.push({ type: "done" });
 		}
 

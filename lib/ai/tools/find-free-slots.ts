@@ -85,11 +85,52 @@ export async function executeFindFreeSlots(
 	const result = await getEventsForRange(ctx, range);
 	if (!isOk(result)) return `エラー: ${result.error.message}`;
 
+	// 数値パラメータの検証
+	const minDurationMinutes =
+		args.minDurationMinutes != null
+			? Number(args.minDurationMinutes)
+			: undefined;
+	const workingHoursStart =
+		args.workingHoursStart != null ? Number(args.workingHoursStart) : undefined;
+	const workingHoursEnd =
+		args.workingHoursEnd != null ? Number(args.workingHoursEnd) : undefined;
+
+	if (minDurationMinutes !== undefined) {
+		if (!Number.isFinite(minDurationMinutes) || minDurationMinutes < 1) {
+			return "エラー: minDurationMinutesは1以上の数値を指定してください。";
+		}
+	}
+	if (workingHoursStart !== undefined) {
+		if (
+			!Number.isFinite(workingHoursStart) ||
+			workingHoursStart < 0 ||
+			workingHoursStart > 24
+		) {
+			return "エラー: workingHoursStartは0〜24の数値を指定してください。";
+		}
+	}
+	if (workingHoursEnd !== undefined) {
+		if (
+			!Number.isFinite(workingHoursEnd) ||
+			workingHoursEnd < 0 ||
+			workingHoursEnd > 24
+		) {
+			return "エラー: workingHoursEndは0〜24の数値を指定してください。";
+		}
+	}
+	if (
+		workingHoursStart !== undefined &&
+		workingHoursEnd !== undefined &&
+		workingHoursStart >= workingHoursEnd
+	) {
+		return "エラー: workingHoursStartはworkingHoursEndより小さい値を指定してください。";
+	}
+
 	const slots = calculateFreeSlots(result.value, {
 		date,
-		minDurationMinutes: args.minDurationMinutes as number | undefined,
-		workingHoursStart: args.workingHoursStart as number | undefined,
-		workingHoursEnd: args.workingHoursEnd as number | undefined,
+		minDurationMinutes,
+		workingHoursStart,
+		workingHoursEnd,
 	});
 
 	if (slots.length === 0) return `${dateStr}に空き時間はありません。`;

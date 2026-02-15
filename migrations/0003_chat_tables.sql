@@ -10,7 +10,7 @@
 CREATE TABLE IF NOT EXISTS chat_messages (
   id TEXT PRIMARY KEY NOT NULL,
   user_id TEXT NOT NULL,
-  role TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
   content TEXT NOT NULL,
   tool_calls TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),

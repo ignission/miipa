@@ -110,6 +110,9 @@ export async function executeGetCalendarEvents(
 		if (Number.isNaN(endDate.getTime())) {
 			return "エラー: 不正な終了日付形式です。YYYY-MM-DD形式で指定してください。";
 		}
+		if (endDate < startDate) {
+			return "エラー: 終了日は開始日より前です。";
+		}
 		// 終了日の23:59:59.999に設定
 		endDate.setHours(23, 59, 59, 999);
 

@@ -464,9 +464,14 @@ export async function GET(): Promise<NextResponse> {
 				id: record.id,
 				role: record.role,
 				content: record.content,
-				toolCalls: record.tool_calls
-					? (JSON.parse(record.tool_calls) as ToolCall[])
-					: null,
+				toolCalls: (() => {
+					if (!record.tool_calls) return null;
+					try {
+						return JSON.parse(record.tool_calls) as ToolCall[];
+					} catch {
+						return null;
+					}
+				})(),
 				createdAt: record.created_at,
 			}));
 
