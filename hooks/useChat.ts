@@ -66,7 +66,7 @@ export interface UseChatReturn {
 	/** 入力テキストの更新関数 */
 	setInput: (input: string) => void;
 	/** メッセージ送信関数 */
-	sendMessage: () => Promise<void>;
+	sendMessage: (overrideInput?: string) => Promise<void>;
 	/** ローディング状態 */
 	isLoading: boolean;
 	/** エラー情報 */
@@ -171,8 +171,8 @@ export function useChat(): UseChatReturn {
 	/**
 	 * メッセージを送信し、SSEストリームからレスポンスを受信する
 	 */
-	const sendMessage = useCallback(async () => {
-		const trimmedInput = input.trim();
+	const sendMessage = useCallback(async (overrideInput?: string) => {
+		const trimmedInput = (overrideInput ?? input).trim();
 		if (!trimmedInput || isLoading) {
 			return;
 		}

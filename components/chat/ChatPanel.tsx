@@ -147,14 +147,14 @@ export function ChatPanel() {
 	/**
 	 * 質問候補選択時のハンドラ
 	 *
-	 * 候補テキストを入力に設定してパネルを展開状態にする
+	 * パネルを展開状態にしてメッセージを送信する
 	 */
 	const handleSuggestionSelect = useCallback(
 		(suggestion: string) => {
-			setInput(suggestion);
 			setIsExpanded(true);
+			sendMessage(suggestion);
 		},
-		[setInput],
+		[sendMessage],
 	);
 
 	/**
