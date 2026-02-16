@@ -281,7 +281,10 @@ export function AiSettingsClient() {
 					<div className={css({ mt: "2" })}>
 						{selectedProvider === "ollama" ? (
 							<OllamaConnector
-								onConnected={() => setOllamaConnected(true)}
+								onConnected={(connectedUrl) => {
+									setOllamaUrl(connectedUrl);
+									setOllamaConnected(true);
+								}}
 								defaultUrl={ollamaUrl}
 							/>
 						) : (

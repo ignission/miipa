@@ -123,7 +123,22 @@ export async function PUT(request: NextRequest) {
 	}
 	const { calendarCtx } = ctxResult.value;
 
-	const body = (await request.json()) as UpdateAISettingsRequest;
+	// リクエストボディのパース
+	let body: UpdateAISettingsRequest;
+	try {
+		body = (await request.json()) as UpdateAISettingsRequest;
+	} catch {
+		return NextResponse.json(
+			{
+				success: false,
+				error: {
+					code: "INVALID_REQUEST",
+					message: "リクエストボディのJSONパースに失敗しました",
+				},
+			},
+			{ status: 400 },
+		);
+	}
 
 	// プロバイダのバリデーション
 	if (!body.provider || !isLLMProvider(body.provider)) {
