@@ -1,5 +1,6 @@
 import { createProvider, type LLMProvider } from "@/lib/ai/providers";
-import { type LLMConfig, LLMConfigSchema } from "@/lib/config/types";
+import { getSecretKeyForProvider } from "@/lib/application/setup/types";
+import { isLLMProvider, type LLMConfig } from "@/lib/config/types";
 import type { CalendarContext } from "@/lib/context/calendar-context";
 import { err, isOk, ok, type Result } from "@/lib/domain/shared/result";
 
@@ -23,50 +24,49 @@ export interface ModelResolverError {
 
 /**
  * CalendarContextからLLM設定を読み取り、プロバイダインスタンスを生成
+ *
+ * D1のsettingsテーブルから個別キー（llm_provider, llm_model, llm_base_url）を
+ * 読み取り、LLMConfigを構築してプロバイダインスタンスを生成します。
  */
 export async function resolveLLMProvider(
 	ctx: CalendarContext,
 ): Promise<Result<LLMProvider, ModelResolverError>> {
-	// 1. LLM設定を取得
-	const settingResult = await ctx.configRepository.getSetting("llm");
-	if (!isOk(settingResult)) {
+	// 1. LLM設定を個別キーから取得
+	const providerResult = await ctx.configRepository.getSetting("llm_provider");
+	if (!isOk(providerResult)) {
 		return err({
 			code: "CONFIG_NOT_FOUND",
 			message: "LLM設定の取得に失敗しました",
 		});
 	}
 
-	// 設定がない場合はデフォルト(claude)を使用
-	let llmConfig: LLMConfig;
-	if (settingResult.value) {
-		// JSON.parseの失敗とスキーマ不一致をZodのsafeParseで安全に処理
-		let rawJson: unknown;
-		try {
-			rawJson = JSON.parse(settingResult.value);
-		} catch {
-			console.error(
-				"LLM設定のJSONパースに失敗しました。デフォルト設定を使用します。",
-			);
-			rawJson = {};
-		}
-		const parseResult = LLMConfigSchema.safeParse(rawJson);
-		if (parseResult.success) {
-			llmConfig = parseResult.data;
-		} else {
-			console.error(
-				"LLM設定のバリデーションに失敗しました。デフォルト設定を使用します:",
-				parseResult.error.issues,
-			);
-			llmConfig = { provider: "claude" };
-		}
-	} else {
-		llmConfig = { provider: "claude" };
-	}
+	// プロバイダが未設定またはバリデーション失敗の場合はデフォルト(claude)を使用
+	const rawProvider = providerResult.value;
+	const provider = isLLMProvider(rawProvider) ? rawProvider : "claude";
+
+	// モデル名を取得（オプション）
+	const modelResult = await ctx.configRepository.getSetting("llm_model");
+	const model =
+		isOk(modelResult) && modelResult.value ? modelResult.value : undefined;
+
+	// ベースURLを取得（オプション、主にOllama用）
+	const baseUrlResult = await ctx.configRepository.getSetting("llm_base_url");
+	const baseUrl =
+		isOk(baseUrlResult) && baseUrlResult.value
+			? baseUrlResult.value
+			: undefined;
+
+	// LLMConfigを構築
+	const llmConfig: LLMConfig = {
+		provider,
+		...(model !== undefined && { model }),
+		...(baseUrl !== undefined && { baseUrl }),
+	};
 
 	// 2. APIキーを取得（ollamaはAPIキー不要）
 	let apiKey = "";
 	if (llmConfig.provider !== "ollama") {
-		const keyName = llmConfig.apiKeyRef ?? `${llmConfig.provider}-api-key`;
+		const keyName = getSecretKeyForProvider(llmConfig.provider);
 		const keyResult = await ctx.secretRepository.getSecret(keyName);
 		if (!isOk(keyResult) || !keyResult.value) {
 			return err({

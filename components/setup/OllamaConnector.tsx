@@ -11,7 +11,7 @@
  * @example
  * ```tsx
  * <OllamaConnector
- *   onConnected={() => console.log('接続成功')}
+ *   onConnected={(url) => console.log('接続成功:', url)}
  *   defaultUrl="http://localhost:11434"
  * />
  * ```
@@ -25,8 +25,8 @@ import { css } from "@/styled-system/css";
  * OllamaConnectorコンポーネントのProps
  */
 interface OllamaConnectorProps {
-	/** 接続成功時のコールバック */
-	onConnected: () => void;
+	/** 接続成功時のコールバック（接続先URLを引数で通知） */
+	onConnected: (connectedUrl: string) => void;
 	/** デフォルトURL（省略時: http://localhost:11434） */
 	defaultUrl?: string;
 }
@@ -88,7 +88,7 @@ export function OllamaConnector({
 			if (result.valid) {
 				setStatus("connected");
 				setAvailableModels(result.models || []);
-				onConnected();
+				onConnected(url);
 			} else {
 				setStatus("error");
 				setErrorMessage(result.error?.message || "接続に失敗しました");

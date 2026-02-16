@@ -79,6 +79,9 @@ export function SetupClientWrapper({
 	// 保存中フラグ
 	const [isSaving, setIsSaving] = useState(false);
 
+	// OllamaのURL（接続成功時に更新）
+	const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
+
 	// エラーメッセージ
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -120,8 +123,10 @@ export function SetupClientWrapper({
 	 *
 	 * APIエンドポイントを呼び出して設定を保存します。
 	 * 成功した場合は完了ステップへ遷移します。
+	 *
+	 * @param connectedOllamaUrl - Ollama接続時のURL（stateの更新前に直接渡す）
 	 */
-	const handleSaveAndComplete = async () => {
+	const handleSaveAndComplete = async (connectedOllamaUrl?: string) => {
 		if (!selectedProvider) return;
 
 		setIsSaving(true);
@@ -133,8 +138,10 @@ export function SetupClientWrapper({
 			overwriteExisting: isExistingSetup,
 		};
 
-		// Ollama以外はAPIキーを送信
-		if (selectedProvider !== "ollama") {
+		// Ollama: ベースURLを送信、その他: APIキーを送信
+		if (selectedProvider === "ollama") {
+			body.baseUrl = connectedOllamaUrl ?? ollamaUrl;
+		} else {
 			body.apiKey = apiKeyValue;
 		}
 
@@ -197,10 +204,13 @@ export function SetupClientWrapper({
 	/**
 	 * Ollama接続成功ハンドラ
 	 *
-	 * Ollamaへの接続が成功した場合に設定を保存します。
+	 * Ollamaへの接続が成功した場合に接続先URLを保存し、設定を保存します。
+	 *
+	 * @param connectedUrl - 接続成功したOllamaサーバーのURL
 	 */
-	const handleOllamaConnected = () => {
-		handleSaveAndComplete();
+	const handleOllamaConnected = (connectedUrl: string) => {
+		setOllamaUrl(connectedUrl);
+		handleSaveAndComplete(connectedUrl);
 	};
 
 	/**
