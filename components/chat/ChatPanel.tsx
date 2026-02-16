@@ -11,6 +11,7 @@
 
 import { useCallback, useState } from "react";
 import { useChat } from "@/hooks/useChat";
+import { useSendKeySetting } from "@/hooks/useSendKeySetting";
 import { css } from "@/styled-system/css";
 import { ChatInput } from "./ChatInput";
 import { ChatMessage } from "./ChatMessage";
@@ -139,6 +140,7 @@ export function ChatPanel() {
 		error,
 		messagesEndRef,
 	} = useChat();
+	const { sendKey, toggleSendKey } = useSendKeySetting();
 
 	const [isExpanded, setIsExpanded] = useState(false);
 
@@ -309,6 +311,8 @@ export function ChatPanel() {
 				onChange={setInput}
 				onSend={handleSend}
 				isLoading={isLoading}
+				sendKey={sendKey}
+				onToggleSendKey={toggleSendKey}
 			/>
 		</section>
 	);

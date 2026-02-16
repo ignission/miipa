@@ -11,6 +11,7 @@
 
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
 import { css } from "@/styled-system/css";
+import type { SendKeyType } from "@/hooks/useSendKeySetting";
 
 // ============================================================
 // 型定義
@@ -28,6 +29,10 @@ interface ChatInputProps {
 	onSend: () => void;
 	/** ローディング状態 */
 	isLoading: boolean;
+	/** 送信キー設定 */
+	sendKey: SendKeyType;
+	/** 送信キー切替ハンドラ */
+	onToggleSendKey: () => void;
 }
 
 // ============================================================
@@ -89,6 +94,8 @@ export function ChatInput({
 	onChange,
 	onSend,
 	isLoading,
+	sendKey,
+	onToggleSendKey,
 }: ChatInputProps) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -119,18 +126,30 @@ export function ChatInput({
 	/**
 	 * キーボードイベントハンドラ
 	 *
-	 * Enter: 送信、Shift+Enter: 改行
+	 * sendKey === "enter": Enter送信 / Shift+Enter改行
+	 * sendKey === "cmd-enter": Cmd+Enter(Mac) or Ctrl+Enter(Win)送信 / Enter改行
 	 */
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLTextAreaElement>) => {
-			if (e.key === "Enter" && !e.shiftKey) {
-				e.preventDefault();
-				if (!isLoading && value.trim()) {
-					onSend();
+			if (sendKey === "enter") {
+				// Enterモード: Enter送信 / Shift+Enter改行
+				if (e.key === "Enter" && !e.shiftKey) {
+					e.preventDefault();
+					if (!isLoading && value.trim()) {
+						onSend();
+					}
+				}
+			} else {
+				// Cmd+Enterモード: Cmd+Enter(Mac) or Ctrl+Enter(Win)送信 / Enter改行
+				if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+					e.preventDefault();
+					if (!isLoading && value.trim()) {
+						onSend();
+					}
 				}
 			}
 		},
-		[isLoading, value, onSend],
+		[sendKey, isLoading, value, onSend],
 	);
 
 	const canSend = !isLoading && value.trim().length > 0;
@@ -187,6 +206,47 @@ export function ChatInput({
 					},
 				})}
 			/>
+
+			{/* 送信キー切替ボタン */}
+			<button
+				type="button"
+				onClick={onToggleSendKey}
+				title={
+					sendKey === "enter"
+						? "Enter で送信 / Shift+Enter で改行"
+						: "⌘+Enter で送信 / Enter で改行"
+				}
+				aria-label={`送信キー: ${sendKey === "enter" ? "Enter" : "⌘+Enter"}`}
+				className={css({
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					height: "11",
+					px: "2",
+					flexShrink: 0,
+					borderRadius: "lg",
+					bg: "transparent",
+					color: "fg.muted",
+					border: "1px solid",
+					borderColor: "border.default",
+					cursor: "pointer",
+					fontSize: "xs",
+					fontFamily: "mono",
+					whiteSpace: "nowrap",
+					transition: "all 0.2s ease",
+					_hover: {
+						color: "fg.default",
+						bg: "bg.subtle",
+					},
+					_focusVisible: {
+						outline: "3px solid",
+						outlineColor: "neutral.9",
+						outlineOffset: "2px",
+					},
+				})}
+			>
+				{sendKey === "enter" ? "↵" : "⌘↵"}
+			</button>
 
 			{/* 送信ボタン */}
 			<button
