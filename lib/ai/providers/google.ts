@@ -110,16 +110,12 @@ function parseResponse(data: GeminiResponse): LLMResponse {
 		}
 	}
 
-	// finishReasonがマッピングにある場合はそれを使用、なければfunctionCall検出で判定
-	const mappedReason = candidate.finishReason
-		? STOP_REASON_MAP[candidate.finishReason]
-		: undefined;
-	const stopReason: LLMResponse["stopReason"] = mappedReason
-		? mappedReason
-		: candidate.finishReason
-			? "error"
-			: toolCalls.length > 0
-				? "tool_use"
+	// toolCallsがある場合は常にtool_use、それ以外はfinishReasonで判定
+	const stopReason: LLMResponse["stopReason"] =
+		toolCalls.length > 0
+			? "tool_use"
+			: candidate.finishReason
+				? (STOP_REASON_MAP[candidate.finishReason] ?? "error")
 				: "end_turn";
 
 	return { content, toolCalls, stopReason };
