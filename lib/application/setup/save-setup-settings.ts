@@ -146,7 +146,7 @@ export async function saveSetupSettings(
 	settings: SetupSettings,
 	options: SaveOptions = {},
 ): Promise<Result<void, SaveSettingsError>> {
-	const { provider, apiKey, baseUrl } = settings;
+	const { provider, apiKey, baseUrl, model } = settings;
 	const { overwriteExisting = false } = options;
 
 	// プロバイダに対応するシークレットキーを取得
@@ -196,6 +196,20 @@ export async function saveSetupSettings(
 	);
 	if (isErr(saveResult)) {
 		return err(configError(saveResult.error));
+	}
+
+	// llm_model の保存
+	if (model !== undefined && model.trim() !== "") {
+		const modelSaveResult = await ctx.configRepository.setSetting("llm_model", model.trim());
+		if (isErr(modelSaveResult)) {
+			return err(configError(modelSaveResult.error));
+		}
+	} else {
+		// モデル名が空の場合は既存設定を削除（デフォルトモデル使用）
+		const deleteResult = await ctx.configRepository.deleteSetting("llm_model");
+		if (isErr(deleteResult)) {
+			return err(configError(deleteResult.error));
+		}
 	}
 
 	return ok(undefined);
