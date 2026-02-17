@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { TodayWeekView } from "@/components/calendar/TodayWeekView";
+import { ChatPanel } from "@/components/chat";
 import { css } from "@/styled-system/css";
 
 /**
@@ -161,10 +162,15 @@ export default async function HomePage() {
 					overflow: "auto",
 					px: { base: "4", md: "6" },
 					py: "4",
+					// チャットパネル分の余白を確保
+					pb: "16",
 				})}
 			>
 				<TodayWeekView />
 			</main>
+
+			{/* チャットパネル（フローティング、fixedで表示） */}
+			<ChatPanel />
 
 			{/* フッター */}
 			<footer
