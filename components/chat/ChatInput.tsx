@@ -10,8 +10,8 @@
  */
 
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
-import { css } from "@/styled-system/css";
 import type { SendKeyType } from "@/hooks/useSendKeySetting";
+import { css } from "@/styled-system/css";
 
 // ============================================================
 // 型定義

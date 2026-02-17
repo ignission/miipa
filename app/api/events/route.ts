@@ -49,11 +49,11 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth/get-user-from-request";
 import {
 	getEventsForToday,
 	getEventsForWeek,
 } from "@/lib/application/calendar";
+import { getUserFromRequest } from "@/lib/auth/get-user-from-request";
 import { createCalendarContext } from "@/lib/context/calendar-context";
 import type { CalendarEvent } from "@/lib/domain/calendar";
 import { isSome } from "@/lib/domain/shared/option";

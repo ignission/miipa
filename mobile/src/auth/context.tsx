@@ -1,3 +1,6 @@
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
+import type { ReactNode } from "react";
 import {
 	createContext,
 	useCallback,
@@ -6,22 +9,19 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import type { ReactNode } from "react";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
 import { AUTH_CONFIG } from "./config";
+import type { StoredUser } from "./storage";
 import {
-	deleteToken,
 	deleteRefreshToken,
+	deleteToken,
 	deleteUser,
-	getToken,
 	getRefreshToken,
+	getToken,
 	getUser,
-	saveToken,
 	saveRefreshToken,
+	saveToken,
 	saveUser,
 } from "./storage";
-import type { StoredUser } from "./storage";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -68,9 +68,7 @@ function isTokenExpired(token: string): boolean {
 			return true;
 		}
 		// Base64URLデコード（文字置換とパディング補完）
-		let payload = parts[1]
-			.replace(/-/g, "+")
-			.replace(/_/g, "/");
+		let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
 		const pad = payload.length % 4;
 		if (pad === 2) payload += "==";
 		else if (pad === 3) payload += "=";

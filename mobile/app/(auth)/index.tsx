@@ -7,10 +7,10 @@ import {
 	Text,
 	View,
 } from "react-native";
+import { EventCard } from "../../src/components/calendar/EventCard";
+import { TimelineView } from "../../src/components/calendar/TimelineView";
 import { useEvents } from "../../src/hooks/useEvents";
 import { useWidgetData } from "../../src/hooks/useWidgetData";
-import { TimelineView } from "../../src/components/calendar/TimelineView";
-import { EventCard } from "../../src/components/calendar/EventCard";
 
 export default function TodayScreen() {
 	const { events, isLoading, isRefreshing, error, lastSync, refresh } =
@@ -87,12 +87,8 @@ export default function TodayScreen() {
 			{events.length === 0 ? (
 				<View style={styles.empty}>
 					<Text style={styles.emptyEmoji}>( ^ o ^ )</Text>
-					<Text style={styles.emptyText}>
-						今日の予定はありません
-					</Text>
-					<Text style={styles.emptySubtext}>
-						ゆっくり過ごしましょう
-					</Text>
+					<Text style={styles.emptyText}>今日の予定はありません</Text>
+					<Text style={styles.emptySubtext}>ゆっくり過ごしましょう</Text>
 				</View>
 			) : (
 				<TimelineView events={events} currentTime={currentTime} />

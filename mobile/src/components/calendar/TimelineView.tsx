@@ -28,8 +28,7 @@ function getEventPosition(event: UICalendarEvent): {
 } {
 	const startHour =
 		event.startTime.getHours() + event.startTime.getMinutes() / 60;
-	const rawEndHour =
-		event.endTime.getHours() + event.endTime.getMinutes() / 60;
+	const rawEndHour = event.endTime.getHours() + event.endTime.getMinutes() / 60;
 	// 深夜跨ぎ（例: 23:00→翌01:00）の場合、表示範囲の終端まで描画する
 	const endHour = rawEndHour < startHour ? DAY_END_HOUR : rawEndHour;
 
@@ -83,8 +82,7 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 								{
 									backgroundColor:
 										(event.color ?? DEFAULT_CALENDAR_COLOR) + "20",
-									borderLeftColor:
-										event.color ?? DEFAULT_CALENDAR_COLOR,
+									borderLeftColor: event.color ?? DEFAULT_CALENDAR_COLOR,
 								},
 							]}
 						>
@@ -97,12 +95,7 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 			)}
 
 			{/* タイムライングリッド */}
-			<View
-				style={[
-					styles.timeline,
-					{ height: hours.length * HOUR_HEIGHT },
-				]}
-			>
+			<View style={[styles.timeline, { height: hours.length * HOUR_HEIGHT }]}>
 				{/* 時刻ラベルとグリッド線 */}
 				{hours.map((hour) => (
 					<View
@@ -112,18 +105,14 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 							{ top: (hour - DAY_START_HOUR) * HOUR_HEIGHT },
 						]}
 					>
-						<Text style={styles.hourLabel}>
-							{formatHourLabel(hour)}
-						</Text>
+						<Text style={styles.hourLabel}>{formatHourLabel(hour)}</Text>
 						<View style={styles.hourLine} />
 					</View>
 				))}
 
 				{/* 現在時刻インジケータ */}
 				{showIndicator && (
-					<View
-						style={[styles.currentTimeIndicator, { top: indicatorTop }]}
-					>
+					<View style={[styles.currentTimeIndicator, { top: indicatorTop }]}>
 						<View style={styles.currentTimeDot} />
 						<View style={styles.currentTimeLine} />
 					</View>

@@ -1,8 +1,8 @@
 import { Redirect, Tabs } from "expo-router";
 import { ActivityIndicator, useColorScheme, View } from "react-native";
-import { useAuth } from "../../src/auth";
-import { Colors } from "../../constants/Colors";
 import { TabBarIcon } from "../../components/navigation/TabBarIcon";
+import { Colors } from "../../constants/Colors";
+import { useAuth } from "../../src/auth";
 
 export default function AuthLayout() {
 	const { isAuthenticated, isLoading } = useAuth();

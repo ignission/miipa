@@ -1,9 +1,7 @@
 /** Google OAuth iOS用クライアントID */
-const googleIosClientId =
-	process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? "";
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? "";
 /** Google OAuth Web用クライアントID（IDトークン検証に使用） */
-const googleWebClientId =
-	process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";
+const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";
 
 if (!googleIosClientId) {
 	console.error(

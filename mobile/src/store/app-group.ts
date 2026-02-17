@@ -1,8 +1,9 @@
 import { Platform } from "react-native";
 
 // iOSのみで利用可能なため、モジュール読み込みに失敗した場合はnullにフォールバック
-let SharedGroupPreferences: typeof import("react-native-shared-group-preferences").default | null =
-	null;
+let SharedGroupPreferences:
+	| typeof import("react-native-shared-group-preferences").default
+	| null = null;
 try {
 	SharedGroupPreferences =
 		require("react-native-shared-group-preferences").default;

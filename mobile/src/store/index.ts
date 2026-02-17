@@ -1,7 +1,7 @@
-export { writeWidgetData } from "./app-group";
 export type { WidgetData } from "./app-group";
-export { syncToWatch } from "./watch-sync";
+export { writeWidgetData } from "./app-group";
 export {
 	registerBackgroundSync,
 	unregisterBackgroundSync,
 } from "./background-sync";
+export { syncToWatch } from "./watch-sync";

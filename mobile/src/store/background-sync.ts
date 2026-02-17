@@ -1,9 +1,9 @@
 import * as BackgroundFetch from "expo-background-fetch";
 import * as TaskManager from "expo-task-manager";
 import { fetchTodayEvents } from "../api/events";
+import { DEFAULT_CALENDAR_COLOR } from "../theme";
 import { writeWidgetData } from "./app-group";
 import { syncToWatch } from "./watch-sync";
-import { DEFAULT_CALENDAR_COLOR } from "../theme";
 
 const BACKGROUND_FETCH_TASK = "miipa-background-sync";
 
@@ -49,11 +49,7 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 		}));
 		await syncToWatch(uiEvents);
 
-		console.log(
-			"[background-sync] 同期完了:",
-			data.events.length,
-			"件",
-		);
+		console.log("[background-sync] 同期完了:", data.events.length, "件");
 		return BackgroundFetch.BackgroundFetchResult.NewData;
 	} catch (error) {
 		console.error("[background-sync] 同期エラー:", error);

@@ -38,9 +38,7 @@ export function DayGroup({ date, events, isToday }: DayGroupProps) {
 			</View>
 
 			{events.length > 0 ? (
-				events.map((event) => (
-					<EventCard key={event.id} event={event} />
-				))
+				events.map((event) => <EventCard key={event.id} event={event} />)
 			) : (
 				<View style={styles.empty}>
 					<Text style={styles.emptyText}>予定はありません</Text>

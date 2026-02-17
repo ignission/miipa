@@ -1,14 +1,15 @@
 import {
-	getToken,
-	saveToken,
+	deleteRefreshToken,
 	deleteToken,
 	deleteUser,
 	getRefreshToken,
+	getToken,
 	saveRefreshToken,
-	deleteRefreshToken,
+	saveToken,
 } from "../auth/storage";
 
-const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://miipa.app";
+const DEFAULT_BASE_URL =
+	process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://miipa.app";
 
 /** レスポンスボディが空かどうかを判定する */
 function isEmptyBody(response: Response): boolean {
@@ -34,17 +35,14 @@ async function refreshAccessToken(): Promise<boolean> {
 	}
 
 	try {
-		const response = await fetch(
-			`${DEFAULT_BASE_URL}/api/auth/mobile/token`,
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					grantType: "refresh_token",
-					refreshToken,
-				}),
-			},
-		);
+		const response = await fetch(`${DEFAULT_BASE_URL}/api/auth/mobile/token`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				grantType: "refresh_token",
+				refreshToken,
+			}),
+		});
 
 		if (!response.ok) {
 			return false;
@@ -138,17 +136,14 @@ export async function apiFetch<T>(
 		}
 
 		// リフレッシュ失敗: ログアウト
-		await Promise.all([
-			deleteToken(),
-			deleteRefreshToken(),
-			deleteUser(),
-		]);
+		await Promise.all([deleteToken(), deleteRefreshToken(), deleteUser()]);
 		throw new ApiError("認証エラー", 401);
 	}
 
 	if (!response.ok) {
 		const body = await response.json().catch(() => null);
-		const message = body?.error?.message ?? body?.error ?? `API エラー: ${response.status}`;
+		const message =
+			body?.error?.message ?? body?.error ?? `API エラー: ${response.status}`;
 		throw new ApiError(message, response.status);
 	}
 

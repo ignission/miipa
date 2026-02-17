@@ -1,11 +1,15 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import {
+	DarkTheme,
+	DefaultTheme,
+	ThemeProvider,
+} from "@react-navigation/native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "../src/auth";
 import { registerBackgroundSync } from "../src/store/background-sync";
 
@@ -45,7 +49,9 @@ export default function RootLayout() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<AuthProvider>
-				<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+				<ThemeProvider
+					value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+				>
 					<Stack>
 						<Stack.Screen name="sign-in" options={{ headerShown: false }} />
 						<Stack.Screen name="(auth)" options={{ headerShown: false }} />

@@ -7,9 +7,9 @@ import {
 	Text,
 	View,
 } from "react-native";
-import { useEvents } from "../../src/hooks/useEvents";
-import type { UICalendarEvent } from "../../src/hooks/useEvents";
 import { EventCard } from "../../src/components/calendar/EventCard";
+import type { UICalendarEvent } from "../../src/hooks/useEvents";
+import { useEvents } from "../../src/hooks/useEvents";
 
 const DAYS_TO_SHOW = 7;
 
@@ -87,7 +87,10 @@ export default function WeekScreen() {
 				isToday,
 				eventCount: dayEvents.length,
 				// 予定なしの日は日付キーを含む一意のプレースホルダーを設定
-				data: dayEvents.length > 0 ? dayEvents : [{ _empty: true as const, key: `empty-${key}` }],
+				data:
+					dayEvents.length > 0
+						? dayEvents
+						: [{ _empty: true as const, key: `empty-${key}` }],
 			};
 		});
 	}, [events]);
@@ -153,9 +156,7 @@ export default function WeekScreen() {
 						{section.title}
 					</Text>
 					<Text style={styles.sectionCount}>
-						{section.eventCount > 0
-							? `${section.eventCount}件`
-							: "予定なし"}
+						{section.eventCount > 0 ? `${section.eventCount}件` : "予定なし"}
 					</Text>
 				</View>
 			)}
@@ -163,9 +164,7 @@ export default function WeekScreen() {
 				if ("_empty" in item) {
 					return (
 						<View style={styles.emptyDay}>
-							<Text style={styles.emptyDayText}>
-								予定はありません
-							</Text>
+							<Text style={styles.emptyDayText}>予定はありません</Text>
 						</View>
 					);
 				}

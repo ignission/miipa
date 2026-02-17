@@ -22,9 +22,7 @@ export default function SettingsScreen() {
 				<Text style={styles.sectionTitle}>アカウント</Text>
 				{user && (
 					<View style={styles.card}>
-						<Text style={styles.userName}>
-							{user.name ?? "ユーザー"}
-						</Text>
+						<Text style={styles.userName}>{user.name ?? "ユーザー"}</Text>
 						<Text style={styles.userEmail}>{user.email}</Text>
 					</View>
 				)}
@@ -63,8 +61,7 @@ export default function SettingsScreen() {
 								key={calendar.id}
 								style={[
 									styles.calendarRow,
-									index < calendars.length - 1 &&
-										styles.calendarRowBorder,
+									index < calendars.length - 1 && styles.calendarRowBorder,
 								]}
 							>
 								<View style={styles.calendarInfo}>
@@ -75,17 +72,11 @@ export default function SettingsScreen() {
 										]}
 									/>
 									<View style={styles.calendarTextWrap}>
-										<Text
-											style={styles.calendarName}
-											numberOfLines={1}
-										>
+										<Text style={styles.calendarName} numberOfLines={1}>
 											{calendar.name}
 										</Text>
 										{calendar.accountEmail && (
-											<Text
-												style={styles.calendarEmail}
-												numberOfLines={1}
-											>
+											<Text style={styles.calendarEmail} numberOfLines={1}>
 												{calendar.accountEmail}
 											</Text>
 										)}
@@ -99,18 +90,14 @@ export default function SettingsScreen() {
 										false: "#D4D4D4",
 										true: "#FDBA74",
 									}}
-									thumbColor={
-										calendar.enabled ? "#F97316" : "#f4f3f4"
-									}
+									thumbColor={calendar.enabled ? "#F97316" : "#f4f3f4"}
 								/>
 							</View>
 						))}
 					</View>
 				) : (
 					<View style={styles.card}>
-						<Text style={styles.noCalendars}>
-							カレンダーが見つかりません
-						</Text>
+						<Text style={styles.noCalendars}>カレンダーが見つかりません</Text>
 					</View>
 				)}
 			</View>

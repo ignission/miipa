@@ -62,8 +62,7 @@ export async function GET() {
 	}
 	const { calendarCtx } = ctxResult.value;
 
-	const result =
-		await calendarCtx.configRepository.getSetting("chat_send_key");
+	const result = await calendarCtx.configRepository.getSetting("chat_send_key");
 	if (isErr(result)) {
 		return NextResponse.json(
 			{
@@ -129,8 +128,7 @@ export async function PUT(request: NextRequest) {
 				success: false,
 				error: {
 					code: "INVALID_REQUEST",
-					message:
-						"sendKeyには \"enter\" または \"cmd+enter\" を指定してください",
+					message: 'sendKeyには "enter" または "cmd+enter" を指定してください',
 				},
 			},
 			{ status: 400 },

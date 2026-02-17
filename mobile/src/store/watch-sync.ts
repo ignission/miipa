@@ -44,7 +44,10 @@ export async function syncToWatch(events: UICalendarEvent[]): Promise<void> {
 			},
 			(error: unknown) => {
 				// Watch画面が非アクティブの場合は失敗するが、Complication更新で補完される
-				console.warn("[watch] sendMessageエラー（非アクティブの可能性）:", error);
+				console.warn(
+					"[watch] sendMessageエラー（非アクティブの可能性）:",
+					error,
+				);
 			},
 		);
 	} catch (error) {

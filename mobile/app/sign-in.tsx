@@ -31,9 +31,7 @@ export default function SignInScreen() {
 			<View style={styles.characterArea}>
 				<Text style={styles.emoji}>🐾</Text>
 				<Text style={styles.appName}>miipa</Text>
-				<Text style={styles.tagline}>
-					今日の予定を30秒で把握
-				</Text>
+				<Text style={styles.tagline}>今日の予定を30秒で把握</Text>
 			</View>
 
 			{/* ログインボタン */}
@@ -49,9 +47,7 @@ export default function SignInScreen() {
 					{isSigningIn ? (
 						<ActivityIndicator size="small" color="#fff" />
 					) : (
-						<Text style={styles.googleButtonText}>
-							Google でログイン
-						</Text>
+						<Text style={styles.googleButtonText}>Google でログイン</Text>
 					)}
 				</Pressable>
 			</View>

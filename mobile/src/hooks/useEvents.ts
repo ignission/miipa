@@ -1,5 +1,5 @@
+import type { EventResponse, EventsApiResponse } from "@miipa/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { EventsApiResponse, EventResponse } from "@miipa/shared";
 import { fetchTodayEvents, fetchWeekEvents } from "../api/events";
 
 type EventRange = "today" | "week";
@@ -54,9 +54,7 @@ export function useEvents(range: EventRange) {
 			lastSync: Date | null;
 		}> => {
 			const data: EventsApiResponse =
-				range === "week"
-					? await fetchWeekEvents()
-					: await fetchTodayEvents();
+				range === "week" ? await fetchWeekEvents() : await fetchTodayEvents();
 
 			return {
 				events: data.events.map(toUIEvent),

@@ -37,9 +37,9 @@
  * ```
  */
 
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 // ============================================================
 // 定数
@@ -214,9 +214,7 @@ async function getGooglePublicKeys(): Promise<Map<string, CryptoKey>> {
 
 	const response = await fetch(GOOGLE_JWKS_URL);
 	if (!response.ok) {
-		throw new Error(
-			`Google JWKS取得に失敗しました: HTTP ${response.status}`,
-		);
+		throw new Error(`Google JWKS取得に失敗しました: HTTP ${response.status}`);
 	}
 
 	const jwks: JwksResponse = await response.json();
@@ -395,10 +393,10 @@ async function verifyWithKey(
 	const payload = parsed.data;
 
 	// issuer検証: Google発行のトークンであることを確認
-	if (!GOOGLE_ISSUERS.includes(payload.iss as (typeof GOOGLE_ISSUERS)[number])) {
-		console.error(
-			`[mobile/token] iss不正: ${payload.iss}`,
-		);
+	if (
+		!GOOGLE_ISSUERS.includes(payload.iss as (typeof GOOGLE_ISSUERS)[number])
+	) {
+		console.error(`[mobile/token] iss不正: ${payload.iss}`);
 		return null;
 	}
 
@@ -647,7 +645,9 @@ export async function POST(request: Request) {
 		const jwtSecret = env.MOBILE_JWT_SECRET;
 
 		if (!db) {
-			console.error("[mobile/token] D1データベースバインディングが見つかりません");
+			console.error(
+				"[mobile/token] D1データベースバインディングが見つかりません",
+			);
 			return NextResponse.json(
 				{ error: "トークン生成に失敗しました" },
 				{ status: 500 },
@@ -692,11 +692,9 @@ export async function POST(request: Request) {
 		}
 
 		// Web用とiOS用の両方のClient IDを許可
-		const allowedClientIds = [googleClientId];
-		const googleIosClientId = env.GOOGLE_IOS_CLIENT_ID;
-		if (googleIosClientId) {
-			allowedClientIds.push(googleIosClientId);
-		}
+		const allowedClientIds = [googleClientId, env.GOOGLE_IOS_CLIENT_ID].filter(
+			(id): id is string => !!id,
+		);
 
 		const googleUser = await verifyGoogleIdToken(
 			data.idToken,

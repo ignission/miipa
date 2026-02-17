@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import type { UICalendarEvent } from "./useEvents";
 import { writeWidgetData } from "../store/app-group";
 import { DEFAULT_CALENDAR_COLOR } from "../theme";
+import type { UICalendarEvent } from "./useEvents";
 
 /**
  * イベントデータが更新されたらApp GroupsにWidget用データを書き込むフック
