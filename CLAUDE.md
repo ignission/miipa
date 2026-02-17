@@ -39,6 +39,12 @@ npm run build
 npm run build:worker && npx wrangler deploy
 ```
 
+## 検証ルール
+
+- `node_modules` が存在しない場合は `npm install` を先に実行すること
+- `npx biome check .` と `npm run build` が両方通るまで検証完了としないこと
+- ビルド失敗を「環境の問題」として片付けない
+
 ## 開発方針
 
 ### 最重要: UXに一番時間をかける
