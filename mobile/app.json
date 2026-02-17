@@ -15,7 +15,17 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.miipa"
+      "bundleIdentifier": "app.miipa",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.697100098781-2uvmdsbqeaoklp5sielcruec0n4oj8ht",
+              "miipa"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "package": "app.miipa",

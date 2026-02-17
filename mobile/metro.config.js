@@ -15,4 +15,15 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, '..', 'node_modules'),
 ];
 
+// React重複防止: mobile/node_modules のreactを優先して使用
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'react' || moduleName === 'react-dom') {
+    return {
+      filePath: require.resolve(moduleName, { paths: [path.resolve(projectRoot, 'node_modules')] }),
+      type: 'sourceFile',
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;

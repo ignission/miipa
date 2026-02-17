@@ -2,7 +2,7 @@
 	"name": "miipa",
 	"version": "0.1.0",
 	"private": true,
-	"workspaces": ["shared", "mobile"],
+	"workspaces": ["shared"],
 	"scripts": {
 		"dev": "npx wrangler dev",
 		"build": "npx @pandacss/dev codegen && next build",

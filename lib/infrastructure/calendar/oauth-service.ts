@@ -134,7 +134,7 @@ function generateCodeVerifier(): string {
 async function generateCodeChallenge(verifier: string): Promise<string> {
 	const encoder = new TextEncoder();
 	const data = encoder.encode(verifier);
-	const hash = await crypto.subtle.digest("SHA-256", data);
+	const hash = await crypto.subtle.digest("SHA-256", data.buffer as ArrayBuffer);
 	return base64UrlEncode(new Uint8Array(hash));
 }
 

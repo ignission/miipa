@@ -145,7 +145,7 @@ async function createJwt(
 
 	const key = await crypto.subtle.importKey(
 		"raw",
-		encoder.encode(secret),
+		encoder.encode(secret).buffer as ArrayBuffer,
 		{ name: "HMAC", hash: "SHA-256" },
 		false,
 		["sign"],
@@ -154,7 +154,7 @@ async function createJwt(
 	const signature = await crypto.subtle.sign(
 		"HMAC",
 		key,
-		encoder.encode(data),
+		encoder.encode(data).buffer as ArrayBuffer,
 	);
 	const signatureB64 = base64UrlEncode(new Uint8Array(signature));
 
@@ -284,12 +284,12 @@ function base64UrlDecode(str: string): Uint8Array {
  * OWASP参照: Authentication Cheat Sheet - Token-based Authentication
  *
  * @param idToken - Google ID Token（JWT形式）
- * @param expectedClientId - 期待するGoogle OAuthクライアントID
+ * @param allowedClientIds - 許可するGoogle OAuthクライアントIDの配列
  * @returns 検証結果（メール、名前、画像URL）またはnull
  */
 async function verifyGoogleIdToken(
 	idToken: string,
-	expectedClientId: string,
+	allowedClientIds: readonly string[],
 ): Promise<{ email: string; name: string; picture: string } | null> {
 	try {
 		// JWTを3パートに分割: ヘッダ.ペイロード.署名
@@ -335,7 +335,7 @@ async function verifyGoogleIdToken(
 				headerB64,
 				payloadB64,
 				signatureB64,
-				expectedClientId,
+				allowedClientIds,
 			);
 		}
 
@@ -344,7 +344,7 @@ async function verifyGoogleIdToken(
 			headerB64,
 			payloadB64,
 			signatureB64,
-			expectedClientId,
+			allowedClientIds,
 		);
 	} catch {
 		return null;
@@ -358,7 +358,7 @@ async function verifyGoogleIdToken(
  * @param headerB64 - Base64URLエンコードされたJWTヘッダ
  * @param payloadB64 - Base64URLエンコードされたJWTペイロード
  * @param signatureB64 - Base64URLエンコードされたJWT署名
- * @param expectedClientId - 期待するGoogle OAuthクライアントID
+ * @param allowedClientIds - 許可するGoogle OAuthクライアントIDの配列
  * @returns 検証結果またはnull
  */
 async function verifyWithKey(
@@ -366,7 +366,7 @@ async function verifyWithKey(
 	headerB64: string,
 	payloadB64: string,
 	signatureB64: string,
-	expectedClientId: string,
+	allowedClientIds: readonly string[],
 ): Promise<{ email: string; name: string; picture: string } | null> {
 	// RS256署名を暗号学的に検証
 	const signedData = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
@@ -375,8 +375,8 @@ async function verifyWithKey(
 	const isValid = await crypto.subtle.verify(
 		{ name: "RSASSA-PKCS1-v1_5" },
 		publicKey,
-		signature,
-		signedData,
+		signature.buffer as ArrayBuffer,
+		signedData.buffer as ArrayBuffer,
 	);
 
 	if (!isValid) {
@@ -403,9 +403,9 @@ async function verifyWithKey(
 	}
 
 	// audience検証: 別アプリ用トークンでの認証突破を防止
-	if (payload.aud !== expectedClientId) {
+	if (!allowedClientIds.includes(payload.aud)) {
 		console.error(
-			`[mobile/token] aud不一致: 期待値=${expectedClientId}, 実際=${payload.aud}`,
+			`[mobile/token] aud不一致: 許可値=${allowedClientIds.join(",")}, 実際=${payload.aud}`,
 		);
 		return null;
 	}
@@ -482,7 +482,7 @@ async function findOrCreateUser(
 async function hashToken(token: string): Promise<string> {
 	const digest = await crypto.subtle.digest(
 		"SHA-256",
-		new TextEncoder().encode(token),
+		new TextEncoder().encode(token).buffer as ArrayBuffer,
 	);
 	return base64UrlEncode(new Uint8Array(digest));
 }
@@ -691,9 +691,16 @@ export async function POST(request: Request) {
 			);
 		}
 
+		// Web用とiOS用の両方のClient IDを許可
+		const allowedClientIds = [googleClientId];
+		const googleIosClientId = env.GOOGLE_IOS_CLIENT_ID;
+		if (googleIosClientId) {
+			allowedClientIds.push(googleIosClientId);
+		}
+
 		const googleUser = await verifyGoogleIdToken(
 			data.idToken,
-			googleClientId,
+			allowedClientIds,
 		);
 		if (!googleUser) {
 			return NextResponse.json(

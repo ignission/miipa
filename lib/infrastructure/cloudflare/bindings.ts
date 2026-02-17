@@ -49,6 +49,8 @@ declare global {
 		MOBILE_JWT_SECRET?: string;
 		/** Google OAuth クライアントID（モバイルトークン検証用） */
 		GOOGLE_CLIENT_ID?: string;
+		/** Google OAuth iOS用クライアントID */
+		GOOGLE_IOS_CLIENT_ID?: string;
 	}
 }
 

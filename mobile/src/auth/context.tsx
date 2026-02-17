@@ -151,9 +151,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const [user, setUser] = useState<StoredUser | null>(null);
 	const [token, setToken] = useState<string | null>(null);
 
-	// Google OAuth設定
+	// Google OAuth設定（iOS用Client ID + Web用Client IDでIDトークンを取得）
 	const [_request, response, promptAsync] = Google.useIdTokenAuthRequest({
-		clientId: AUTH_CONFIG.googleClientId,
+		iosClientId: AUTH_CONFIG.googleIosClientId,
+		webClientId: AUTH_CONFIG.googleWebClientId,
 	});
 
 	// 起動時にトークンを復元（有効期限切れの場合はリフレッシュ）

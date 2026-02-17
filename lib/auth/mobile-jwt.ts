@@ -39,7 +39,7 @@ export async function verifyMobileJwt(
 		// 署名検証
 		const key = await crypto.subtle.importKey(
 			'raw',
-			encoder.encode(secret),
+			encoder.encode(secret).buffer as ArrayBuffer,
 			{ name: 'HMAC', hash: 'SHA-256' },
 			false,
 			['verify'],
@@ -49,8 +49,8 @@ export async function verifyMobileJwt(
 		const isValid = await crypto.subtle.verify(
 			'HMAC',
 			key,
-			signature,
-			encoder.encode(data),
+			signature.buffer as ArrayBuffer,
+			encoder.encode(data).buffer as ArrayBuffer,
 		);
 
 		if (!isValid) return null;
