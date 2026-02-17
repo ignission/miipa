@@ -16,6 +16,18 @@ export default auth((req) => {
 		if (req.nextUrl.pathname === "/") {
 			return NextResponse.next();
 		}
+
+		// モバイルAPI: Bearerトークンが存在する場合のみ通過させる（ホワイトリスト方式）
+		// 完全一致で比較し、将来追加されるパスが意図せず通過しないようにする
+		const MOBILE_API_PATHS = ["/api/events", "/api/auth/mobile/token"];
+		const authHeader = req.headers.get("authorization");
+		if (
+			authHeader?.startsWith("Bearer ") &&
+			MOBILE_API_PATHS.some((p) => req.nextUrl.pathname === p)
+		) {
+			return NextResponse.next();
+		}
+
 		const signInUrl = new URL("/auth/signin", req.url);
 		return NextResponse.redirect(signInUrl);
 	}
@@ -36,6 +48,6 @@ export const config = {
 		// - /icons/* (PWAアイコン)
 		// - /manifest.json
 		// - /sw.js (Service Worker)
-		"/((?!api/auth|auth|privacy|terms|tokushoho|_next/static|_next/image|favicon\\.ico|icons|manifest\\.json|sw\\.js).*)",
+		"/((?!api/auth/mobile/token|api/auth|auth|privacy|terms|tokushoho|_next/static|_next/image|favicon\\.ico|icons|manifest\\.json|sw\\.js).*)",
 	],
 };

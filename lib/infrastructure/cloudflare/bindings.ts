@@ -45,6 +45,12 @@ declare global {
 		DB?: D1Database;
 		/** 暗号化キー（Cloudflare Secrets / .dev.vars） */
 		ENCRYPTION_KEY?: string;
+		/** モバイルアプリ用JWT署名シークレット（Cloudflare Secrets / .dev.vars） */
+		MOBILE_JWT_SECRET?: string;
+		/** Google OAuth クライアントID（モバイルトークン検証用） */
+		GOOGLE_CLIENT_ID?: string;
+		/** Google OAuth iOS用クライアントID */
+		GOOGLE_IOS_CLIENT_ID?: string;
 	}
 }
 

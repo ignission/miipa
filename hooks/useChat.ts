@@ -171,123 +171,126 @@ export function useChat(): UseChatReturn {
 	/**
 	 * メッセージを送信し、SSEストリームからレスポンスを受信する
 	 */
-	const sendMessage = useCallback(async (overrideInput?: string) => {
-		const trimmedInput = (overrideInput ?? input).trim();
-		if (!trimmedInput || isLoading) {
-			return;
-		}
-
-		// エラーをリセット
-		setError(null);
-
-		// ユーザーメッセージを追加
-		const userMessage: ChatMessage = {
-			id: generateId(),
-			role: "user",
-			content: trimmedInput,
-			createdAt: new Date().toISOString(),
-		};
-
-		// アシスタントの空メッセージを追加（ストリーミング受信用）
-		const assistantMessageId = generateId();
-		const assistantMessage: ChatMessage = {
-			id: assistantMessageId,
-			role: "assistant",
-			content: "",
-			createdAt: new Date().toISOString(),
-		};
-
-		setMessages((prev) => [...prev, userMessage, assistantMessage]);
-		setInput("");
-		setIsLoading(true);
-
-		try {
-			// 全メッセージ（新しいユーザーメッセージを含む）をAPIに送信
-			const allMessages = [...messages, userMessage];
-
-			const response = await fetch("/api/chat", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					messages: allMessages.map((m) => ({
-						role: m.role,
-						content: m.content,
-					})),
-				}),
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(errorText || "メッセージの送信に失敗しました");
+	const sendMessage = useCallback(
+		async (overrideInput?: string) => {
+			const trimmedInput = (overrideInput ?? input).trim();
+			if (!trimmedInput || isLoading) {
+				return;
 			}
 
-			if (!response.body) {
-				throw new Error("レスポンスストリームが利用できません");
-			}
+			// エラーをリセット
+			setError(null);
 
-			// SSEストリームを読み取る
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
-			let buffer = "";
+			// ユーザーメッセージを追加
+			const userMessage: ChatMessage = {
+				id: generateId(),
+				role: "user",
+				content: trimmedInput,
+				createdAt: new Date().toISOString(),
+			};
 
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) {
-					break;
+			// アシスタントの空メッセージを追加（ストリーミング受信用）
+			const assistantMessageId = generateId();
+			const assistantMessage: ChatMessage = {
+				id: assistantMessageId,
+				role: "assistant",
+				content: "",
+				createdAt: new Date().toISOString(),
+			};
+
+			setMessages((prev) => [...prev, userMessage, assistantMessage]);
+			setInput("");
+			setIsLoading(true);
+
+			try {
+				// 全メッセージ（新しいユーザーメッセージを含む）をAPIに送信
+				const allMessages = [...messages, userMessage];
+
+				const response = await fetch("/api/chat", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						messages: allMessages.map((m) => ({
+							role: m.role,
+							content: m.content,
+						})),
+					}),
+				});
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(errorText || "メッセージの送信に失敗しました");
 				}
 
-				buffer += decoder.decode(value, { stream: true });
+				if (!response.body) {
+					throw new Error("レスポンスストリームが利用できません");
+				}
 
-				// バッファを行単位で処理
-				const lines = buffer.split("\n");
-				// 最後の不完全な行はバッファに残す
-				buffer = lines.pop() ?? "";
+				// SSEストリームを読み取る
+				const reader = response.body.getReader();
+				const decoder = new TextDecoder();
+				let buffer = "";
 
-				for (const line of lines) {
-					const event = parseSSELine(line);
-					if (!event) {
-						continue;
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) {
+						break;
 					}
 
-					switch (event.type) {
-						case "text":
-							// アシスタントメッセージにテキストを追加
-							if (event.text) {
-								setMessages((prev) =>
-									prev.map((m) =>
-										m.id === assistantMessageId
-											? { ...m, content: m.content + event.text }
-											: m,
-									),
-								);
-							}
-							break;
+					buffer += decoder.decode(value, { stream: true });
 
-						case "tool_call":
-							// ツール呼び出し中の表示（将来的な拡張用）
-							break;
+					// バッファを行単位で処理
+					const lines = buffer.split("\n");
+					// 最後の不完全な行はバッファに残す
+					buffer = lines.pop() ?? "";
 
-						case "done":
-							setIsLoading(false);
-							break;
+					for (const line of lines) {
+						const event = parseSSELine(line);
+						if (!event) {
+							continue;
+						}
 
-						case "error":
-							setError(event.error ?? "不明なエラーが発生しました");
-							setIsLoading(false);
-							break;
+						switch (event.type) {
+							case "text":
+								// アシスタントメッセージにテキストを追加
+								if (event.text) {
+									setMessages((prev) =>
+										prev.map((m) =>
+											m.id === assistantMessageId
+												? { ...m, content: m.content + event.text }
+												: m,
+										),
+									);
+								}
+								break;
+
+							case "tool_call":
+								// ツール呼び出し中の表示（将来的な拡張用）
+								break;
+
+							case "done":
+								setIsLoading(false);
+								break;
+
+							case "error":
+								setError(event.error ?? "不明なエラーが発生しました");
+								setIsLoading(false);
+								break;
+						}
 					}
 				}
-			}
 
-			// ストリーム完了後にisLoadingを確実にfalseにする
-			setIsLoading(false);
-		} catch (err) {
-			const message =
-				err instanceof Error ? err.message : "メッセージの送信に失敗しました";
-			setError(message);
-			setIsLoading(false);
-		}
-	}, [input, isLoading, messages]);
+				// ストリーム完了後にisLoadingを確実にfalseにする
+				setIsLoading(false);
+			} catch (err) {
+				const message =
+					err instanceof Error ? err.message : "メッセージの送信に失敗しました";
+				setError(message);
+				setIsLoading(false);
+			}
+		},
+		[input, isLoading, messages],
+	);
 
 	return {
 		messages,

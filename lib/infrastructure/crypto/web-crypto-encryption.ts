@@ -87,7 +87,7 @@ export async function importEncryptionKey(
 		// CryptoKeyにインポート
 		const cryptoKey = await crypto.subtle.importKey(
 			"raw",
-			keyBytes as unknown as BufferSource,
+			keyBytes.buffer as ArrayBuffer,
 			{ name: "AES-GCM" },
 			false,
 			["encrypt", "decrypt"],
@@ -137,9 +137,9 @@ export async function encrypt(
 
 		// AES-GCMで暗号化（認証タグは暗号文に自動的に付加される）
 		const encryptedBuffer = await crypto.subtle.encrypt(
-			{ name: "AES-GCM", iv },
+			{ name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
 			key,
-			plaintextBytes,
+			plaintextBytes.buffer as ArrayBuffer,
 		);
 
 		const encryptedBytes = new Uint8Array(encryptedBuffer);
@@ -186,9 +186,9 @@ export async function decrypt(
 
 		// AES-GCMで復号化（認証タグの検証も自動的に行われる）
 		const decryptedBuffer = await crypto.subtle.decrypt(
-			{ name: "AES-GCM", iv },
+			{ name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
 			key,
-			ciphertext,
+			ciphertext.buffer as ArrayBuffer,
 		);
 
 		// Uint8Arrayを文字列に変換

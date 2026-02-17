@@ -49,11 +49,11 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
 	getEventsForToday,
 	getEventsForWeek,
 } from "@/lib/application/calendar";
+import { getUserFromRequest } from "@/lib/auth/get-user-from-request";
 import { createCalendarContext } from "@/lib/context/calendar-context";
 import type { CalendarEvent } from "@/lib/domain/calendar";
 import { isSome } from "@/lib/domain/shared/option";
@@ -126,8 +126,8 @@ function toEventResponse(event: CalendarEvent): EventResponse {
  */
 export async function GET(request: NextRequest) {
 	// 認証チェック
-	const session = await auth();
-	if (!session?.user?.id) {
+	const user = await getUserFromRequest(request);
+	if (!user) {
 		return NextResponse.json(
 			{
 				error: {
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
 	// コンテキスト作成
 	const ctx = createCalendarContext(
 		dbResult.value,
-		session.user.id,
+		user.id,
 		cryptoKeyResult.value,
 	);
 
