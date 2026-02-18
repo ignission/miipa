@@ -1,0 +1,19 @@
+# アプリケーション層 (Application Layer)
+#
+# このディレクトリはアプリケーションサービスとユースケースを配置します。
+#
+# 責務:
+# - ユースケースの実装（ビジネスフローの調整）
+# - ドメインサービスの呼び出しとオーケストレーション
+# - トランザクション境界の管理
+# - DTOの変換（ドメインオブジェクト <-> プレゼンテーション層）
+#
+# 依存関係:
+# - ドメイン層（lib/domain/）に依存する
+# - インフラ層（lib/infrastructure/）には依存しない（インターフェースのみ参照）
+# - プレゼンテーション層（app/、components/）から呼び出される
+#
+# 配置例:
+# - lib/application/calendar/get-today-events.ts
+# - lib/application/calendar/sync-calendars.ts
+# - lib/application/settings/update-llm-config.ts
