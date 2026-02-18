@@ -21,7 +21,7 @@ interface DeleteAccountResponse {
  * 合わせて削除されます。
  */
 export function deleteAccount(): Promise<DeleteAccountResponse> {
-	return apiFetch<DeleteAccountResponse>("/api/account", {
+	return apiFetch<DeleteAccountResponse>("/account", {
 		method: "DELETE",
 	});
 }

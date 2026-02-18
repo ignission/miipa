@@ -70,14 +70,14 @@ interface ToggleCalendarResponse {
  * カレンダー一覧を取得
  */
 export function fetchCalendars(): Promise<CalendarsApiResponse> {
-	return apiFetch<CalendarsApiResponse>("/api/calendars");
+	return apiFetch<CalendarsApiResponse>("/calendars");
 }
 
 /**
  * カレンダー同期を実行
  */
 export function syncCalendars(): Promise<SyncResponse> {
-	return apiFetch<SyncResponse>("/api/calendars/sync", {
+	return apiFetch<SyncResponse>("/calendars/sync", {
 		method: "POST",
 	});
 }
@@ -93,7 +93,7 @@ export function toggleCalendar(
 	enabled: boolean,
 ): Promise<ToggleCalendarResponse> {
 	return apiFetch<ToggleCalendarResponse>(
-		`/api/calendars/${encodeURIComponent(id)}`,
+		`/calendars/${encodeURIComponent(id)}`,
 		{
 			method: "PATCH",
 			body: JSON.stringify({ enabled }),
@@ -107,7 +107,7 @@ export function toggleCalendar(
  * @param id - 削除するカレンダーのID
  */
 export function deleteCalendar(id: string): Promise<null> {
-	return apiFetch<null>(`/api/calendars/${encodeURIComponent(id)}`, {
+	return apiFetch<null>(`/calendars/${encodeURIComponent(id)}`, {
 		method: "DELETE",
 	});
 }
@@ -122,7 +122,7 @@ export function deleteCalendar(id: string): Promise<null> {
 export function startGoogleAuth(
 	loginHint?: string,
 ): Promise<GoogleAuthResponse> {
-	return apiFetch<GoogleAuthResponse>("/api/calendars/google", {
+	return apiFetch<GoogleAuthResponse>("/calendars/google", {
 		method: "POST",
 		body: JSON.stringify({ loginHint }),
 	});
@@ -138,7 +138,7 @@ export function addICalCalendar(
 	url: string,
 	name?: string,
 ): Promise<AddICalResponse> {
-	return apiFetch<AddICalResponse>("/api/calendars/ical", {
+	return apiFetch<AddICalResponse>("/calendars/ical", {
 		method: "POST",
 		body: JSON.stringify({ url, name }),
 	});

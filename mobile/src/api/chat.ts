@@ -55,7 +55,7 @@ interface ChatRequest {
  * チャット履歴を取得
  */
 export function fetchChatHistory(): Promise<ChatHistoryResponse> {
-	return apiFetch<ChatHistoryResponse>("/api/chat");
+	return apiFetch<ChatHistoryResponse>("/chat");
 }
 
 /**
@@ -81,7 +81,7 @@ export async function sendChatMessage(
 		headers.Authorization = `Bearer ${token}`;
 	}
 
-	const response = await fetch(`${AUTH_CONFIG.apiBaseUrl}/api/chat`, {
+	const response = await fetch(`${AUTH_CONFIG.apiBaseUrl}/chat`, {
 		method: "POST",
 		headers,
 		credentials: "include",
