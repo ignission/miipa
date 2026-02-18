@@ -128,8 +128,10 @@ export default function ChatScreen() {
 
 				if (!response.ok) {
 					const body = await response.json().catch(() => null);
+					const err = (body as { error?: { message?: string } | string })
+						?.error;
 					const message =
-						(body as { error?: string })?.error ??
+						(typeof err === "object" ? err?.message : err) ??
 						`API エラー: ${response.status}`;
 					throw new Error(message);
 				}
