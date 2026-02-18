@@ -13,7 +13,7 @@
 		"dev:web": "cd mobile && npx expo start --web",
 		"dev:mobile": "cd mobile && npx expo start",
 		"build": "turbo build",
-		"deploy:api": "cd packages/api && npx wrangler deploy",
+		"deploy:api": "cd packages/api && npx wrangler deploy --env production",
 		"deploy:web": "cd mobile && npx expo export --platform web && npx wrangler pages deploy dist --project-name=miipa --branch=main",
 		"deploy": "npm run deploy:api && npm run deploy:web",
 		"lint": "npx @biomejs/biome check .",
