@@ -1,4 +1,4 @@
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useAuth } from "../src/auth";
 
@@ -31,7 +31,7 @@ export default function IndexScreen() {
 			<Pressable
 				className="mt-8 rounded-lg bg-accent px-6 py-3"
 				onPress={() => {
-					/* サインイン処理 - フェーズ5で実装 */
+					router.push("/sign-in");
 				}}
 			>
 				<Text className="font-semibold text-accent-fg">はじめる</Text>
