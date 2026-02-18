@@ -92,84 +92,75 @@ export function useAuth(): AuthState {
 // ユーティリティ関数
 // ============================================================
 
+/** バッファ秒数（期限切れ判定を早めに行う） */
+const TOKEN_EXPIRY_BUFFER_SECONDS = 30;
+
+/**
+ * Base64URLエンコードされた文字列をデコードする
+ */
+function decodeBase64Url(input: string): string {
+	let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+	const pad = base64.length % 4;
+	if (pad === 2) base64 += "==";
+	else if (pad === 3) base64 += "=";
+	return atob(base64);
+}
+
 /**
  * JWTペイロードをデコードして有効期限切れかチェック
- *
- * @param token - JWT文字列
- * @returns 期限切れならtrue
  */
 function isTokenExpired(token: string): boolean {
 	try {
 		const parts = token.split(".");
-		if (parts.length !== 3) {
-			return true;
-		}
-		// Base64URLデコード（文字置換とパディング補完）
-		let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-		const pad = payload.length % 4;
-		if (pad === 2) payload += "==";
-		else if (pad === 3) payload += "=";
-		const decoded = JSON.parse(atob(payload)) as { exp?: number };
+		if (parts.length !== 3) return true;
 
-		if (!decoded.exp) {
-			return true;
-		}
+		const decoded = JSON.parse(decodeBase64Url(parts[1])) as {
+			exp?: number;
+		};
+		if (!decoded.exp) return true;
 
-		// 期限の30秒前をバッファとして持たせる
-		return decoded.exp - 30 < Math.floor(Date.now() / 1000);
+		const now = Math.floor(Date.now() / 1000);
+		return decoded.exp - TOKEN_EXPIRY_BUFFER_SECONDS < now;
 	} catch {
 		return true;
 	}
 }
 
 /**
- * ストレージに保存されたリフレッシュトークンで新しいアクセストークンを取得
- *
- * Web: Cookie + Body でリフレッシュ（credentials: "include" で httpOnly Cookie を自動送信）
- * Mobile: Body にリフレッシュトークンを含めて送信
- *
- * @returns 成功ならtrue
+ * Web用: Cookie ベースでリフレッシュトークンを送信
  */
-async function refreshWithStoredToken(): Promise<boolean> {
-	// Web: Cookie ベースのリフレッシュを優先（Hono の /auth/refresh エンドポイント使用）
-	if (Platform.OS === "web") {
-		try {
-			const res = await fetch(
-				`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.refreshEndpoint}`,
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					credentials: "include",
-					body: JSON.stringify({}),
-				},
-			);
+async function refreshOnWeb(): Promise<boolean> {
+	try {
+		const res = await fetch(
+			`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.refreshEndpoint}`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify({}),
+			},
+		);
 
-			if (!res.ok) {
-				return false;
-			}
+		if (!res.ok) return false;
 
-			const data = await res.json();
-			const { token: newJwt, user: userData } = data as {
-				token: string;
-				refreshToken: string;
-				user: StoredUser;
-			};
+		const data = (await res.json()) as {
+			token: string;
+			user: StoredUser;
+		};
 
-			// メモリにアクセストークンとユーザー情報を保存
-			// リフレッシュトークンは httpOnly Cookie でHonoが管理するため保存不要
-			await Promise.all([saveToken(newJwt), saveUser(userData)]);
-
-			return true;
-		} catch {
-			return false;
-		}
-	}
-
-	// Mobile: SecureStore のリフレッシュトークンを使用
-	const refreshToken = await getRefreshToken();
-	if (!refreshToken) {
+		await Promise.all([saveToken(data.token), saveUser(data.user)]);
+		return true;
+	} catch {
 		return false;
 	}
+}
+
+/**
+ * Mobile用: SecureStore のリフレッシュトークンで新しいアクセストークンを取得
+ */
+async function refreshOnMobile(): Promise<boolean> {
+	const refreshToken = await getRefreshToken();
+	if (!refreshToken) return false;
 
 	try {
 		const res = await fetch(
@@ -184,31 +175,44 @@ async function refreshWithStoredToken(): Promise<boolean> {
 			},
 		);
 
-		if (!res.ok) {
-			return false;
-		}
+		if (!res.ok) return false;
 
-		const data = await res.json();
-		const {
-			token: newJwt,
-			refreshToken: newRefreshToken,
-			user: userData,
-		} = data as {
+		const data = (await res.json()) as {
 			token: string;
 			refreshToken: string;
 			user: StoredUser;
 		};
 
 		await Promise.all([
-			saveToken(newJwt),
-			saveRefreshToken(newRefreshToken),
-			saveUser(userData),
+			saveToken(data.token),
+			saveRefreshToken(data.refreshToken),
+			saveUser(data.user),
 		]);
-
 		return true;
 	} catch {
 		return false;
 	}
+}
+
+/**
+ * プラットフォームに応じたリフレッシュ処理を実行
+ */
+async function refreshWithStoredToken(): Promise<boolean> {
+	return Platform.OS === "web" ? refreshOnWeb() : refreshOnMobile();
+}
+
+/**
+ * ストレージからトークンとユーザー情報を読み込む
+ *
+ * @returns トークンとユーザーのペア。いずれかが欠けている場合は null
+ */
+async function loadStoredAuth(): Promise<{
+	token: string;
+	user: StoredUser;
+} | null> {
+	const [token, user] = await Promise.all([getToken(), getUser()]);
+	if (!token || !user) return null;
+	return { token, user };
 }
 
 // ============================================================
@@ -236,66 +240,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	// Web: no-op フック
 	const [_request, response, promptAsync] = useMobileGoogleAuth();
 
+	/**
+	 * リフレッシュ後のトークンをストレージから読み込み、ステートに反映する
+	 */
+	const applyRefreshedAuth = useCallback(async () => {
+		const auth = await loadStoredAuth();
+		if (auth) {
+			setToken(auth.token);
+			setUser(auth.user);
+		}
+	}, []);
+
 	// 起動時にトークンを復元（有効期限切れの場合はリフレッシュ）
 	useEffect(() => {
 		(async () => {
 			try {
-				const [savedToken, savedUser] = await Promise.all([
-					getToken(),
-					getUser(),
-				]);
+				const stored = await loadStoredAuth();
 
-				if (!savedToken || !savedUser) {
-					// Web: メモリ上のトークンが消えてもhttpOnly Cookieでリフレッシュ可能
+				// トークン未保存: Web のみ Cookie ベースでリフレッシュを試行
+				if (!stored) {
 					if (Platform.OS === "web") {
 						const refreshed = await refreshWithStoredToken();
-						if (refreshed) {
-							const [newToken, newUser] = await Promise.all([
-								getToken(),
-								getUser(),
-							]);
-							if (newToken && newUser) {
-								setToken(newToken);
-								setUser(newUser);
-							}
-						}
+						if (refreshed) await applyRefreshedAuth();
 					}
 					return;
 				}
 
-				// JWTの有効期限をチェック
-				if (isTokenExpired(savedToken)) {
-					// リフレッシュトークンで新しいアクセストークンを取得
-					const refreshed = await refreshWithStoredToken();
-					if (!refreshed) {
-						// リフレッシュ失敗: ログアウト状態にする
-						await Promise.all([
-							deleteToken(),
-							deleteRefreshToken(),
-							deleteUser(),
-						]);
-						return;
-					}
+				// トークンが有効ならそのまま復元
+				if (!isTokenExpired(stored.token)) {
+					setToken(stored.token);
+					setUser(stored.user);
+					return;
+				}
 
-					// リフレッシュ成功: 新しいトークンとユーザー情報を設定
-					const [newToken, newUser] = await Promise.all([
-						getToken(),
-						getUser(),
+				// トークン期限切れ: リフレッシュを試行
+				const refreshed = await refreshWithStoredToken();
+				if (refreshed) {
+					await applyRefreshedAuth();
+				} else {
+					// リフレッシュ失敗: ログアウト状態にする
+					await Promise.all([
+						deleteToken(),
+						deleteRefreshToken(),
+						deleteUser(),
 					]);
-					if (newToken && newUser) {
-						setToken(newToken);
-						setUser(newUser);
-					}
-					return;
 				}
-
-				setToken(savedToken);
-				setUser(savedUser);
 			} finally {
 				setIsLoading(false);
 			}
 		})();
-	}, []);
+	}, [applyRefreshedAuth]);
 
 	/**
 	 * Google ID Token をバックエンドのJWTに交換（Mobile用）

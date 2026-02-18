@@ -9,16 +9,16 @@
 
 import { Hono } from "hono";
 import type { AppType } from "@/context/app-context";
+import { authMiddleware } from "@/middleware/auth";
 import { corsMiddleware } from "@/middleware/cors";
 import { errorHandler } from "@/middleware/error-handler";
-import { authMiddleware } from "@/middleware/auth";
+import { account } from "@/routes/account";
 import { auth } from "@/routes/auth";
 import { calendars } from "@/routes/calendars";
-import { events } from "@/routes/events";
 import { chat } from "@/routes/chat";
+import { events } from "@/routes/events";
 import { settings } from "@/routes/settings";
 import { setup } from "@/routes/setup";
-import { account } from "@/routes/account";
 
 const app = new Hono<AppType>();
 

@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { apiFetch } from "../../api/client";
+import { validateApiKey } from "../../api/setup";
 
 // ============================================================
 // 型定義
@@ -27,13 +27,6 @@ interface OllamaConnectorProps {
 
 /** 接続状態 */
 type Status = "idle" | "connecting" | "connected" | "error";
-
-/** 接続結果の型 */
-interface ConnectionResult {
-	valid: boolean;
-	models?: string[];
-	error?: { code: string; message: string };
-}
 
 // ============================================================
 // メインコンポーネント
@@ -61,22 +54,15 @@ export function OllamaConnector({
 		setErrorMessage("");
 
 		try {
-			const result = await apiFetch<ConnectionResult>(
-				"/api/setup/validate-key",
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ provider: "ollama", apiKey: url }),
-				},
-			);
+			const result = await validateApiKey({ provider: "ollama", apiKey: url });
 
 			if (result.valid) {
 				setStatus("connected");
-				setAvailableModels(result.models || []);
+				setAvailableModels(result.models ?? []);
 				onConnected(url);
 			} else {
 				setStatus("error");
-				setErrorMessage(result.error?.message || "接続に失敗しました");
+				setErrorMessage(result.error?.message ?? "接続に失敗しました");
 			}
 		} catch {
 			setStatus("error");

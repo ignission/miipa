@@ -8,6 +8,7 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import type { AppType } from "@/context/app-context";
@@ -15,13 +16,13 @@ import {
 	JWT_COOKIE_NAME,
 	REFRESH_TOKEN_COOKIE_NAME,
 } from "@/lib/auth/constants";
+import { getOAuthConfig } from "@/lib/auth/oauth-config";
 import { isOk } from "@/lib/domain/shared/result";
-import { base64UrlDecode, base64UrlEncode } from "@/lib/utils/base64url";
 import {
 	exchangeCode,
 	generateAuthUrl,
-	type OAuthConfig,
 } from "@/lib/infrastructure/calendar/oauth-service";
+import { base64UrlDecode, base64UrlEncode } from "@/lib/utils/base64url";
 import { verifyJwt } from "@/middleware/auth";
 
 // ============================================================
@@ -105,7 +106,6 @@ interface UserRow {
 	readonly email: string;
 	readonly image: string | null;
 }
-
 
 // ============================================================
 // JWT関連ユーティリティ（Web Crypto API使用）
@@ -470,19 +470,53 @@ async function issueTokens(
 }
 
 // ============================================================
-// OAuthConfig ヘルパー
+// Cookie設定ヘルパー
 // ============================================================
 
-function getOAuthConfig(env: AppType["Bindings"]): OAuthConfig {
-	const baseUrl =
-		env.ENVIRONMENT === "production"
-			? "https://miipa.app"
-			: "http://localhost:8787";
-	return {
-		clientId: env.GOOGLE_CLIENT_ID,
-		clientSecret: env.GOOGLE_CLIENT_SECRET,
-		redirectUri: `${baseUrl}/auth/google/callback`,
-	};
+/**
+ * JWT と リフレッシュトークンを Cookie にセット（Web用）
+ */
+function setAuthCookies(
+	c: Context<AppType>,
+	token: string,
+	refreshToken: string,
+): void {
+	const isSecure = c.env.ENVIRONMENT !== "development";
+
+	setCookie(c, JWT_COOKIE_NAME, token, {
+		httpOnly: true,
+		secure: isSecure,
+		sameSite: "Lax",
+		maxAge: ACCESS_TOKEN_EXPIRES_IN,
+		path: "/",
+	});
+
+	setCookie(c, REFRESH_TOKEN_COOKIE_NAME, refreshToken, {
+		httpOnly: true,
+		secure: isSecure,
+		sameSite: "Strict",
+		maxAge: REFRESH_TOKEN_EXPIRES_IN,
+		path: "/auth",
+	});
+}
+
+/**
+ * 認証関連の Cookie をすべて削除
+ */
+function clearAuthCookies(c: Context<AppType>): void {
+	deleteCookie(c, JWT_COOKIE_NAME, { path: "/" });
+	deleteCookie(c, REFRESH_TOKEN_COOKIE_NAME, { path: "/auth" });
+}
+
+/**
+ * リクエストボディから文字列フィールドを安全に取得
+ */
+function getStringField(
+	body: Record<string, unknown>,
+	field: string,
+): string | undefined {
+	const value = body[field];
+	return typeof value === "string" ? value : undefined;
 }
 
 // ============================================================
@@ -576,11 +610,11 @@ auth.post("/mobile/token", async (c) => {
 auth.post("/google", async (c) => {
 	try {
 		const config = getOAuthConfig(c.env);
-		const body = await c.req.json().catch(() => ({}));
-		const loginHint =
-			typeof (body as Record<string, unknown>).loginHint === "string"
-				? (body as Record<string, string>).loginHint
-				: undefined;
+		const body = (await c.req.json().catch(() => ({}))) as Record<
+			string,
+			unknown
+		>;
+		const loginHint = getStringField(body, "loginHint");
 
 		const result = await generateAuthUrl(config, loginHint);
 		if (!isOk(result)) {
@@ -756,11 +790,8 @@ auth.get("/google/callback", async (c) => {
  */
 auth.post("/exchange-code", async (c) => {
 	try {
-		const body = await c.req.json();
-		const codeValue =
-			typeof (body as Record<string, unknown>).code === "string"
-				? (body as Record<string, string>).code
-				: null;
+		const body = (await c.req.json()) as Record<string, unknown>;
+		const codeValue = getStringField(body, "code");
 
 		if (!codeValue) {
 			return c.json({ error: "認可コードが必要です" }, 400);
@@ -801,23 +832,7 @@ auth.post("/exchange-code", async (c) => {
 
 		// JWT + リフレッシュトークンを発行
 		const result = await issueTokens(db, user, jwtSecret);
-
-		// Web向け: Cookie にもセット
-		setCookie(c, JWT_COOKIE_NAME, result.token, {
-			httpOnly: true,
-			secure: c.env.ENVIRONMENT !== "development",
-			sameSite: "Lax",
-			maxAge: ACCESS_TOKEN_EXPIRES_IN,
-			path: "/",
-		});
-
-		setCookie(c, REFRESH_TOKEN_COOKIE_NAME, result.refreshToken, {
-			httpOnly: true,
-			secure: c.env.ENVIRONMENT !== "development",
-			sameSite: "Strict",
-			maxAge: REFRESH_TOKEN_EXPIRES_IN,
-			path: "/auth",
-		});
+		setAuthCookies(c, result.token, result.refreshToken);
 
 		return c.json(result);
 	} catch (e) {
@@ -841,18 +856,14 @@ auth.post("/refresh", async (c) => {
 			return c.json({ error: "サーバー設定エラー" }, 500);
 		}
 
-		// Body からリフレッシュトークンを取得
-		let refreshTokenValue: string | undefined;
-
-		const body = await c.req.json().catch(() => ({}));
-		if (typeof (body as Record<string, unknown>).refreshToken === "string") {
-			refreshTokenValue = (body as Record<string, string>).refreshToken;
-		}
-
-		// Cookie フォールバック
-		if (!refreshTokenValue) {
-			refreshTokenValue = getCookie(c, REFRESH_TOKEN_COOKIE_NAME) ?? undefined;
-		}
+		// Body または Cookie からリフレッシュトークンを取得
+		const body = (await c.req.json().catch(() => ({}))) as Record<
+			string,
+			unknown
+		>;
+		const refreshTokenValue =
+			getStringField(body, "refreshToken") ??
+			getCookie(c, REFRESH_TOKEN_COOKIE_NAME);
 
 		if (!refreshTokenValue) {
 			return c.json({ error: "リフレッシュトークンが必要です" }, 400);
@@ -864,23 +875,7 @@ auth.post("/refresh", async (c) => {
 		}
 
 		const result = await issueTokens(db, user, jwtSecret);
-
-		// Cookie にもセット（Web用）
-		setCookie(c, JWT_COOKIE_NAME, result.token, {
-			httpOnly: true,
-			secure: c.env.ENVIRONMENT !== "development",
-			sameSite: "Lax",
-			maxAge: ACCESS_TOKEN_EXPIRES_IN,
-			path: "/",
-		});
-
-		setCookie(c, REFRESH_TOKEN_COOKIE_NAME, result.refreshToken, {
-			httpOnly: true,
-			secure: c.env.ENVIRONMENT !== "development",
-			sameSite: "Strict",
-			maxAge: REFRESH_TOKEN_EXPIRES_IN,
-			path: "/auth",
-		});
+		setAuthCookies(c, result.token, result.refreshToken);
 
 		return c.json(result);
 	} catch (e) {
@@ -919,16 +914,12 @@ auth.post("/logout", async (c) => {
 			}
 		}
 
-		// Cookie を削除
-		deleteCookie(c, JWT_COOKIE_NAME, { path: "/" });
-		deleteCookie(c, REFRESH_TOKEN_COOKIE_NAME, { path: "/auth" });
-
+		clearAuthCookies(c);
 		return c.json({ success: true });
 	} catch (e) {
 		console.error("[auth] ログアウトエラー:", e);
-		// Cookie削除は試行する
-		deleteCookie(c, JWT_COOKIE_NAME, { path: "/" });
-		deleteCookie(c, REFRESH_TOKEN_COOKIE_NAME, { path: "/auth" });
+		// エラー時もCookie削除は試行する
+		clearAuthCookies(c);
 		return c.json({ success: true });
 	}
 });

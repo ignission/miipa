@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { Linking, Pressable, Text, TextInput, View } from "react-native";
-import { apiFetch } from "../../api/client";
+import { validateApiKey } from "../../api/setup";
 import { type LLMProvider, PROVIDER_INFO } from "./types";
 
 // ============================================================
@@ -27,13 +27,8 @@ interface ApiKeyFormProps {
 	onKeyChange: (key: string) => void;
 }
 
-/**
- * APIキー検証結果の型
- */
-interface ValidationResult {
-	valid: boolean;
-	error?: { code: string; message: string };
-}
+/** validateApiKey のレスポンス型を再利用 */
+type ValidationResult = Awaited<ReturnType<typeof validateApiKey>>;
 
 // ============================================================
 // メインコンポーネント
@@ -72,15 +67,7 @@ export function ApiKeyForm({
 		setValidationResult(null);
 
 		try {
-			const result = await apiFetch<ValidationResult>(
-				"/api/setup/validate-key",
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ provider, apiKey }),
-				},
-			);
-
+			const result = await validateApiKey({ provider, apiKey });
 			setValidationResult(result);
 			onValidated(result.valid);
 		} catch {

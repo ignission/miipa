@@ -15,30 +15,22 @@
 
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
+import { z } from "zod";
 import type { AppType } from "@/context/app-context";
 import {
 	addICalCalendar,
 	startGoogleAuth,
 	syncAllCalendars,
 } from "@/lib/application/calendar";
-import { createCalendarContext } from "@/lib/context/calendar-context";
+import { getOAuthConfig } from "@/lib/auth/oauth-config";
+import { buildCalendarContext } from "@/lib/context/build-calendar-context";
+import type { CalendarContext } from "@/lib/context/calendar-context";
 import { isOk } from "@/lib/domain/shared/result";
 import { createCalendarId } from "@/lib/domain/shared/types";
-import type { OAuthConfig } from "@/lib/infrastructure/calendar/oauth-service";
-import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
-/** OAuthConfig を Hono 環境変数から構築 */
-function getOAuthConfig(env: AppType["Bindings"]): OAuthConfig {
-	const baseUrl =
-		env.ENVIRONMENT === "production"
-			? "https://miipa.app"
-			: "http://localhost:8787";
-	return {
-		clientId: env.GOOGLE_CLIENT_ID,
-		clientSecret: env.GOOGLE_CLIENT_SECRET,
-		redirectUri: `${baseUrl}/auth/google/callback`,
-	};
-}
+// ============================================================
+// 定数・型定義
+// ============================================================
 
 /** code_verifier を保存する Cookie 名（コールバックと共通） */
 const CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
@@ -46,27 +38,53 @@ const CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
 /** Cookie の有効期限（10分） */
 const COOKIE_MAX_AGE = 60 * 10;
 
-const calendars = new Hono<AppType>();
+/** カレンダー設定の型 */
+interface CalendarEntry {
+	readonly id: string;
+	readonly name: string;
+	readonly enabled: boolean;
+	readonly [key: string]: unknown;
+}
+
+/** PATCH リクエストの Zod スキーマ */
+const patchCalendarSchema = z.object({
+	enabled: z.boolean(),
+});
 
 // ============================================================
-// ヘルパー: CryptoKey に変換してから CalendarContext を構築
+// ヘルパー
 // ============================================================
 
 /**
- * ミドルウェアが設定した encryptionKey (string) を CryptoKey に変換し、
- * CalendarContext を生成します。失敗時は null を返します。
+ * カレンダー設定一覧を取得・パース
+ *
+ * @returns パース済みのカレンダー配列、またはエラー情報
  */
-async function buildCalendarContext(
-	db: D1Database,
-	userId: string,
-	encryptionKeyBase64: string,
-) {
-	const cryptoKeyResult = await importEncryptionKey(encryptionKeyBase64);
-	if (!isOk(cryptoKeyResult)) {
-		return null;
+async function getCalendarList(
+	ctx: CalendarContext,
+): Promise<
+	| { ok: true; calendars: CalendarEntry[] }
+	| { ok: false; code: string; message: string }
+> {
+	const settingResult = await ctx.configRepository.getSetting("calendars");
+	if (!isOk(settingResult)) {
+		return { ok: false, code: "DB_ERROR", message: "設定取得エラー" };
 	}
-	return createCalendarContext(db, userId, cryptoKeyResult.value);
+	if (settingResult.value === null) {
+		return { ok: true, calendars: [] };
+	}
+	try {
+		return { ok: true, calendars: JSON.parse(settingResult.value) };
+	} catch {
+		return {
+			ok: false,
+			code: "CONFIG_PARSE_ERROR",
+			message: "カレンダー設定のパースに失敗しました",
+		};
+	}
 }
+
+const calendars = new Hono<AppType>();
 
 // ============================================================
 // GET /calendars - カレンダー一覧取得
@@ -87,35 +105,15 @@ calendars.get("/", async (c) => {
 		);
 	}
 
-	// カレンダー一覧取得
-	const settingResult = await ctx.configRepository.getSetting("calendars");
-	if (!isOk(settingResult)) {
+	const listResult = await getCalendarList(ctx);
+	if (!listResult.ok) {
 		return c.json(
-			{ error: { code: "DB_ERROR", message: "設定取得エラー" } },
+			{ error: { code: listResult.code, message: listResult.message } },
 			500,
 		);
 	}
 
-	// 設定が見つからない場合は空配列を返す
-	if (settingResult.value === null) {
-		return c.json({ calendars: [] });
-	}
-
-	// JSON文字列をパースして返す
-	try {
-		const calendarList = JSON.parse(settingResult.value);
-		return c.json({ calendars: calendarList });
-	} catch {
-		return c.json(
-			{
-				error: {
-					code: "CONFIG_PARSE_ERROR",
-					message: "カレンダー設定のパースに失敗しました",
-				},
-			},
-			500,
-		);
-	}
+	return c.json({ calendars: listResult.calendars });
 });
 
 // ============================================================
@@ -139,23 +137,17 @@ calendars.delete("/:id", async (c) => {
 
 	const id = c.req.param("id");
 
-	// カレンダー設定を取得
-	const settingResult = await ctx.configRepository.getSetting("calendars");
-	if (!isOk(settingResult)) {
+	const listResult = await getCalendarList(ctx);
+	if (!listResult.ok) {
 		return c.json(
-			{ error: { code: "DB_ERROR", message: "設定取得エラー" } },
+			{ error: { code: listResult.code, message: listResult.message } },
 			500,
 		);
 	}
 
-	// カレンダー一覧をパース
-	const calendarList: unknown[] =
-		settingResult.value !== null ? JSON.parse(settingResult.value) : [];
-
-	// 対象のカレンダーを検索
-	const calendarIndex = calendarList.findIndex((cal: any) => cal.id === id);
-
-	if (calendarIndex === -1) {
+	// 対象のカレンダーが存在するか確認
+	const exists = listResult.calendars.some((cal) => cal.id === id);
+	if (!exists) {
 		return c.json(
 			{
 				error: {
@@ -167,13 +159,10 @@ calendars.delete("/:id", async (c) => {
 		);
 	}
 
-	// カレンダーを配列から削除
-	const updatedCalendars = [
-		...calendarList.slice(0, calendarIndex),
-		...calendarList.slice(calendarIndex + 1),
-	];
-
-	// 更新した設定を保存
+	// カレンダーを配列から除外して保存
+	const updatedCalendars = listResult.calendars.filter(
+		(cal) => cal.id !== id,
+	);
 	const saveResult = await ctx.configRepository.setSetting(
 		"calendars",
 		JSON.stringify(updatedCalendars),
@@ -190,17 +179,16 @@ calendars.delete("/:id", async (c) => {
 		);
 	}
 
-	// キャッシュされたイベントを削除
-	const calendarId = createCalendarId(id);
-	const deleteResult = await ctx.eventRepository.deleteByCalendar(calendarId);
+	// キャッシュされたイベントを削除（失敗時は警告ログのみ）
+	const deleteResult = await ctx.eventRepository.deleteByCalendar(
+		createCalendarId(id),
+	);
 	if (!isOk(deleteResult)) {
-		// イベント削除に失敗しても、カレンダー自体は削除済みなので警告ログのみ
 		console.warn(
 			`カレンダー ${id} のキャッシュイベント削除に失敗しました: ${deleteResult.error.message}`,
 		);
 	}
 
-	// 成功: 204 No Content を返す
 	return c.body(null, 204);
 });
 
@@ -225,7 +213,7 @@ calendars.patch("/:id", async (c) => {
 
 	const id = c.req.param("id");
 
-	// リクエストボディをパース
+	// リクエストボディのバリデーション
 	let body: unknown;
 	try {
 		body = await c.req.json();
@@ -241,13 +229,8 @@ calendars.patch("/:id", async (c) => {
 		);
 	}
 
-	// enabled フィールドのバリデーション
-	if (
-		typeof body !== "object" ||
-		body === null ||
-		!("enabled" in body) ||
-		typeof (body as { enabled: unknown }).enabled !== "boolean"
-	) {
+	const validation = patchCalendarSchema.safeParse(body);
+	if (!validation.success) {
 		return c.json(
 			{
 				error: {
@@ -259,24 +242,20 @@ calendars.patch("/:id", async (c) => {
 		);
 	}
 
-	const { enabled } = body as { enabled: boolean };
+	const { enabled } = validation.data;
 
 	// カレンダー設定を取得
-	const settingResult = await ctx.configRepository.getSetting("calendars");
-	if (!isOk(settingResult)) {
+	const listResult = await getCalendarList(ctx);
+	if (!listResult.ok) {
 		return c.json(
-			{ error: { code: "DB_ERROR", message: "設定取得エラー" } },
+			{ error: { code: listResult.code, message: listResult.message } },
 			500,
 		);
 	}
 
-	const calendarList: any[] =
-		settingResult.value !== null ? JSON.parse(settingResult.value) : [];
-
 	// 対象のカレンダーを検索
-	const calendarIndex = calendarList.findIndex((cal: any) => cal.id === id);
-
-	if (calendarIndex === -1) {
+	const target = listResult.calendars.find((cal) => cal.id === id);
+	if (!target) {
 		return c.json(
 			{
 				error: {
@@ -288,16 +267,12 @@ calendars.patch("/:id", async (c) => {
 		);
 	}
 
-	// カレンダーの enabled フィールドを更新
-	const updatedCalendar = { ...calendarList[calendarIndex], enabled };
+	// enabled フィールドを更新
+	const updatedCalendar = { ...target, enabled };
+	const updatedCalendars = listResult.calendars.map((cal) =>
+		cal.id === id ? updatedCalendar : cal,
+	);
 
-	const updatedCalendars = [
-		...calendarList.slice(0, calendarIndex),
-		updatedCalendar,
-		...calendarList.slice(calendarIndex + 1),
-	];
-
-	// 更新した設定を保存
 	const saveResult = await ctx.configRepository.setSetting(
 		"calendars",
 		JSON.stringify(updatedCalendars),
@@ -314,7 +289,6 @@ calendars.patch("/:id", async (c) => {
 		);
 	}
 
-	// 成功: 更新されたカレンダーを返す
 	return c.json({ calendar: updatedCalendar });
 });
 
@@ -492,42 +466,35 @@ calendars.post("/sync", async (c) => {
 
 	const result = await syncAllCalendars(ctx);
 
-	if (isOk(result)) {
-		console.log(
-			`[sync-api] 同期完了: total=${result.value.totalCount}, success=${result.value.successCount}, errors=${result.value.errorCalendars.length}`,
+	if (!isOk(result)) {
+		console.error("[sync-api] 同期致命的エラー:", result.error.message);
+		return c.json(
+			{ success: false, error: result.error.message },
+			500,
 		);
-		for (const ec of result.value.errorCalendars) {
-			console.error(
-				`[sync-api] エラーカレンダー: ${ec.calendarId} (${ec.name}): ${ec.error.message}`,
-			);
-		}
-	} else {
-		console.error(`[sync-api] 同期致命的エラー:`, result.error.message);
 	}
 
-	if (isOk(result)) {
-		const { successCount, errorCalendars, syncedAt } = result.value;
+	const { successCount, totalCount, errorCalendars, syncedAt } = result.value;
 
-		return c.json({
-			success: true,
-			syncedAt: syncedAt.toISOString(),
-			successCount,
-			errorCalendars: errorCalendars.map((ec) => ({
-				id: ec.calendarId,
-				name: ec.name,
-				error: ec.error.message,
-			})),
-		});
-	}
-
-	// 設定読み込み失敗などの致命的エラー
-	return c.json(
-		{
-			success: false,
-			error: result.error.message,
-		},
-		500,
+	console.log(
+		`[sync-api] 同期完了: total=${totalCount}, success=${successCount}, errors=${errorCalendars.length}`,
 	);
+	for (const ec of errorCalendars) {
+		console.error(
+			`[sync-api] エラーカレンダー: ${ec.calendarId} (${ec.name}): ${ec.error.message}`,
+		);
+	}
+
+	return c.json({
+		success: true,
+		syncedAt: syncedAt.toISOString(),
+		successCount,
+		errorCalendars: errorCalendars.map((ec) => ({
+			id: ec.calendarId,
+			name: ec.name,
+			error: ec.error.message,
+		})),
+	});
 });
 
 export { calendars };

@@ -1,5 +1,6 @@
 import type { EventResponse, EventsApiResponse } from "@miipa/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { fetchTodayEvents, fetchWeekEvents } from "../api/events";
 
 /** イベント取得範囲 */
@@ -71,9 +72,9 @@ export function useEvents(range: EventRange) {
 	});
 
 	/** イベントを手動で再取得 */
-	const refresh = async () => {
+	const refresh = useCallback(async () => {
 		await queryClient.invalidateQueries({ queryKey: ["events", range] });
-	};
+	}, [queryClient, range]);
 
 	return {
 		/** イベント一覧 */

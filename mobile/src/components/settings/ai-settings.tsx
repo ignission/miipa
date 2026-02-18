@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import {
 	type AISettingsResponse,
+	type UpdateAISettingsRequest,
 	fetchAISettings,
 	updateAISettings,
 } from "../../api/settings";
@@ -30,6 +31,23 @@ import {
 interface ResultMessage {
 	type: "success" | "error";
 	text: string;
+}
+
+// ============================================================
+// ヘルパー関数
+// ============================================================
+
+/**
+ * プロバイダの状態ラベルを返す
+ */
+function getStatusLabel(
+	provider: string | null,
+	hasApiKey: boolean,
+): string {
+	if (provider === "ollama") {
+		return hasApiKey ? "接続済み" : "未接続";
+	}
+	return hasApiKey ? "APIキー設定済み" : "APIキー未設定";
 }
 
 // ============================================================
@@ -106,10 +124,11 @@ export function AiSettings() {
 		setMessage(null);
 
 		try {
-			const requestData: Record<string, unknown> = {
+			const requestData: UpdateAISettingsRequest = {
 				provider: selectedProvider,
 			};
 
+			// プロバイダ変更時のみ認証情報を含める
 			if (selectedProvider !== settings?.provider) {
 				if (selectedProvider === "ollama") {
 					requestData.baseUrl = ollamaUrl;
@@ -118,13 +137,12 @@ export function AiSettings() {
 				}
 			}
 
-			if (model.trim()) {
-				requestData.model = model.trim();
+			const trimmedModel = model.trim();
+			if (trimmedModel) {
+				requestData.model = trimmedModel;
 			}
 
-			const result = await updateAISettings(
-				requestData as { provider: string; apiKey?: string; baseUrl?: string; model?: string },
-			);
+			const result = await updateAISettings(requestData);
 
 			if (result.success) {
 				setMessage({ type: "success", text: "設定を保存しました" });
@@ -186,13 +204,7 @@ export function AiSettings() {
 										: "text-yellow-800"
 								}`}
 							>
-								{settings.provider === "ollama"
-									? settings.hasApiKey
-										? "接続済み"
-										: "未接続"
-									: settings.hasApiKey
-										? "APIキー設定済み"
-										: "APIキー未設定"}
+								{getStatusLabel(settings.provider, settings.hasApiKey)}
 							</Text>
 						</View>
 					)}

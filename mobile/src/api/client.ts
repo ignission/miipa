@@ -27,6 +27,43 @@ function isEmptyBody(response: Response): boolean {
 	);
 }
 
+/**
+ * トークン付きのリクエストヘッダーを構築する
+ */
+function buildHeaders(
+	baseHeaders: Record<string, string> | undefined,
+	token: string | null,
+): Record<string, string> {
+	const headers: Record<string, string> = {
+		"Content-Type": "application/json",
+		...(baseHeaders as Record<string, string>),
+	};
+	if (token) {
+		headers.Authorization = `Bearer ${token}`;
+	}
+	return headers;
+}
+
+/**
+ * レスポンスのエラーチェックとJSONパースを行う
+ *
+ * @throws {ApiError} レスポンスがエラーの場合
+ */
+async function handleResponse<T>(response: Response): Promise<T> {
+	if (!response.ok) {
+		const body = await response.json().catch(() => null);
+		const message =
+			body?.error?.message ?? body?.error ?? `API エラー: ${response.status}`;
+		throw new ApiError(message, response.status);
+	}
+
+	if (isEmptyBody(response)) {
+		return null as T;
+	}
+
+	return response.json() as Promise<T>;
+}
+
 /** リフレッシュ処理の重複実行を防ぐためのロック */
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -132,6 +169,22 @@ function buildFetchOptions(
 }
 
 /**
+ * トークン付きのリクエストを実行する
+ */
+async function executeRequest(
+	path: string,
+	options: RequestInit,
+	token: string | null,
+): Promise<Response> {
+	const headers = buildHeaders(
+		options.headers as Record<string, string>,
+		token,
+	);
+	const fetchOptions = buildFetchOptions(options, headers);
+	return fetch(`${API_BASE_URL}${path}`, fetchOptions);
+}
+
+/**
  * 認証付きfetchラッパー
  *
  * - Bearer ヘッダを自動付与
@@ -144,83 +197,32 @@ export async function apiFetch<T>(
 	options: RequestInit = {},
 ): Promise<T> {
 	const token = await getToken();
+	const response = await executeRequest(path, options, token);
 
-	const headers: Record<string, string> = {
-		"Content-Type": "application/json",
-		...(options.headers as Record<string, string>),
-	};
-
-	if (token) {
-		headers.Authorization = `Bearer ${token}`;
+	// 401以外はそのままレスポンス処理
+	if (response.status !== 401) {
+		return handleResponse<T>(response);
 	}
 
-	const fetchOptions = buildFetchOptions(options, headers);
+	// 401エラー時はリフレッシュトークンで自動リトライ（重複防止）
+	if (!refreshPromise) {
+		refreshPromise = refreshAccessToken().finally(() => {
+			refreshPromise = null;
+		});
+	}
 
-	const response = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
+	const refreshed = await refreshPromise;
 
-	// 401エラー時はリフレッシュトークンで自動リトライ
-	if (response.status === 401) {
-		// 重複リフレッシュを防止
-		if (!refreshPromise) {
-			refreshPromise = refreshAccessToken().finally(() => {
-				refreshPromise = null;
-			});
-		}
-
-		const refreshed = await refreshPromise;
-
-		if (refreshed) {
-			// リフレッシュ成功: 新しいトークンでリトライ
-			const newToken = await getToken();
-			const retryHeaders: Record<string, string> = {
-				"Content-Type": "application/json",
-				...(options.headers as Record<string, string>),
-			};
-			if (newToken) {
-				retryHeaders.Authorization = `Bearer ${newToken}`;
-			}
-
-			const retryFetchOptions = buildFetchOptions(options, retryHeaders);
-			const retryResponse = await fetch(
-				`${API_BASE_URL}${path}`,
-				retryFetchOptions,
-			);
-
-			if (!retryResponse.ok) {
-				const body = await retryResponse.json().catch(() => null);
-				const message =
-					body?.error?.message ??
-					body?.error ??
-					`API エラー: ${retryResponse.status}`;
-				throw new ApiError(message, retryResponse.status);
-			}
-
-			// 空レスポンスの場合はJSONパースをスキップ
-			if (isEmptyBody(retryResponse)) {
-				return null as T;
-			}
-
-			return retryResponse.json() as Promise<T>;
-		}
-
+	if (!refreshed) {
 		// リフレッシュ失敗: ログアウト
 		await Promise.all([deleteToken(), deleteRefreshToken(), deleteUser()]);
 		throw new ApiError("認証エラー", 401);
 	}
 
-	if (!response.ok) {
-		const body = await response.json().catch(() => null);
-		const message =
-			body?.error?.message ?? body?.error ?? `API エラー: ${response.status}`;
-		throw new ApiError(message, response.status);
-	}
-
-	// 空レスポンスの場合はJSONパースをスキップ
-	if (isEmptyBody(response)) {
-		return null as T;
-	}
-
-	return response.json() as Promise<T>;
+	// リフレッシュ成功: 新しいトークンでリトライ
+	const newToken = await getToken();
+	const retryResponse = await executeRequest(path, options, newToken);
+	return handleResponse<T>(retryResponse);
 }
 
 /**

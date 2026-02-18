@@ -44,7 +44,7 @@ export interface SaveSetupSettingsResponse {
 /** APIキー検証リクエスト */
 export interface ValidateKeyRequest {
 	/** LLMプロバイダ */
-	provider: "claude" | "openai" | "ollama";
+	provider: "claude" | "openai" | "ollama" | "gemini";
 	/** APIキー（Ollamaの場合はbaseUrl） */
 	apiKey: string;
 }
@@ -52,6 +52,8 @@ export interface ValidateKeyRequest {
 /** APIキー検証レスポンス */
 export interface ValidateKeyResponse {
 	valid: boolean;
+	/** Ollama の場合に利用可能なモデル一覧が返る */
+	models?: string[];
 	error?: {
 		code: string;
 		message: string;

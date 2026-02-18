@@ -25,6 +25,22 @@ import {
 	saveUser,
 } from "../src/auth/storage";
 
+/** エラー表示後にサインイン画面へ戻るまでの遅延(ms) */
+const REDIRECT_DELAY_MS = 3000;
+
+/**
+ * エラーメッセージを設定し、一定時間後にサインイン画面へリダイレクトする
+ */
+function showErrorAndRedirect(
+	setError: (msg: string) => void,
+	message: string,
+): void {
+	setError(message);
+	setTimeout(() => {
+		router.replace("/sign-in");
+	}, REDIRECT_DELAY_MS);
+}
+
 export default function AuthCallbackScreen() {
 	const [error, setError] = useState<string | null>(null);
 
@@ -38,11 +54,7 @@ export default function AuthCallbackScreen() {
 		(async () => {
 			// エラーパラメータがある場合
 			if (params.error || params.message) {
-				setError(params.message ?? "認証に失敗しました");
-				// 3秒後にサインイン画面に戻る
-				setTimeout(() => {
-					router.replace("/sign-in");
-				}, 3000);
+				showErrorAndRedirect(setError, params.message ?? "認証に失敗しました");
 				return;
 			}
 
@@ -74,38 +86,34 @@ export default function AuthCallbackScreen() {
 						user: StoredUser;
 					};
 
-					// Web: Cookie でトークンが管理されるが、メモリにも保存
-					// Mobile: SecureStore に保存
-					await saveToken(data.token);
-					await saveUser(data.user);
+					// トークンとユーザー情報を並列保存
+					const savePromises: Promise<void>[] = [
+						saveToken(data.token),
+						saveUser(data.user),
+					];
 
+					// Mobile のみ: リフレッシュトークンを SecureStore に保存
+					// Web は httpOnly Cookie で管理されるため保存不要
 					if (Platform.OS !== "web") {
-						// Mobile のみ: リフレッシュトークンを SecureStore に保存
-						// Web はhttpOnly Cookieで管理されるため保存不要
-						await saveRefreshToken(data.refreshToken);
+						savePromises.push(saveRefreshToken(data.refreshToken));
 					}
 
-					// 認証済み画面にリダイレクト
+					await Promise.all(savePromises);
+
 					router.replace("/(auth)");
 				} catch (e) {
 					console.error("[auth-callback] コード交換エラー:", e);
-					setError(
+					const message =
 						e instanceof Error
 							? e.message
-							: "認証情報の取得に失敗しました",
-					);
-					setTimeout(() => {
-						router.replace("/sign-in");
-					}, 3000);
+							: "認証情報の取得に失敗しました";
+					showErrorAndRedirect(setError, message);
 				}
 				return;
 			}
 
 			// パラメータが不足している場合
-			setError("認証パラメータが不足しています");
-			setTimeout(() => {
-				router.replace("/sign-in");
-			}, 3000);
+			showErrorAndRedirect(setError, "認証パラメータが不足しています");
 		})();
 	}, [params.code, params.error, params.message]);
 

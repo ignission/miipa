@@ -15,9 +15,8 @@ import { saveSetupSettings } from "@/lib/application/setup";
 import type { SetupSettings } from "@/lib/application/setup/types";
 import { getSecretKeyForProvider } from "@/lib/application/setup/types";
 import { isLLMProvider, type LLMProvider } from "@/lib/config/types";
-import { createCalendarContext } from "@/lib/context/calendar-context";
+import { buildCalendarContext } from "@/lib/context/build-calendar-context";
 import { isErr, isOk } from "@/lib/domain/shared/result";
-import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 // ============================================================
 // 型定義
@@ -64,21 +63,6 @@ function isSendKey(value: string | null | undefined): value is SendKey {
 	return VALID_SEND_KEYS.includes(value as SendKey);
 }
 
-/**
- * encryptionKey (Base64文字列) を CryptoKey に変換して CalendarContext を構築
- * 失敗時は null を返す
- */
-async function buildCalendarContext(
-	db: D1Database,
-	userId: string,
-	encryptionKeyBase64: string,
-) {
-	const cryptoKeyResult = await importEncryptionKey(encryptionKeyBase64);
-	if (!isOk(cryptoKeyResult)) {
-		return null;
-	}
-	return createCalendarContext(db, userId, cryptoKeyResult.value);
-}
 
 // ============================================================
 // ルート定義

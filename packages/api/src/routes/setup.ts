@@ -18,9 +18,8 @@ import {
 	saveSetupSettings,
 	validateApiKey,
 } from "@/lib/application/setup";
-import { createCalendarContext } from "@/lib/context/calendar-context";
+import { buildCalendarContext } from "@/lib/context/build-calendar-context";
 import { isOk } from "@/lib/domain/shared/result";
-import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 // ============================================================
 // 型定義
@@ -38,26 +37,6 @@ interface ValidateKeyRequest {
 	provider: "claude" | "openai" | "ollama";
 	/** APIキー（Ollamaの場合は baseUrl） */
 	apiKey: string;
-}
-
-// ============================================================
-// ヘルパー
-// ============================================================
-
-/**
- * encryptionKey (Base64文字列) を CryptoKey に変換して CalendarContext を構築
- * 失敗時は null を返す
- */
-async function buildCalendarContext(
-	db: D1Database,
-	userId: string,
-	encryptionKeyBase64: string,
-) {
-	const cryptoKeyResult = await importEncryptionKey(encryptionKeyBase64);
-	if (!isOk(cryptoKeyResult)) {
-		return null;
-	}
-	return createCalendarContext(db, userId, cryptoKeyResult.value);
 }
 
 // ============================================================

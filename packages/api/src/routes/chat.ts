@@ -22,9 +22,8 @@ import type {
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import type { MiipaTools } from "@/lib/ai/tools";
 import { createMiipaTools } from "@/lib/ai/tools";
-import { createCalendarContext } from "@/lib/context/calendar-context";
+import { buildCalendarContext } from "@/lib/context/build-calendar-context";
 import { isOk } from "@/lib/domain/shared/result";
-import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 
 // ============================================================
 // 定数
@@ -201,6 +200,18 @@ interface ChatHistoryResponse {
 	readonly createdAt: string;
 }
 
+/**
+ * JSON文字列を ToolCall 配列にパース（失敗時は null）
+ */
+function parseToolCalls(json: string | null): ToolCall[] | null {
+	if (!json) return null;
+	try {
+		return JSON.parse(json) as ToolCall[];
+	} catch {
+		return null;
+	}
+}
+
 // ============================================================
 // ルート定義
 // ============================================================
@@ -213,11 +224,13 @@ const chat = new Hono<AppType>();
 chat.post("/", async (c) => {
 	const db = c.get("db");
 	const userId = c.get("userId");
-	const encryptionKeyBase64 = c.get("encryptionKey");
 
-	// Base64文字列 → CryptoKey に変換
-	const cryptoKeyResult = await importEncryptionKey(encryptionKeyBase64);
-	if (!isOk(cryptoKeyResult)) {
+	const calendarCtx = await buildCalendarContext(
+		db,
+		userId,
+		c.get("encryptionKey"),
+	);
+	if (!calendarCtx) {
 		return c.json(
 			{
 				error: { code: "CONFIG_ERROR", message: "暗号化キーインポートエラー" },
@@ -225,8 +238,6 @@ chat.post("/", async (c) => {
 			500,
 		);
 	}
-
-	const calendarCtx = createCalendarContext(db, userId, cryptoKeyResult.value);
 
 	// リクエストボディ取得
 	let body: { messages?: ChatMessage[] };
@@ -403,14 +414,7 @@ chat.get("/", async (c) => {
 				id: record.id,
 				role: record.role,
 				content: record.content,
-				toolCalls: (() => {
-					if (!record.tool_calls) return null;
-					try {
-						return JSON.parse(record.tool_calls) as ToolCall[];
-					} catch {
-						return null;
-					}
-				})(),
+				toolCalls: parseToolCalls(record.tool_calls),
 				createdAt: record.created_at,
 			}));
 
