@@ -108,14 +108,14 @@ settings.get("/ai", async (c) => {
 		? rawProvider
 		: null;
 
-	// APIキーの有無を確認
+	// APIキーの有無を確認（実際に復号化して検証）
 	let hasApiKey = false;
 	if (provider) {
 		const secretKey = getSecretKeyForProvider(provider);
-		const hasKeyResult =
-			await calendarCtx.secretRepository.hasSecret(secretKey);
-		if (isOk(hasKeyResult)) {
-			hasApiKey = hasKeyResult.value;
+		const secretResult =
+			await calendarCtx.secretRepository.getSecret(secretKey);
+		if (isOk(secretResult) && secretResult.value) {
+			hasApiKey = true;
 		}
 	}
 
