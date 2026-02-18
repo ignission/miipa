@@ -1,0 +1,9 @@
+{
+	"tailwind": {
+		"config": "tailwind.config.ts",
+		"css": "global.css"
+	},
+	"app": {
+		"components": "components/ui"
+	}
+}

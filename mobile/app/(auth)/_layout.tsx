@@ -4,6 +4,11 @@ import { TabBarIcon } from "../../components/navigation/TabBarIcon";
 import { Colors } from "../../constants/Colors";
 import { useAuth } from "../../src/auth";
 
+// TODO: フェーズ4 - Web対応
+// - Platform.OS === "web" の場合にサイドバーナビゲーションに切り替え
+// - NativeWind className によるレスポンシブレイアウト適用
+// - Web用のヘッダーコンポーネント追加
+
 export default function AuthLayout() {
 	const { isAuthenticated, isLoading } = useAuth();
 	const colorScheme = useColorScheme();
