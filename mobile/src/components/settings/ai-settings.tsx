@@ -104,7 +104,9 @@ export function AiSettings() {
 	const isSaveEnabled = (): boolean => {
 		if (!selectedProvider) return false;
 		if (isSaving) return false;
-		if (selectedProvider === settings?.provider) return true;
+		// 同じプロバイダでAPIキーが設定済みならそのまま保存可能
+		if (selectedProvider === settings?.provider && settings?.hasApiKey)
+			return true;
 		if (selectedProvider === "ollama") return ollamaConnected;
 		return apiKeyValidated;
 	};
@@ -123,13 +125,13 @@ export function AiSettings() {
 				provider: selectedProvider,
 			};
 
-			// プロバイダ変更時のみ認証情報を含める
-			if (selectedProvider !== settings?.provider) {
-				if (selectedProvider === "ollama") {
+			// 認証情報を含める（プロバイダ変更時、またはAPIキーが未設定の場合）
+			if (selectedProvider === "ollama") {
+				if (selectedProvider !== settings?.provider || !settings?.hasApiKey) {
 					requestData.baseUrl = ollamaUrl;
-				} else if (apiKey) {
-					requestData.apiKey = apiKey;
 				}
+			} else if (apiKey) {
+				requestData.apiKey = apiKey;
 			}
 
 			const trimmedModel = model.trim();
@@ -224,26 +226,27 @@ export function AiSettings() {
 					disabled={isSaving}
 				/>
 
-				{/* プロバイダに応じた設定フォーム */}
-				{selectedProvider && selectedProvider !== settings.provider && (
-					<View className="mt-2">
-						{selectedProvider === "ollama" ? (
-							<OllamaConnector
-								onConnected={(connectedUrl) => {
-									setOllamaUrl(connectedUrl);
-									setOllamaConnected(true);
-								}}
-								defaultUrl={ollamaUrl}
-							/>
-						) : (
-							<ApiKeyForm
-								provider={selectedProvider}
-								onValidated={setApiKeyValidated}
-								onKeyChange={setApiKey}
-							/>
-						)}
-					</View>
-				)}
+				{/* プロバイダに応じた設定フォーム（プロバイダ変更時 or APIキー未設定時に表示） */}
+				{selectedProvider &&
+					(selectedProvider !== settings.provider || !settings.hasApiKey) && (
+						<View className="mt-2">
+							{selectedProvider === "ollama" ? (
+								<OllamaConnector
+									onConnected={(connectedUrl) => {
+										setOllamaUrl(connectedUrl);
+										setOllamaConnected(true);
+									}}
+									defaultUrl={ollamaUrl}
+								/>
+							) : (
+								<ApiKeyForm
+									provider={selectedProvider}
+									onValidated={setApiKeyValidated}
+									onKeyChange={setApiKey}
+								/>
+							)}
+						</View>
+					)}
 
 				{/* モデル名入力 */}
 				{selectedProvider && (
