@@ -14,7 +14,9 @@ database_id = "e7f76aa8-06b3-49eb-a3ff-71531c4efd78"
 # 本番環境設定
 [env.production]
 vars = { ENVIRONMENT = "production" }
+routes = [{ pattern = "api.miipa.app", custom_domain = true }]
 
-[env.production.routes]
-pattern = "api.miipa.app"
-custom_domain = true
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "miipa-db"
+database_id = "e7f76aa8-06b3-49eb-a3ff-71531c4efd78"
