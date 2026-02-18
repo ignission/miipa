@@ -4,7 +4,7 @@ import type { UICalendarEvent } from "../../hooks/useEvents";
 import { DEFAULT_CALENDAR_COLOR } from "../../theme";
 
 /** 1時間あたりの高さ（px） */
-const HOUR_HEIGHT = 60;
+const HOUR_HEIGHT = 80;
 /** 表示開始時刻 */
 const DAY_START_HOUR = 6;
 /** 表示終了時刻 */
