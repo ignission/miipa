@@ -19,7 +19,7 @@ import type { OAuthConfig } from "@/lib/infrastructure/calendar/oauth-service";
 export function getOAuthConfig(env: Bindings): OAuthConfig {
 	const baseUrl =
 		env.ENVIRONMENT === "production"
-			? "https://miipa.app"
+			? "https://api.miipa.app"
 			: "http://localhost:8787";
 	return {
 		clientId: env.GOOGLE_CLIENT_ID,
