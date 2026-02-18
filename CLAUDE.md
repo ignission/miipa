@@ -45,6 +45,10 @@ npm run build:worker && npx wrangler deploy
 - `npx biome check .` と `npm run build` が両方通るまで検証完了としないこと
 - ビルド失敗を「環境の問題」として片付けない
 
+## 既知の問題
+
+- **Cloudflare Pages デプロイ時の日本語コミットメッセージ**: `wrangler pages deploy` がgitのコミットメッセージをCloudflare APIに送信する際、日本語（非ASCII）文字が `Invalid commit message, it must be a valid UTF-8 string. [code: 8000111]` エラーを引き起こすことがある。**コミットメッセージは英語で記述すること**。
+
 ## 開発方針
 
 ### 最重要: UXに一番時間をかける
