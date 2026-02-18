@@ -8,10 +8,7 @@
  */
 
 import { Pressable, Text, View } from "react-native";
-import {
-	type LLMProvider,
-	PROVIDER_INFO,
-} from "./types";
+import { type LLMProvider, PROVIDER_INFO } from "./types";
 
 // ============================================================
 // 型定義
@@ -73,21 +70,15 @@ function ProviderCard({
 			accessibilityRole="radio"
 			accessibilityState={{ selected: isSelected, disabled }}
 			className={`w-full rounded-lg border-2 p-4 ${
-				isSelected
-					? "border-accent bg-accent-50"
-					: "border-border bg-bg"
+				isSelected ? "border-accent bg-accent-50" : "border-border bg-bg"
 			} ${disabled ? "opacity-50" : ""}`}
 		>
 			{/* ヘッダー: 名前 + 推奨バッジ */}
 			<View className="mb-2 flex-row items-center gap-2">
-				<Text className="text-lg font-semibold text-fg">
-					{info.name}
-				</Text>
+				<Text className="text-lg font-semibold text-fg">{info.name}</Text>
 				{info.isRecommended && (
 					<View className="rounded-full bg-accent px-2 py-0.5">
-						<Text className="text-xs font-medium text-white">
-							推奨
-						</Text>
+						<Text className="text-xs font-medium text-white">推奨</Text>
 					</View>
 				)}
 			</View>

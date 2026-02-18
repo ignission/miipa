@@ -74,11 +74,7 @@ export default function ChatScreen() {
 
 				setMessages((prev) => [...prev, assistantMessage]);
 			} catch (e) {
-				setError(
-					e instanceof Error
-						? e.message
-						: "エラーが発生しました",
-				);
+				setError(e instanceof Error ? e.message : "エラーが発生しました");
 			} finally {
 				setIsLoading(false);
 			}

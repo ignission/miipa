@@ -11,17 +11,14 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import {
 	type AISettingsResponse,
-	type UpdateAISettingsRequest,
 	fetchAISettings,
+	type UpdateAISettingsRequest,
 	updateAISettings,
 } from "../../api/settings";
 import { ApiKeyForm } from "../setup/api-key-form";
 import { OllamaConnector } from "../setup/ollama-connector";
 import { ProviderSelector } from "../setup/provider-selector";
-import {
-	type LLMProvider,
-	PROVIDER_INFO,
-} from "../setup/types";
+import { type LLMProvider, PROVIDER_INFO } from "../setup/types";
 
 // ============================================================
 // 型定義
@@ -40,10 +37,7 @@ interface ResultMessage {
 /**
  * プロバイダの状態ラベルを返す
  */
-function getStatusLabel(
-	provider: string | null,
-	hasApiKey: boolean,
-): string {
+function getStatusLabel(provider: string | null, hasApiKey: boolean): string {
 	if (provider === "ollama") {
 		return hasApiKey ? "接続済み" : "未接続";
 	}
@@ -61,8 +55,9 @@ function getStatusLabel(
  */
 export function AiSettings() {
 	const [settings, setSettings] = useState<AISettingsResponse | null>(null);
-	const [selectedProvider, setSelectedProvider] =
-		useState<LLMProvider | null>(null);
+	const [selectedProvider, setSelectedProvider] = useState<LLMProvider | null>(
+		null,
+	);
 	const [apiKey, setApiKey] = useState("");
 	const [apiKeyValidated, setApiKeyValidated] = useState(false);
 	const [ollamaConnected, setOllamaConnected] = useState(false);
@@ -179,29 +174,24 @@ export function AiSettings() {
 		<View className="gap-6">
 			{/* 現在の設定セクション */}
 			<View className="gap-3">
-				<Text className="text-lg font-semibold text-fg">
-					現在の設定
-				</Text>
+				<Text className="text-lg font-semibold text-fg">現在の設定</Text>
 				<View className="flex-row flex-wrap items-center gap-3">
 					<Text className="text-sm text-fg-muted">プロバイダ:</Text>
 					<Text className="font-medium text-fg">
 						{settings.provider
-							? (PROVIDER_INFO[settings.provider as LLMProvider]?.name ?? settings.provider)
+							? (PROVIDER_INFO[settings.provider as LLMProvider]?.name ??
+								settings.provider)
 							: "未設定"}
 					</Text>
 					{settings.provider && (
 						<View
 							className={`rounded-full px-2 py-0.5 ${
-								settings.hasApiKey
-									? "bg-green-100"
-									: "bg-yellow-100"
+								settings.hasApiKey ? "bg-green-100" : "bg-yellow-100"
 							}`}
 						>
 							<Text
 								className={`text-xs font-medium ${
-									settings.hasApiKey
-										? "text-green-800"
-										: "text-yellow-800"
+									settings.hasApiKey ? "text-green-800" : "text-yellow-800"
 								}`}
 							>
 								{getStatusLabel(settings.provider, settings.hasApiKey)}
@@ -224,9 +214,7 @@ export function AiSettings() {
 
 			{/* 設定変更セクション */}
 			<View className="gap-4">
-				<Text className="text-lg font-semibold text-fg">
-					設定変更
-				</Text>
+				<Text className="text-lg font-semibold text-fg">設定変更</Text>
 
 				{/* プロバイダ選択 */}
 				<ProviderSelector
@@ -237,33 +225,30 @@ export function AiSettings() {
 				/>
 
 				{/* プロバイダに応じた設定フォーム */}
-				{selectedProvider &&
-					selectedProvider !== settings.provider && (
-						<View className="mt-2">
-							{selectedProvider === "ollama" ? (
-								<OllamaConnector
-									onConnected={(connectedUrl) => {
-										setOllamaUrl(connectedUrl);
-										setOllamaConnected(true);
-									}}
-									defaultUrl={ollamaUrl}
-								/>
-							) : (
-								<ApiKeyForm
-									provider={selectedProvider}
-									onValidated={setApiKeyValidated}
-									onKeyChange={setApiKey}
-								/>
-							)}
-						</View>
-					)}
+				{selectedProvider && selectedProvider !== settings.provider && (
+					<View className="mt-2">
+						{selectedProvider === "ollama" ? (
+							<OllamaConnector
+								onConnected={(connectedUrl) => {
+									setOllamaUrl(connectedUrl);
+									setOllamaConnected(true);
+								}}
+								defaultUrl={ollamaUrl}
+							/>
+						) : (
+							<ApiKeyForm
+								provider={selectedProvider}
+								onValidated={setApiKeyValidated}
+								onKeyChange={setApiKey}
+							/>
+						)}
+					</View>
+				)}
 
 				{/* モデル名入力 */}
 				{selectedProvider && (
 					<View className="gap-2">
-						<Text className="font-medium text-fg">
-							モデル名（任意）
-						</Text>
+						<Text className="font-medium text-fg">モデル名（任意）</Text>
 						<TextInput
 							value={model}
 							onChangeText={setModel}
@@ -287,17 +272,13 @@ export function AiSettings() {
 			{message && (
 				<View
 					className={`rounded-md p-3 ${
-						message.type === "success"
-							? "bg-green-100"
-							: "bg-red-100"
+						message.type === "success" ? "bg-green-100" : "bg-red-100"
 					}`}
 					accessibilityRole="alert"
 				>
 					<Text
 						className={
-							message.type === "success"
-								? "text-green-800"
-								: "text-red-800"
+							message.type === "success" ? "text-green-800" : "text-red-800"
 						}
 					>
 						{message.text}

@@ -63,7 +63,6 @@ function isSendKey(value: string | null | undefined): value is SendKey {
 	return VALID_SEND_KEYS.includes(value as SendKey);
 }
 
-
 // ============================================================
 // ルート定義
 // ============================================================

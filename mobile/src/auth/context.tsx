@@ -33,18 +33,10 @@ type GoogleAuthHook = [
 ];
 
 /**
- * Mobile 用 Google OAuth フック（Web では no-op）
+ * Mobile 用 Google OAuth フック（実際にHookを呼び出す）
  */
-function useMobileGoogleAuth(): GoogleAuthHook {
-	if (Platform.OS === "web") {
-		// Web では expo-auth-session を使わない
-		return [null, null, async () => {}];
-	}
-
-	// Mobile 環境でのみ動的に require
-	// biome-ignore lint: Web では到達しないため動的 require が必要
+function useNativeGoogleAuth(): GoogleAuthHook {
 	const Google = require("expo-auth-session/providers/google");
-	// biome-ignore lint: Web では到達しないため動的 require が必要
 	const WebBrowser = require("expo-web-browser");
 	WebBrowser.maybeCompleteAuthSession();
 
@@ -53,6 +45,21 @@ function useMobileGoogleAuth(): GoogleAuthHook {
 		webClientId: AUTH_CONFIG.googleWebClientId,
 	});
 }
+
+/**
+ * Web 用 no-op フック
+ */
+function useWebGoogleAuth(): GoogleAuthHook {
+	return [null, null, async () => {}];
+}
+
+/**
+ * プラットフォームに応じた Google OAuth フックを選択
+ *
+ * Platform.OS は実行時に固定値のため、Hookの呼び出し順序は変わらない
+ */
+const useMobileGoogleAuth =
+	Platform.OS === "web" ? useWebGoogleAuth : useNativeGoogleAuth;
 
 // ============================================================
 // 型定義
@@ -412,13 +419,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const signOut = useCallback(async () => {
 		if (Platform.OS === "web") {
 			try {
-				await fetch(
-					`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.logoutEndpoint}`,
-					{
-						method: "POST",
-						credentials: "include",
-					},
-				);
+				await fetch(`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.logoutEndpoint}`, {
+					method: "POST",
+					credentials: "include",
+				});
 			} catch (error) {
 				console.error("[auth] ログアウトAPIエラー:", error);
 			}

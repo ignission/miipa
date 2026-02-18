@@ -88,9 +88,7 @@ export function ApiKeyForm({
 		<View className="gap-4">
 			{/* プロバイダ情報 */}
 			<View className="flex-row items-center gap-3">
-				<Text className="text-lg font-semibold text-fg">
-					{info.name}
-				</Text>
+				<Text className="text-lg font-semibold text-fg">{info.name}</Text>
 			</View>
 
 			{/* APIキー入力 */}
@@ -114,14 +112,10 @@ export function ApiKeyForm({
 						/>
 						<Pressable
 							onPress={() => setShowKey(!showKey)}
-							accessibilityLabel={
-								showKey ? "APIキーを隠す" : "APIキーを表示"
-							}
+							accessibilityLabel={showKey ? "APIキーを隠す" : "APIキーを表示"}
 							className="absolute right-3 top-1/2 -translate-y-1/2"
 						>
-							<Text className="text-fg-muted">
-								{showKey ? "隠す" : "表示"}
-							</Text>
+							<Text className="text-fg-muted">{showKey ? "隠す" : "表示"}</Text>
 						</Pressable>
 					</View>
 				</View>
@@ -130,7 +124,11 @@ export function ApiKeyForm({
 			{/* ヘルプリンク */}
 			{info.apiKeyHelpUrl && (
 				<Pressable
-					onPress={() => Linking.openURL(info.apiKeyHelpUrl!)}
+					onPress={() => {
+						if (info.apiKeyHelpUrl) {
+							Linking.openURL(info.apiKeyHelpUrl);
+						}
+					}}
 					accessibilityRole="link"
 				>
 					<Text className="text-sm text-accent underline">
@@ -144,9 +142,7 @@ export function ApiKeyForm({
 				onPress={handleValidate}
 				disabled={!apiKey.trim() || isValidating}
 				className={`items-center rounded-md p-3 ${
-					!apiKey.trim() || isValidating
-						? "bg-accent opacity-50"
-						: "bg-accent"
+					!apiKey.trim() || isValidating ? "bg-accent opacity-50" : "bg-accent"
 				}`}
 			>
 				<Text className="font-medium text-white">
@@ -158,17 +154,13 @@ export function ApiKeyForm({
 			{validationResult && (
 				<View
 					className={`rounded-md p-3 ${
-						validationResult.valid
-							? "bg-green-100"
-							: "bg-red-100"
+						validationResult.valid ? "bg-green-100" : "bg-red-100"
 					}`}
 					accessibilityRole="alert"
 				>
 					<Text
 						className={
-							validationResult.valid
-								? "text-green-800"
-								: "text-red-800"
+							validationResult.valid ? "text-green-800" : "text-red-800"
 						}
 					>
 						{validationResult.valid

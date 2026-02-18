@@ -31,7 +31,9 @@ export function EventCard({ event, color }: EventCardProps) {
 	return (
 		<View
 			className={`mx-4 my-1 flex-row overflow-hidden rounded-xl shadow-sm ${
-				event.isAllDay ? "border border-dashed border-accent-200 bg-accent-50" : "bg-bg"
+				event.isAllDay
+					? "border border-dashed border-accent-200 bg-accent-50"
+					: "bg-bg"
 			}`}
 			style={
 				// Android 用 elevation
@@ -50,7 +52,10 @@ export function EventCard({ event, color }: EventCardProps) {
 				</Text>
 
 				{/* タイトル */}
-				<Text className="mb-1 text-[15px] font-semibold text-fg" numberOfLines={2}>
+				<Text
+					className="mb-1 text-[15px] font-semibold text-fg"
+					numberOfLines={2}
+				>
 					{event.title}
 				</Text>
 

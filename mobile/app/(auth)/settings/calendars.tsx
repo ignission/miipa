@@ -15,7 +15,10 @@ import { AddGoogleCalendarButton } from "../../../src/components/settings/add-go
 import { AddICalDialog } from "../../../src/components/settings/add-ical-dialog";
 import { CalendarList } from "../../../src/components/settings/calendar-list";
 import { DeleteCalendarDialog } from "../../../src/components/settings/delete-calendar-dialog";
-import { useCalendars, useSyncCalendars } from "../../../src/hooks/useCalendars";
+import {
+	useCalendars,
+	useSyncCalendars,
+} from "../../../src/hooks/useCalendars";
 
 // ============================================================
 // 型定義
@@ -105,9 +108,7 @@ export default function CalendarsSettingsScreen() {
 				// TODO: iCal追加APIの呼び出し
 				return true;
 			} catch (e) {
-				setICalError(
-					e instanceof Error ? e.message : "追加に失敗しました",
-				);
+				setICalError(e instanceof Error ? e.message : "追加に失敗しました");
 				return false;
 			} finally {
 				setIsAddingICal(false);
@@ -122,9 +123,7 @@ export default function CalendarsSettingsScreen() {
 	const calendarConfigs = (calendars ?? []).map((cal) => ({
 		id: String(cal.id),
 		name: cal.name,
-		type: ((cal as { type?: string }).type ?? "google") as
-			| "google"
-			| "ical",
+		type: ((cal as { type?: string }).type ?? "google") as "google" | "ical",
 		enabled: cal.enabled,
 		googleAccountEmail: cal.accountEmail,
 	}));
@@ -137,9 +136,7 @@ export default function CalendarsSettingsScreen() {
 					{/* 同期ステータス */}
 					<View className="mb-4 flex-row items-center justify-between">
 						<SyncStatusBadge
-							lastSyncTime={
-								syncMutation.isSuccess ? new Date() : undefined
-							}
+							lastSyncTime={syncMutation.isSuccess ? new Date() : undefined}
 							hasError={syncMutation.isError}
 						/>
 					</View>
@@ -148,9 +145,7 @@ export default function CalendarsSettingsScreen() {
 					{isLoadingCalendars ? (
 						<View className="items-center py-8">
 							<ActivityIndicator size="large" color="#F97316" />
-							<Text className="mt-2 text-sm text-fg-muted">
-								読み込み中...
-							</Text>
+							<Text className="mt-2 text-sm text-fg-muted">読み込み中...</Text>
 						</View>
 					) : (
 						<CalendarList
@@ -177,9 +172,7 @@ export default function CalendarsSettingsScreen() {
 						{/* iCalカレンダー追加ボタン */}
 						<View>
 							<AddGoogleCalendarButton
-								startAuth={async () =>
-									setIsICalDialogOpen(true)
-								}
+								startAuth={async () => setIsICalDialogOpen(true)}
 								isLoading={false}
 								onSuccess={() => {}}
 							/>

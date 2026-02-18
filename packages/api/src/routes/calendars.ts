@@ -160,9 +160,7 @@ calendars.delete("/:id", async (c) => {
 	}
 
 	// カレンダーを配列から除外して保存
-	const updatedCalendars = listResult.calendars.filter(
-		(cal) => cal.id !== id,
-	);
+	const updatedCalendars = listResult.calendars.filter((cal) => cal.id !== id);
 	const saveResult = await ctx.configRepository.setSetting(
 		"calendars",
 		JSON.stringify(updatedCalendars),
@@ -468,10 +466,7 @@ calendars.post("/sync", async (c) => {
 
 	if (!isOk(result)) {
 		console.error("[sync-api] 同期致命的エラー:", result.error.message);
-		return c.json(
-			{ success: false, error: result.error.message },
-			500,
-		);
+		return c.json({ success: false, error: result.error.message }, 500);
 	}
 
 	const { successCount, totalCount, errorCalendars, syncedAt } = result.value;

@@ -32,9 +32,7 @@ export default function AccountSettingsScreen() {
 								{user?.name ?? "ユーザー"}
 							</Text>
 							{user?.email && (
-								<Text className="mt-1 text-sm text-fg-muted">
-									{user.email}
-								</Text>
+								<Text className="mt-1 text-sm text-fg-muted">{user.email}</Text>
 							)}
 						</View>
 					</View>
@@ -45,9 +43,7 @@ export default function AccountSettingsScreen() {
 							onPress={signOut}
 							className="items-center rounded-xl border border-border bg-bg p-4 active:bg-bg-subtle"
 						>
-							<Text className="font-semibold text-fg">
-								ログアウト
-							</Text>
+							<Text className="font-semibold text-fg">ログアウト</Text>
 						</Pressable>
 					</View>
 
@@ -60,9 +56,7 @@ export default function AccountSettingsScreen() {
 							onPress={() => setIsDeleteDialogOpen(true)}
 							className="items-center rounded-xl bg-red-600 p-4 active:bg-red-700"
 						>
-							<Text className="font-semibold text-white">
-								アカウントを削除
-							</Text>
+							<Text className="font-semibold text-white">アカウントを削除</Text>
 						</Pressable>
 						<Text className="text-center text-xs text-fg-muted">
 							すべてのデータが完全に削除されます。この操作は取り消せません。

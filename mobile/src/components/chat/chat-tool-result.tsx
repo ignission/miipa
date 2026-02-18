@@ -68,9 +68,7 @@ export function ChatToolResult({ toolName, result }: ChatToolResultProps) {
 				{/* ツール名ヘッダー */}
 				<View className="mb-1 flex-row items-center gap-1.5">
 					<ToolIcon />
-					<Text className="text-xs font-medium text-fg-muted">
-						{toolName}
-					</Text>
+					<Text className="text-xs font-medium text-fg-muted">{toolName}</Text>
 				</View>
 
 				{/* 結果表示 */}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
-import { fetchChatSettings, updateChatSettings } from "../api/settings";
 import type { SendKeyType } from "../api/settings";
+import { fetchChatSettings, updateChatSettings } from "../api/settings";
 
 // ============================================================
 // 型定義（再エクスポート用）

@@ -245,9 +245,7 @@ interface StepSeparatorProps {
  */
 function StepSeparator({ isComplete }: StepSeparatorProps) {
 	return (
-		<View
-			className={`h-0.5 flex-1 ${isComplete ? "bg-fg" : "bg-border"}`}
-		/>
+		<View className={`h-0.5 flex-1 ${isComplete ? "bg-fg" : "bg-border"}`} />
 	);
 }
 
@@ -275,7 +273,11 @@ interface StepContentProps {
  * @param props - コンポーネントのProps
  * @returns ステップコンテンツ要素、または非表示時は null
  */
-export function StepContent({ index, currentStep, children }: StepContentProps) {
+export function StepContent({
+	index,
+	currentStep,
+	children,
+}: StepContentProps) {
 	if (index !== currentStep) return null;
 	return <View className="mt-4">{children}</View>;
 }

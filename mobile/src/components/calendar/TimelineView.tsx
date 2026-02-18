@@ -32,8 +32,7 @@ function getEventPosition(event: UICalendarEvent): {
 } {
 	const startHour =
 		event.startTime.getHours() + event.startTime.getMinutes() / 60;
-	const rawEndHour =
-		event.endTime.getHours() + event.endTime.getMinutes() / 60;
+	const rawEndHour = event.endTime.getHours() + event.endTime.getMinutes() / 60;
 	// 深夜跨ぎ（例: 23:00→翌01:00）の場合、表示範囲の終端まで描画する
 	const endHour = rawEndHour < startHour ? DAY_END_HOUR : rawEndHour;
 
@@ -90,8 +89,7 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 							key={event.id}
 							className="mb-1 rounded-md px-2 py-1.5"
 							style={{
-								backgroundColor:
-									`${event.color ?? DEFAULT_CALENDAR_COLOR}20`,
+								backgroundColor: `${event.color ?? DEFAULT_CALENDAR_COLOR}20`,
 								borderLeftWidth: 3,
 								borderLeftColor: event.color ?? DEFAULT_CALENDAR_COLOR,
 							}}
@@ -169,10 +167,7 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 									hour12: false,
 								})}
 							</Text>
-							<Text
-								className="text-xs font-medium text-fg"
-								numberOfLines={2}
-							>
+							<Text className="text-xs font-medium text-fg" numberOfLines={2}>
 								{event.title}
 							</Text>
 						</View>

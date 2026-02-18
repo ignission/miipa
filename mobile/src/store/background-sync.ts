@@ -12,8 +12,7 @@ let BackgroundFetch: BackgroundFetchModule | null = null;
 let TaskManager: TaskManagerModule | null = null;
 
 if (Platform.OS !== "web") {
-	BackgroundFetch =
-		require("expo-background-fetch") as BackgroundFetchModule;
+	BackgroundFetch = require("expo-background-fetch") as BackgroundFetchModule;
 	TaskManager = require("expo-task-manager") as TaskManagerModule;
 }
 
@@ -63,11 +62,7 @@ if (TaskManager && BackgroundFetch) {
 			}));
 			await syncToWatch(uiEvents);
 
-			console.log(
-				"[background-sync] 同期完了:",
-				data.events.length,
-				"件",
-			);
+			console.log("[background-sync] 同期完了:", data.events.length, "件");
 			return BF.BackgroundFetchResult.NewData;
 		} catch (error) {
 			console.error("[background-sync] 同期エラー:", error);

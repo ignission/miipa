@@ -9,11 +9,7 @@
  */
 
 import { Text, View } from "react-native";
-import {
-	SETUP_STEPS,
-	type SetupStep,
-	getStepIndex,
-} from "./types";
+import { getStepIndex, SETUP_STEPS, type SetupStep } from "./types";
 
 // ============================================================
 // 型定義
@@ -67,9 +63,7 @@ export function SetupStepper({ currentStep }: SetupStepperProps) {
 							>
 								<Text
 									className={`text-sm font-bold ${
-										isCompleted || isCurrent
-											? "text-white"
-											: "text-fg-muted"
+										isCompleted || isCurrent ? "text-white" : "text-fg-muted"
 									}`}
 								>
 									{isCompleted ? "✓" : String(index + 1)}
@@ -79,9 +73,7 @@ export function SetupStepper({ currentStep }: SetupStepperProps) {
 							{/* ラベル */}
 							<Text
 								className={`mt-1 text-xs ${
-									isCurrent
-										? "font-medium text-fg"
-										: "text-fg-muted"
+									isCurrent ? "font-medium text-fg" : "text-fg-muted"
 								}`}
 							>
 								{step.label}
@@ -92,9 +84,7 @@ export function SetupStepper({ currentStep }: SetupStepperProps) {
 						{index < SETUP_STEPS.length - 1 && (
 							<View
 								className={`mx-2 h-0.5 w-8 ${
-									index < currentIndex
-										? "bg-green-500"
-										: "bg-bg-muted"
+									index < currentIndex ? "bg-green-500" : "bg-bg-muted"
 								}`}
 							/>
 						)}

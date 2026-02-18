@@ -95,7 +95,12 @@ async function refreshAccessToken(): Promise<boolean> {
 
 			const data = (await response.json()) as {
 				token: string;
-				user: { id: string; name: string | null; email: string; image: string | null };
+				user: {
+					id: string;
+					name: string | null;
+					email: string;
+					image: string | null;
+				};
 			};
 
 			// メモリにアクセストークンを保存（Cookie は Hono が管理）

@@ -1,10 +1,11 @@
-name: Deploy to Cloudflare Workers
+name: Deploy
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy:
+  # Hono API を Cloudflare Workers にデプロイ
+  deploy-api:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -12,9 +13,29 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # モノレポのルートで依存関係をインストール
       - run: npm ci --force
-      - run: npm run build:worker
       - run: npx wrangler deploy
+        working-directory: packages/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  # Expo Router Web を Cloudflare Pages にデプロイ
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      # モノレポのルートで依存関係をインストール
+      - run: npm ci --force
+      - run: npx expo export --platform web
+        working-directory: mobile
+      - run: npx wrangler pages deploy dist --project-name=miipa
+        working-directory: mobile
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

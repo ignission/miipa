@@ -8,8 +8,8 @@
  */
 
 import { Pressable, Text, View } from "react-native";
-import { Switch } from "../ui/switch";
 import Svg, { Path } from "react-native-svg";
+import { Switch } from "../ui/switch";
 
 // ============================================================
 // 型定義
@@ -131,27 +131,18 @@ function CalendarCard({
 
 				{/* カレンダー情報 */}
 				<View className="min-w-0 flex-1">
-					<Text
-						className="text-base font-semibold text-fg"
-						numberOfLines={1}
-					>
+					<Text className="text-base font-semibold text-fg" numberOfLines={1}>
 						{calendar.name}
 					</Text>
 					{calendar.type === "google" && calendar.googleAccountEmail && (
-						<Text
-							className="text-xs text-fg-muted"
-							numberOfLines={1}
-						>
+						<Text className="text-xs text-fg-muted" numberOfLines={1}>
 							{calendar.googleAccountEmail}
 						</Text>
 					)}
 				</View>
 
 				{/* スイッチ */}
-				<Switch
-					value={calendar.enabled}
-					onValueChange={onToggle}
-				/>
+				<Switch value={calendar.enabled} onValueChange={onToggle} />
 
 				{/* 削除ボタン */}
 				<Pressable

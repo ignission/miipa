@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Calendar } from "../api/calendars";
 import {
 	addICalCalendar,
 	deleteCalendar,
@@ -7,7 +8,6 @@ import {
 	syncCalendars,
 	toggleCalendar,
 } from "../api/calendars";
-import type { Calendar } from "../api/calendars";
 
 /**
  * カレンダー一覧取得フック

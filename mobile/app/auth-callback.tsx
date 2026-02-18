@@ -19,11 +19,7 @@ import {
 } from "react-native";
 import { AUTH_CONFIG } from "../src/auth/config";
 import type { StoredUser } from "../src/auth/storage";
-import {
-	saveRefreshToken,
-	saveToken,
-	saveUser,
-} from "../src/auth/storage";
+import { saveRefreshToken, saveToken, saveUser } from "../src/auth/storage";
 
 /** エラー表示後にサインイン画面へ戻るまでの遅延(ms) */
 const REDIRECT_DELAY_MS = 3000;
@@ -104,9 +100,7 @@ export default function AuthCallbackScreen() {
 				} catch (e) {
 					console.error("[auth-callback] コード交換エラー:", e);
 					const message =
-						e instanceof Error
-							? e.message
-							: "認証情報の取得に失敗しました";
+						e instanceof Error ? e.message : "認証情報の取得に失敗しました";
 					showErrorAndRedirect(setError, message);
 				}
 				return;

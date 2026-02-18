@@ -65,9 +65,7 @@ export function AddICalDialog({
 		try {
 			const parsed = new URL(value);
 			if (!["http:", "https:"].includes(parsed.protocol)) {
-				setUrlError(
-					"http:// または https:// で始まるURLを入力してください",
-				);
+				setUrlError("http:// または https:// で始まるURLを入力してください");
 				return false;
 			}
 		} catch {
@@ -135,10 +133,7 @@ export function AddICalDialog({
 						}`}
 					/>
 					{urlError && (
-						<Text
-							className="text-sm text-red-500"
-							accessibilityRole="alert"
-						>
+						<Text className="text-sm text-red-500" accessibilityRole="alert">
 							{urlError}
 						</Text>
 					)}
@@ -147,9 +142,7 @@ export function AddICalDialog({
 				{/* 名前入力 */}
 				<View className="gap-2">
 					<View className="flex-row">
-						<Text className="text-sm font-medium text-fg">
-							カレンダー名
-						</Text>
+						<Text className="text-sm font-medium text-fg">カレンダー名</Text>
 						<Text className="ml-1 text-fg-subtle">（任意）</Text>
 					</View>
 					<TextInput
@@ -163,10 +156,7 @@ export function AddICalDialog({
 
 				{/* APIエラー表示 */}
 				{error && (
-					<View
-						className="rounded-md bg-red-100 p-3"
-						accessibilityRole="alert"
-					>
+					<View className="rounded-md bg-red-100 p-3" accessibilityRole="alert">
 						<Text className="text-sm text-red-800">{error}</Text>
 					</View>
 				)}

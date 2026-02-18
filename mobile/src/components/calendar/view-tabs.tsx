@@ -65,9 +65,7 @@ export function ViewTabs({ activeView, onViewChange }: ViewTabsProps) {
 					<Pressable
 						key={tab.id}
 						className={`min-w-[100px] flex-row items-center justify-center gap-2 rounded-xl px-5 py-2.5 ${
-							isActive
-								? "bg-bg shadow-sm"
-								: "bg-transparent active:bg-bg-muted"
+							isActive ? "bg-bg shadow-sm" : "bg-transparent active:bg-bg-muted"
 						}`}
 						onPress={() => onViewChange(tab.id)}
 						accessibilityRole="tab"

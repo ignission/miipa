@@ -62,9 +62,7 @@ export function ChatSuggestions({ onSelect }: ChatSuggestionsProps) {
 						accessibilityRole="button"
 						className="min-h-[44px] items-center justify-center rounded-full border border-border bg-bg px-4 py-2.5 active:bg-bg-subtle"
 					>
-						<Text className="text-sm font-medium text-fg">
-							{suggestion}
-						</Text>
+						<Text className="text-sm font-medium text-fg">{suggestion}</Text>
 					</Pressable>
 				))}
 			</View>

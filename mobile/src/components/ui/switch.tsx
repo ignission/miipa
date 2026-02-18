@@ -18,9 +18,9 @@
 
 import {
 	Switch as RNSwitch,
+	type SwitchProps as RNSwitchProps,
 	Text,
 	View,
-	type SwitchProps as RNSwitchProps,
 } from "react-native";
 
 /**

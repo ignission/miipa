@@ -18,7 +18,10 @@ import {
 	View,
 } from "react-native";
 import { TimelineView } from "../../src/components/calendar/TimelineView";
-import { ViewTabs, type ViewType } from "../../src/components/calendar/view-tabs";
+import {
+	ViewTabs,
+	type ViewType,
+} from "../../src/components/calendar/view-tabs";
 import { useEvents } from "../../src/hooks/useEvents";
 import { useWidgetData } from "../../src/hooks/useWidgetData";
 
@@ -55,9 +58,7 @@ export default function TodayScreen() {
 		return (
 			<View className="flex-1 items-center justify-center p-6">
 				<ActivityIndicator size="large" color="#F97316" />
-				<Text className="mt-3 text-sm text-neutral-500">
-					読み込み中...
-				</Text>
+				<Text className="mt-3 text-sm text-neutral-500">読み込み中...</Text>
 			</View>
 		);
 	}
@@ -69,9 +70,7 @@ export default function TodayScreen() {
 				<Text className="mb-1 text-base font-semibold text-neutral-900">
 					読み込みに失敗しました
 				</Text>
-				<Text className="text-sm text-neutral-500">
-					{error.message}
-				</Text>
+				<Text className="text-sm text-neutral-500">{error.message}</Text>
 			</View>
 		);
 	}
@@ -95,10 +94,7 @@ export default function TodayScreen() {
 			>
 				{/* ViewTabs（今日/今週切り替え） */}
 				<View className="items-center px-4 py-3">
-					<ViewTabs
-						activeView={activeView}
-						onViewChange={handleViewChange}
-					/>
+					<ViewTabs activeView={activeView} onViewChange={handleViewChange} />
 				</View>
 
 				{/* ヘッダー */}

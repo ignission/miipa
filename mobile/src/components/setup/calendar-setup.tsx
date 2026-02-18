@@ -115,9 +115,7 @@ export function CalendarSetup({
 			{notification && (
 				<View
 					className={`rounded-md p-3 ${
-						notification.type === "success"
-							? "bg-green-100"
-							: "bg-red-100"
+						notification.type === "success" ? "bg-green-100" : "bg-red-100"
 					}`}
 					accessibilityRole="alert"
 				>
@@ -148,10 +146,7 @@ export function CalendarSetup({
 
 			{/* 認証エラーメッセージ */}
 			{authError && (
-				<View
-					className="rounded-md bg-red-100 p-3"
-					accessibilityRole="alert"
-				>
+				<View className="rounded-md bg-red-100 p-3" accessibilityRole="alert">
 					<Text className="text-sm text-red-800">{authError}</Text>
 				</View>
 			)}
@@ -188,9 +183,7 @@ export function CalendarSetup({
 										{calendar.name}
 									</Text>
 									<Text className="text-xs text-fg-muted">
-										{calendar.type === "google"
-											? "Googleカレンダー"
-											: "iCal"}
+										{calendar.type === "google" ? "Googleカレンダー" : "iCal"}
 									</Text>
 								</View>
 							</View>

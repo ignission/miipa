@@ -51,9 +51,7 @@ export default function AuthLayout() {
 					title: "今日",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
-							name={
-								focused ? "calendar" : "calendar-outline"
-							}
+							name={focused ? "calendar" : "calendar-outline"}
 							color={color}
 						/>
 					),
@@ -65,11 +63,7 @@ export default function AuthLayout() {
 					title: "今週",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
-							name={
-								focused
-									? "calendar-number"
-									: "calendar-number-outline"
-							}
+							name={focused ? "calendar-number" : "calendar-number-outline"}
 							color={color}
 						/>
 					),
@@ -82,9 +76,7 @@ export default function AuthLayout() {
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
 							name={
-								focused
-									? "chatbubble-ellipses"
-									: "chatbubble-ellipses-outline"
+								focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"
 							}
 							color={color}
 						/>
@@ -97,9 +89,7 @@ export default function AuthLayout() {
 					title: "設定",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
-							name={
-								focused ? "settings" : "settings-outline"
-							}
+							name={focused ? "settings" : "settings-outline"}
 							color={color}
 						/>
 					),

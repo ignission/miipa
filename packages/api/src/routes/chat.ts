@@ -421,7 +421,10 @@ chat.get("/", async (c) => {
 		return c.json({ messages: chatMessages });
 	} catch (error) {
 		console.error("[chat] 会話履歴取得エラー:", error);
-		return c.json({ error: { code: "DB_ERROR", message: "会話履歴の取得に失敗しました" } }, 500);
+		return c.json(
+			{ error: { code: "DB_ERROR", message: "会話履歴の取得に失敗しました" } },
+			500,
+		);
 	}
 });
 

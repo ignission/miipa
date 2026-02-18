@@ -8,7 +8,13 @@
  */
 
 import { Redirect } from "expo-router";
-import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
+import {
+	ActivityIndicator,
+	Platform,
+	Pressable,
+	Text,
+	View,
+} from "react-native";
 import { useAuth } from "../src/auth";
 import { LandingPage } from "../src/components/lp/landing-page";
 
@@ -40,9 +46,7 @@ export default function SignInScreen() {
 			{/* キャラクターエリア */}
 			<View className="mb-12 items-center">
 				<Text className="mb-4 text-7xl">🐾</Text>
-				<Text className="mb-2 text-4xl font-bold text-orange-600">
-					miipa
-				</Text>
+				<Text className="mb-2 text-4xl font-bold text-orange-600">miipa</Text>
 				<Text className="text-base text-orange-900">
 					今日の予定を30秒で把握
 				</Text>

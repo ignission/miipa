@@ -7,7 +7,15 @@
  * @module components/lp/landing-page
  */
 
-import { Image, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import {
+	Image,
+	Linking,
+	Platform,
+	Pressable,
+	ScrollView,
+	Text,
+	View,
+} from "react-native";
 
 // ============================================================
 // 型定義
@@ -74,9 +82,7 @@ function StepCard({
 	return (
 		<View className="flex-1 items-center gap-4">
 			<View className="h-14 w-14 items-center justify-center rounded-full bg-[#C8893A]">
-				<Text className="text-xl font-bold text-white">
-					{number}
-				</Text>
+				<Text className="text-xl font-bold text-white">{number}</Text>
 			</View>
 			<View className="flex-row items-center gap-2">
 				<Text className="text-center text-lg font-bold text-fg md:text-xl">
@@ -96,13 +102,7 @@ function StepCard({
 /**
  * CTAボタン
  */
-function CTAButton({
-	onPress,
-	label,
-}: {
-	onPress: () => void;
-	label: string;
-}) {
+function CTAButton({ onPress, label }: { onPress: () => void; label: string }) {
 	return (
 		<Pressable
 			onPress={onPress}
@@ -227,10 +227,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
 				</Text>
 
 				<View className="mt-6">
-					<CTAButton
-						onPress={onSignIn}
-						label="今すぐ無料で始める"
-					/>
+					<CTAButton onPress={onSignIn} label="今すぐ無料で始める" />
 				</View>
 
 				<Text className="mt-4 text-sm text-fg-muted">
@@ -240,31 +237,17 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
 
 			{/* ===== セクション5: フッター ===== */}
 			<View className="items-center border-t border-border px-6 py-8">
-				<Text className="text-sm text-fg-muted">
-					miipa &copy; 2026
-				</Text>
+				<Text className="text-sm text-fg-muted">miipa &copy; 2026</Text>
 
 				<View className="mt-4 flex-row gap-6">
-					<Pressable
-						onPress={() => Linking.openURL("/privacy")}
-					>
-						<Text className="text-sm text-fg-muted">
-							プライバシーポリシー
-						</Text>
+					<Pressable onPress={() => Linking.openURL("/privacy")}>
+						<Text className="text-sm text-fg-muted">プライバシーポリシー</Text>
 					</Pressable>
-					<Pressable
-						onPress={() => Linking.openURL("/terms")}
-					>
-						<Text className="text-sm text-fg-muted">
-							利用規約
-						</Text>
+					<Pressable onPress={() => Linking.openURL("/terms")}>
+						<Text className="text-sm text-fg-muted">利用規約</Text>
 					</Pressable>
-					<Pressable
-						onPress={() => Linking.openURL("/tokushoho")}
-					>
-						<Text className="text-sm text-fg-muted">
-							特商法表記
-						</Text>
+					<Pressable onPress={() => Linking.openURL("/tokushoho")}>
+						<Text className="text-sm text-fg-muted">特商法表記</Text>
 					</Pressable>
 				</View>
 			</View>

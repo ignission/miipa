@@ -88,7 +88,9 @@ export function SyncStatusBadge({
 	return (
 		<View className="flex-row items-center gap-1">
 			{hasError && <Text className="text-xs text-red-500">⚠</Text>}
-			<Text className={`text-xs ${hasError ? "text-red-500" : "text-fg-muted"}`}>
+			<Text
+				className={`text-xs ${hasError ? "text-red-500" : "text-fg-muted"}`}
+			>
 				{hasError ? "同期エラー" : relativeTime}
 			</Text>
 		</View>

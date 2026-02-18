@@ -7,16 +7,16 @@
  * @module app/(auth)/setup
  */
 
-import { Stack, router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useAuth } from "../../src/auth";
-import { CalendarSetup } from "../../src/components/setup/calendar-setup";
-import { SetupComplete } from "../../src/components/setup/setup-complete";
-import { SetupStepper } from "../../src/components/setup/setup-stepper";
 import { ApiKeyForm } from "../../src/components/setup/api-key-form";
+import { CalendarSetup } from "../../src/components/setup/calendar-setup";
 import { OllamaConnector } from "../../src/components/setup/ollama-connector";
 import { ProviderSelector } from "../../src/components/setup/provider-selector";
+import { SetupComplete } from "../../src/components/setup/setup-complete";
+import { SetupStepper } from "../../src/components/setup/setup-stepper";
 import type { LLMProvider, SetupStep } from "../../src/components/setup/types";
 import { useCalendars } from "../../src/hooks/useCalendars";
 
@@ -28,8 +28,9 @@ export default function SetupScreen() {
 	const [currentStep, setCurrentStep] = useState<SetupStep>("calendar");
 
 	// AI設定
-	const [selectedProvider, setSelectedProvider] =
-		useState<LLMProvider | null>(null);
+	const [selectedProvider, setSelectedProvider] = useState<LLMProvider | null>(
+		null,
+	);
 	const [apiKeyValidated, setApiKeyValidated] = useState(false);
 	const [ollamaConnected, setOllamaConnected] = useState(false);
 	const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
@@ -77,11 +78,7 @@ export default function SetupScreen() {
 			// TODO: Google OAuth 認証フロー
 			await signIn();
 		} catch (e) {
-			setGoogleAuthError(
-				e instanceof Error
-					? e.message
-					: "認証に失敗しました",
-			);
+			setGoogleAuthError(e instanceof Error ? e.message : "認証に失敗しました");
 		} finally {
 			setIsGoogleAuthLoading(false);
 		}
@@ -102,8 +99,9 @@ export default function SetupScreen() {
 						calendars={(calendars ?? []).map((c) => ({
 							id: String(c.id),
 							name: c.name,
-							type: ((c as { type?: string }).type ??
-								"google") as "google" | "ical",
+							type: ((c as { type?: string }).type ?? "google") as
+								| "google"
+								| "ical",
 						}))}
 						isLoading={isLoadingCalendars}
 					/>
@@ -153,9 +151,11 @@ export default function SetupScreen() {
 								}
 								className={`w-full items-center rounded-lg px-6 py-3 ${
 									selectedProvider &&
-									(selectedProvider === "ollama"
-										? ollamaConnected
-										: apiKeyValidated)
+									(
+										selectedProvider === "ollama"
+											? ollamaConnected
+											: apiKeyValidated
+									)
 										? "bg-accent"
 										: "bg-bg-muted"
 								}`}
@@ -163,9 +163,11 @@ export default function SetupScreen() {
 								<Text
 									className={`font-medium ${
 										selectedProvider &&
-										(selectedProvider === "ollama"
-											? ollamaConnected
-											: apiKeyValidated)
+										(
+											selectedProvider === "ollama"
+												? ollamaConnected
+												: apiKeyValidated
+										)
 											? "text-white"
 											: "text-fg-muted"
 									}`}
@@ -189,9 +191,7 @@ export default function SetupScreen() {
 					<SetupComplete
 						provider={selectedProvider}
 						onStart={handleStart}
-						onNavigateToCalendarSettings={
-							handleNavigateToCalendarSettings
-						}
+						onNavigateToCalendarSettings={handleNavigateToCalendarSettings}
 					/>
 				);
 		}

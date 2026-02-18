@@ -8,14 +8,8 @@
  * @module components/chat/chat-panel
  */
 
-import { useCallback, useRef, useState } from "react";
-import {
-	type FlatList,
-	Platform,
-	Pressable,
-	Text,
-	View,
-} from "react-native";
+import { useCallback, useState } from "react";
+import { Platform, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { ChatInput, type SendKeyType } from "./chat-input";
 import { ChatMessage } from "./chat-message";
@@ -133,7 +127,6 @@ export function ChatPanel({
 }: ChatPanelProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [sendKey, setSendKey] = useState<SendKeyType>("enter");
-	const flatListRef = useRef<FlatList>(null);
 
 	/**
 	 * 質問候補選択時のハンドラ
@@ -194,9 +187,7 @@ export function ChatPanel({
 			>
 				{/* パネルヘッダー */}
 				<View className="flex-row items-center justify-between border-b border-border bg-bg px-4 py-1">
-					<Text className="text-xs font-medium text-fg-muted">
-						miipa AI
-					</Text>
+					<Text className="text-xs font-medium text-fg-muted">miipa AI</Text>
 					<Pressable
 						onPress={toggleExpanded}
 						accessibilityLabel={
@@ -205,11 +196,7 @@ export function ChatPanel({
 						accessibilityRole="button"
 						className="h-11 w-11 items-center justify-center rounded-lg"
 					>
-						{isExpanded ? (
-							<CollapseIcon />
-						) : (
-							<ExpandIcon />
-						)}
+						{isExpanded ? <CollapseIcon /> : <ExpandIcon />}
 					</Pressable>
 				</View>
 

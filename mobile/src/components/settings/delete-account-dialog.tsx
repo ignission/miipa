@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { apiFetch, ApiError } from "../../api/client";
+import { ApiError, apiFetch } from "../../api/client";
 import { Dialog } from "../ui/dialog";
 
 // ============================================================

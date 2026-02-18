@@ -1,31 +1,31 @@
 {
-  "cli": {
-    "version": ">= 13.0.0",
-    "appVersionSource": "remote"
-  },
-  "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "ios": {
-        "simulator": true
-      }
-    },
-    "preview": {
-      "distribution": "store"
-    },
-    "production": {
-      "distribution": "store",
-      "autoIncrement": true,
-      "ios": {
-        "cocoapods": "1.16.2"
-      },
-      "env": {
-        "USE_CCACHE": "0"
-      }
-    }
-  },
-  "submit": {
-    "production": {}
-  }
+	"cli": {
+		"version": ">= 13.0.0",
+		"appVersionSource": "remote"
+	},
+	"build": {
+		"development": {
+			"developmentClient": true,
+			"distribution": "internal",
+			"ios": {
+				"simulator": true
+			}
+		},
+		"preview": {
+			"distribution": "store"
+		},
+		"production": {
+			"distribution": "store",
+			"autoIncrement": true,
+			"ios": {
+				"cocoapods": "1.16.2"
+			},
+			"env": {
+				"USE_CCACHE": "0"
+			}
+		}
+	},
+	"submit": {
+		"production": {}
+	}
 }

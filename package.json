@@ -14,7 +14,7 @@
 		"dev:mobile": "cd mobile && npx expo start",
 		"build": "turbo build",
 		"deploy:api": "cd packages/api && npx wrangler deploy",
-		"deploy:web": "cd mobile && npx expo export --platform web",
+		"deploy:web": "cd mobile && npx expo export --platform web && npx wrangler pages deploy dist --project-name=miipa",
 		"deploy": "npm run deploy:api && npm run deploy:web",
 		"lint": "npx @biomejs/biome check .",
 		"lint:fix": "npx @biomejs/biome check --write ."

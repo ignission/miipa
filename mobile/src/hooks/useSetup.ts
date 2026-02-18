@@ -1,13 +1,13 @@
 import { useCallback, useState } from "react";
-import {
-	fetchSetupStatus,
-	saveSetupSettings,
-	validateApiKey,
-} from "../api/setup";
 import type {
 	SaveSetupSettingsRequest,
 	SetupStatusResponse,
 	ValidateKeyRequest,
+} from "../api/setup";
+import {
+	fetchSetupStatus,
+	saveSetupSettings,
+	validateApiKey,
 } from "../api/setup";
 
 // ============================================================

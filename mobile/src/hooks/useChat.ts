@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FlatList } from "react-native";
-import type { ChatMessage, StreamEvent } from "../api/chat";
+import type { FlatList } from "react-native";
+import type { ChatMessage } from "../api/chat";
 import { fetchChatHistory, parseSSELine, sendChatMessage } from "../api/chat";
 
 // ============================================================
@@ -92,7 +92,7 @@ export function useChat(): UseChatReturn {
 		// （FlatList のレンダリングが完了するのを待つ）
 		const timer = setTimeout(scrollToBottom, 100);
 		return () => clearTimeout(timer);
-	}, [messages, scrollToBottom]);
+	}, [scrollToBottom]);
 
 	/**
 	 * メッセージを送信し、SSEストリームからレスポンスを受信する
@@ -201,9 +201,7 @@ export function useChat(): UseChatReturn {
 				setIsLoading(false);
 			} catch (err) {
 				const message =
-					err instanceof Error
-						? err.message
-						: "メッセージの送信に失敗しました";
+					err instanceof Error ? err.message : "メッセージの送信に失敗しました";
 				setError(message);
 				setIsLoading(false);
 			}

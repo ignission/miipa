@@ -1,5 +1,5 @@
 import { Redirect } from "expo-router";
-import { Platform, View, Text, Pressable } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { useAuth } from "../src/auth";
 
 export default function IndexScreen() {

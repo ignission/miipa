@@ -59,9 +59,7 @@ function SettingsMenuItem({
 					<Text className="text-base font-semibold text-neutral-900">
 						{title}
 					</Text>
-					<Text className="mt-0.5 text-sm text-neutral-500">
-						{subtitle}
-					</Text>
+					<Text className="mt-0.5 text-sm text-neutral-500">{subtitle}</Text>
 				</View>
 				<ChevronRightIcon />
 			</Pressable>
@@ -96,9 +94,7 @@ export default function SettingsScreen() {
 							<Text className="text-lg font-semibold text-neutral-900">
 								{user.name ?? "ユーザー"}
 							</Text>
-							<Text className="text-sm text-neutral-500">
-								{user.email}
-							</Text>
+							<Text className="text-sm text-neutral-500">{user.email}</Text>
 						</View>
 					)}
 				</View>
@@ -140,10 +136,7 @@ export default function SettingsScreen() {
 							disabled={syncMutation.isPending}
 						>
 							{syncMutation.isPending ? (
-								<ActivityIndicator
-									size="small"
-									color="#F97316"
-								/>
+								<ActivityIndicator size="small" color="#F97316" />
 							) : (
 								<Text className="text-xs font-semibold text-orange-600">
 									同期
@@ -173,8 +166,7 @@ export default function SettingsScreen() {
 										<View
 											className="mr-2.5 h-2.5 w-2.5 rounded-full"
 											style={{
-												backgroundColor:
-													calendar.color ?? "#F97316",
+												backgroundColor: calendar.color ?? "#F97316",
 											}}
 										/>
 										<View className="min-w-0 flex-1">
@@ -201,11 +193,7 @@ export default function SettingsScreen() {
 											false: "#D4D4D4",
 											true: "#FDBA74",
 										}}
-										thumbColor={
-											calendar.enabled
-												? "#F97316"
-												: "#f4f3f4"
-										}
+										thumbColor={calendar.enabled ? "#F97316" : "#f4f3f4"}
 									/>
 								</View>
 							))}

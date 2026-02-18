@@ -7,8 +7,8 @@
  * @module packages/api/src/routes/auth
  */
 
-import { Hono } from "hono";
 import type { Context } from "hono";
+import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import type { AppType } from "@/context/app-context";
@@ -720,10 +720,7 @@ auth.get("/google/callback", async (c) => {
 		);
 
 		if (!userInfoRes.ok) {
-			console.error(
-				"[auth] Google UserInfo取得エラー:",
-				userInfoRes.status,
-			);
+			console.error("[auth] Google UserInfo取得エラー:", userInfoRes.status);
 			return c.redirect(
 				`${baseUrl}/auth-callback?error=true&message=${encodeURIComponent("ユーザー情報の取得に失敗しました")}`,
 			);

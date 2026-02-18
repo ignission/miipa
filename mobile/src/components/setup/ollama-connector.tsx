@@ -101,9 +101,7 @@ export function OllamaConnector({
 				onPress={handleConnect}
 				disabled={status === "connecting"}
 				className={`items-center rounded-md p-3 ${
-					status === "connecting"
-						? "bg-accent opacity-50"
-						: "bg-accent"
+					status === "connecting" ? "bg-accent opacity-50" : "bg-accent"
 				}`}
 			>
 				<Text className="font-medium text-white">
@@ -123,10 +121,7 @@ export function OllamaConnector({
 								利用可能なモデル:
 							</Text>
 							{availableModels.slice(0, 5).map((model) => (
-								<Text
-									key={model}
-									className="pl-4 text-sm text-green-800"
-								>
+								<Text key={model} className="pl-4 text-sm text-green-800">
 									- {model}
 								</Text>
 							))}
