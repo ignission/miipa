@@ -469,11 +469,8 @@ calendars.post("/sync", async (c) => {
 		return c.json({ success: false, error: result.error.message }, 500);
 	}
 
-	const { successCount, totalCount, errorCalendars, syncedAt } = result.value;
+	const { successCount, errorCalendars, syncedAt } = result.value;
 
-	console.log(
-		`[sync-api] 同期完了: total=${totalCount}, success=${successCount}, errors=${errorCalendars.length}`,
-	);
 	for (const ec of errorCalendars) {
 		console.error(
 			`[sync-api] エラーカレンダー: ${ec.calendarId} (${ec.name}): ${ec.error.message}`,

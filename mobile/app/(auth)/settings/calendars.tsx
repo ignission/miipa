@@ -8,6 +8,7 @@
  */
 
 import { Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SyncStatusBadge } from "../../../src/components/calendar/sync-status-badge";
@@ -32,7 +33,14 @@ interface DeleteTarget {
 }
 
 export default function CalendarsSettingsScreen() {
-	const { calendars, isLoading: isLoadingCalendars } = useCalendars();
+	const {
+		calendars,
+		isLoading: isLoadingCalendars,
+		toggleCalendar,
+		deleteCalendar: deleteCalendarMutation,
+		startGoogleAuth,
+		addICalCalendar,
+	} = useCalendars();
 	const syncMutation = useSyncCalendars();
 
 	// iCalダイアログの状態
@@ -49,11 +57,13 @@ export default function CalendarsSettingsScreen() {
 
 	/**
 	 * カレンダーの有効/無効を切り替え
-	 * TODO: バックエンドAPIが実装されたら接続
 	 */
-	const handleToggle = useCallback((_id: string, _enabled: boolean) => {
-		// TODO: カレンダーのenabled切り替えAPI実装後に有効化
-	}, []);
+	const handleToggle = useCallback(
+		(id: string, enabled: boolean) => {
+			toggleCalendar({ id, enabled });
+		},
+		[toggleCalendar],
+	);
 
 	/**
 	 * カレンダー削除ダイアログを開く
@@ -75,37 +85,38 @@ export default function CalendarsSettingsScreen() {
 
 	/**
 	 * カレンダー削除の確認処理
-	 * TODO: バックエンドの削除APIに接続
 	 */
 	const handleDeleteConfirm = useCallback(async () => {
-		// TODO: カレンダー削除APIの呼び出し
+		if (!deleteTarget) return;
+		await deleteCalendarMutation(deleteTarget.id);
 		setIsDeleteDialogOpen(false);
 		setDeleteTarget(null);
-	}, []);
+	}, [deleteTarget, deleteCalendarMutation]);
 
 	/**
 	 * Google認証フローを開始
-	 * TODO: Google OAuth フローの実装
 	 */
 	const handleStartGoogleAuth = useCallback(async () => {
 		setIsGoogleAuthLoading(true);
 		try {
-			// TODO: Google OAuth 認証フローの実装
+			const result = await startGoogleAuth();
+			if (result.authUrl) {
+				await WebBrowser.openBrowserAsync(result.authUrl);
+			}
 		} finally {
 			setIsGoogleAuthLoading(false);
 		}
-	}, []);
+	}, [startGoogleAuth]);
 
 	/**
 	 * iCalカレンダーを追加
-	 * TODO: バックエンドの追加APIに接続
 	 */
 	const handleAddICal = useCallback(
-		async (_url: string, _name?: string): Promise<boolean> => {
+		async (url: string, name?: string): Promise<boolean> => {
 			setIsAddingICal(true);
 			setICalError(null);
 			try {
-				// TODO: iCal追加APIの呼び出し
+				await addICalCalendar({ url, name });
 				return true;
 			} catch (e) {
 				setICalError(e instanceof Error ? e.message : "追加に失敗しました");
@@ -114,7 +125,7 @@ export default function CalendarsSettingsScreen() {
 				setIsAddingICal(false);
 			}
 		},
-		[],
+		[addICalCalendar],
 	);
 
 	/**

@@ -134,7 +134,7 @@ export default function SetupScreen() {
 								<ApiKeyForm
 									provider={selectedProvider}
 									onValidated={setApiKeyValidated}
-									onKeyChange={() => {}}
+									onKeyChange={() => setApiKeyValidated(false)}
 								/>
 							))}
 
