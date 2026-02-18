@@ -1,3 +1,4 @@
+import { useCallback, useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import type { UICalendarEvent } from "../../hooks/useEvents";
 import { DEFAULT_CALENDAR_COLOR } from "../../theme";
@@ -10,6 +11,109 @@ const DAY_START_HOUR = 6;
 const DAY_END_HOUR = 22;
 /** 時刻ラベルの幅 */
 const TIME_LABEL_WIDTH = 50;
+/** イベント領域の左オフセット */
+const EVENT_LEFT_OFFSET = TIME_LABEL_WIDTH + 4;
+/** イベント領域の右パディング */
+const PADDING_RIGHT = 16;
+/** 列間の隙間（px） */
+const COLUMN_GAP = 2;
+
+// ============================================================
+// 列レイアウト計算（重複イベントの横並び表示用）
+// ============================================================
+
+/** 列割り当て結果 */
+interface ColumnLayout {
+	/** 0始まりの列番号 */
+	column: number;
+	/** このイベントの重複グループの総列数 */
+	totalColumns: number;
+}
+
+/**
+ * 2つのイベントが時間的に重複しているかを判定
+ *
+ * 重複条件: A開始 < B終了 かつ B開始 < A終了
+ * 境界が一致する場合（A終了 = B開始）は重複とみなさない
+ */
+function eventsOverlap(a: UICalendarEvent, b: UICalendarEvent): boolean {
+	return (
+		a.startTime.getTime() < b.endTime.getTime() &&
+		b.startTime.getTime() < a.endTime.getTime()
+	);
+}
+
+/**
+ * 重複するイベントに列レイアウト情報を割り当てる
+ *
+ * API側の assignColumns + calculateTotalColumnsPerEvent と同等のアルゴリズムを
+ * Date オブジェクトベースで実装。
+ *
+ * 1. 開始時刻でソート
+ * 2. 貪欲法で列番号を割り当て（各列の終了時刻を追跡）
+ * 3. 重複するイベントのグループごとに totalColumns を計算
+ */
+function calculateColumnLayout(
+	events: UICalendarEvent[],
+): Map<string, ColumnLayout> {
+	if (events.length === 0) {
+		return new Map();
+	}
+
+	// 開始時刻でソート
+	const sorted = [...events].sort(
+		(a, b) => a.startTime.getTime() - b.startTime.getTime(),
+	);
+
+	// 貪欲法で列番号を割り当て
+	const columnEndTimes: number[] = [];
+	const columnMap = new Map<string, number>();
+
+	for (const event of sorted) {
+		const eventStart = event.startTime.getTime();
+		const eventEnd = event.endTime.getTime();
+
+		// 重複しない最小の列を探す
+		let assignedColumn = -1;
+		for (let col = 0; col < columnEndTimes.length; col++) {
+			if (columnEndTimes[col] <= eventStart) {
+				assignedColumn = col;
+				break;
+			}
+		}
+
+		// 既存の列に配置できない場合は新しい列を追加
+		if (assignedColumn === -1) {
+			assignedColumn = columnEndTimes.length;
+			columnEndTimes.push(eventEnd);
+		} else {
+			columnEndTimes[assignedColumn] = eventEnd;
+		}
+
+		columnMap.set(event.id, assignedColumn);
+	}
+
+	// 各イベントについて、重複するイベント群の最大列数を計算
+	const result = new Map<string, ColumnLayout>();
+
+	for (const event of events) {
+		const overlapping = events.filter((other) => eventsOverlap(event, other));
+		const maxColumn = Math.max(
+			...overlapping.map((e) => columnMap.get(e.id) ?? 0),
+		);
+
+		result.set(event.id, {
+			column: columnMap.get(event.id) ?? 0,
+			totalColumns: maxColumn + 1,
+		});
+	}
+
+	return result;
+}
+
+// ============================================================
+// コンポーネント
+// ============================================================
 
 interface TimelineViewProps {
 	events: UICalendarEvent[];
@@ -51,11 +155,22 @@ function getEventPosition(event: UICalendarEvent): {
  * 時間軸に沿ってイベントをブロック表示するビューです。
  * 終日イベントは上部に別セクションとして表示します。
  * 現在時刻のインジケータ（赤い線）も表示されます。
+ * 重複するイベントは横並びで表示されます。
  *
  * 注意: 複雑な絶対配置レイアウトのため、一部のスタイルは
- * style prop で直接指定しています（動的な top/height/left 値）。
+ * style prop で直接指定しています（動的な top/height/left/width 値）。
  */
 export function TimelineView({ events, currentTime }: TimelineViewProps) {
+	// タイムライングリッドの幅を取得
+	const [containerWidth, setContainerWidth] = useState(0);
+
+	const handleLayout = useCallback(
+		(e: { nativeEvent: { layout: { width: number } } }) => {
+			setContainerWidth(e.nativeEvent.layout.width);
+		},
+		[],
+	);
+
 	// 終日でないイベントのうち、表示時間帯と重なるもののみ表示する
 	const timeEvents = events.filter((e) => {
 		if (e.isAllDay) return false;
@@ -67,6 +182,12 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 	});
 	const allDayEvents = events.filter((e) => e.isAllDay);
 
+	// 重複イベントの列レイアウトを計算
+	const columnLayoutMap = useMemo(
+		() => calculateColumnLayout(timeEvents),
+		[timeEvents],
+	);
+
 	const hours = Array.from(
 		{ length: DAY_END_HOUR - DAY_START_HOUR },
 		(_, i) => DAY_START_HOUR + i,
@@ -77,6 +198,9 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 	// DAY_END_HOUR丁度ではコンテナ境界にはみ出すため厳密な不等号を使用
 	const showIndicator = now >= DAY_START_HOUR && now < DAY_END_HOUR;
 	const indicatorTop = (now - DAY_START_HOUR) * HOUR_HEIGHT;
+
+	// イベント描画に使える横幅
+	const availableWidth = containerWidth - EVENT_LEFT_OFFSET - PADDING_RIGHT;
 
 	return (
 		<View>
@@ -109,6 +233,7 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 			<View
 				className="relative mt-2"
 				style={{ height: hours.length * HOUR_HEIGHT }}
+				onLayout={handleLayout}
 			>
 				{/* 時刻ラベルとグリッド線 */}
 				{hours.map((hour) => (
@@ -142,37 +267,46 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 					</View>
 				)}
 
-				{/* イベントブロック */}
-				{timeEvents.map((event) => {
-					const { top, height } = getEventPosition(event);
-					const eventColor = event.color ?? DEFAULT_CALENDAR_COLOR;
+				{/* イベントブロック（コンテナ幅が確定してから描画） */}
+				{containerWidth > 0 &&
+					timeEvents.map((event) => {
+						const { top, height } = getEventPosition(event);
+						const eventColor = event.color ?? DEFAULT_CALENDAR_COLOR;
+						const layout = columnLayoutMap.get(event.id) ?? {
+							column: 0,
+							totalColumns: 1,
+						};
+						const columnWidth = availableWidth / layout.totalColumns;
+						const eventLeft = EVENT_LEFT_OFFSET + layout.column * columnWidth;
+						const eventWidth = columnWidth - COLUMN_GAP;
 
-					return (
-						<View
-							key={event.id}
-							className="absolute right-4 rounded-md px-2 py-1"
-							style={{
-								top,
-								height,
-								left: TIME_LABEL_WIDTH + 4,
-								backgroundColor: `${eventColor}20`,
-								borderLeftWidth: 3,
-								borderLeftColor: eventColor,
-							}}
-						>
-							<Text className="text-[10px] text-fg-muted" numberOfLines={1}>
-								{event.startTime.toLocaleTimeString("ja-JP", {
-									hour: "2-digit",
-									minute: "2-digit",
-									hour12: false,
-								})}
-							</Text>
-							<Text className="text-xs font-medium text-fg" numberOfLines={2}>
-								{event.title}
-							</Text>
-						</View>
-					);
-				})}
+						return (
+							<View
+								key={event.id}
+								className="absolute rounded-md px-2 py-1"
+								style={{
+									top,
+									height,
+									left: eventLeft,
+									width: eventWidth,
+									backgroundColor: `${eventColor}20`,
+									borderLeftWidth: 3,
+									borderLeftColor: eventColor,
+								}}
+							>
+								<Text className="text-[10px] text-fg-muted" numberOfLines={1}>
+									{event.startTime.toLocaleTimeString("ja-JP", {
+										hour: "2-digit",
+										minute: "2-digit",
+										hour12: false,
+									})}
+								</Text>
+								<Text className="text-xs font-medium text-fg" numberOfLines={2}>
+									{event.title}
+								</Text>
+							</View>
+						);
+					})}
 			</View>
 		</View>
 	);
