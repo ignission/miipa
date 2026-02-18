@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+import { AUTH_CONFIG } from "../auth/config";
 import {
 	deleteRefreshToken,
 	deleteToken,
@@ -8,8 +10,13 @@ import {
 	saveToken,
 } from "../auth/storage";
 
-const DEFAULT_BASE_URL =
-	process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://miipa.app";
+/**
+ * APIベースURL
+ *
+ * Web: 環境変数または空文字列（同一オリジンの場合）
+ * Mobile: 環境変数または本番URL
+ */
+const API_BASE_URL = AUTH_CONFIG.apiBaseUrl;
 
 /** レスポンスボディが空かどうかを判定する */
 function isEmptyBody(response: Response): boolean {
@@ -26,23 +33,61 @@ let refreshPromise: Promise<boolean> | null = null;
 /**
  * リフレッシュトークンで新しいアクセストークンを取得
  *
+ * Web: Cookie ベースのリフレッシュ（/auth/refresh）
+ * Mobile: Body にリフレッシュトークンを含めて送信（/auth/mobile/token）
+ *
  * @returns リフレッシュ成功ならtrue、失敗ならfalse
  */
 async function refreshAccessToken(): Promise<boolean> {
+	if (Platform.OS === "web") {
+		// Web: httpOnly Cookie を自動送信してリフレッシュ
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}${AUTH_CONFIG.refreshEndpoint}`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					credentials: "include",
+					body: JSON.stringify({}),
+				},
+			);
+
+			if (!response.ok) {
+				return false;
+			}
+
+			const data = (await response.json()) as {
+				token: string;
+				user: { id: string; name: string | null; email: string; image: string | null };
+			};
+
+			// メモリにアクセストークンを保存（Cookie は Hono が管理）
+			await saveToken(data.token);
+
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	// Mobile: SecureStore のリフレッシュトークンを使用
 	const refreshToken = await getRefreshToken();
 	if (!refreshToken) {
 		return false;
 	}
 
 	try {
-		const response = await fetch(`${DEFAULT_BASE_URL}/api/auth/mobile/token`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				grantType: "refresh_token",
-				refreshToken,
-			}),
-		});
+		const response = await fetch(
+			`${API_BASE_URL}${AUTH_CONFIG.tokenEndpoint}`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					grantType: "refresh_token",
+					refreshToken,
+				}),
+			},
+		);
 
 		if (!response.ok) {
 			return false;
@@ -65,9 +110,32 @@ async function refreshAccessToken(): Promise<boolean> {
 }
 
 /**
+ * プラットフォームに応じた fetch オプションを構築
+ *
+ * Web: credentials: "include" で httpOnly Cookie を自動送信
+ * 共通: Bearer ヘッダを付与（メモリ/SecureStore のトークン使用）
+ */
+function buildFetchOptions(
+	options: RequestInit,
+	headers: Record<string, string>,
+): RequestInit {
+	const base: RequestInit = {
+		...options,
+		headers,
+	};
+
+	if (Platform.OS === "web") {
+		base.credentials = "include";
+	}
+
+	return base;
+}
+
+/**
  * 認証付きfetchラッパー
  *
  * - Bearer ヘッダを自動付与
+ * - Web: credentials: "include" で Cookie も自動送信
  * - 401エラー時にリフレッシュトークンで自動リトライ
  * - リトライも失敗した場合はトークンを削除（自動ログアウト）
  */
@@ -86,10 +154,9 @@ export async function apiFetch<T>(
 		headers.Authorization = `Bearer ${token}`;
 	}
 
-	const response = await fetch(`${DEFAULT_BASE_URL}${path}`, {
-		...options,
-		headers,
-	});
+	const fetchOptions = buildFetchOptions(options, headers);
+
+	const response = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
 
 	// 401エラー時はリフレッシュトークンで自動リトライ
 	if (response.status === 401) {
@@ -113,10 +180,11 @@ export async function apiFetch<T>(
 				retryHeaders.Authorization = `Bearer ${newToken}`;
 			}
 
-			const retryResponse = await fetch(`${DEFAULT_BASE_URL}${path}`, {
-				...options,
-				headers: retryHeaders,
-			});
+			const retryFetchOptions = buildFetchOptions(options, retryHeaders);
+			const retryResponse = await fetch(
+				`${API_BASE_URL}${path}`,
+				retryFetchOptions,
+			);
 
 			if (!retryResponse.ok) {
 				const body = await retryResponse.json().catch(() => null);
