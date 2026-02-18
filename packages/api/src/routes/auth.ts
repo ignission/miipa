@@ -11,7 +11,12 @@ import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import type { AppType } from "@/context/app-context";
+import {
+	JWT_COOKIE_NAME,
+	REFRESH_TOKEN_COOKIE_NAME,
+} from "@/lib/auth/constants";
 import { isOk } from "@/lib/domain/shared/result";
+import { base64UrlDecode, base64UrlEncode } from "@/lib/utils/base64url";
 import {
 	exchangeCode,
 	generateAuthUrl,
@@ -29,17 +34,38 @@ const ACCESS_TOKEN_EXPIRES_IN = 24 * 60 * 60;
 /** リフレッシュトークンの有効期限（秒）: 30日 */
 const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60;
 
-/** JWT Cookie名 */
-const JWT_COOKIE_NAME = "miipa_token";
-
-/** リフレッシュトークンCookie名 */
-const REFRESH_TOKEN_COOKIE_NAME = "miipa_refresh_token";
-
 /** Google OAuth code_verifier Cookie名 */
 const CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
 
 /** Google OAuth state Cookie名 */
 const OAUTH_STATE_COOKIE = "google_oauth_state";
+
+/** ワンタイム認可コードの有効期限（ミリ秒）: 30秒 */
+const AUTH_CODE_TTL_MS = 30 * 1000;
+
+// ============================================================
+// ワンタイム認可コードストア（インメモリ、Workers再起動で消失しても問題なし）
+// ============================================================
+
+interface AuthCodeEntry {
+	readonly userId: string;
+	readonly expiresAt: number;
+}
+
+/** ワンタイム認可コードの一時保存用Map（30秒TTL） */
+const authCodeStore = new Map<string, AuthCodeEntry>();
+
+/**
+ * 期限切れの認可コードを定期的にクリーンアップ
+ */
+function cleanupExpiredAuthCodes(): void {
+	const now = Date.now();
+	for (const [code, entry] of authCodeStore) {
+		if (entry.expiresAt < now) {
+			authCodeStore.delete(code);
+		}
+	}
+}
 
 // ============================================================
 // Zodスキーマ定義
@@ -80,42 +106,23 @@ interface UserRow {
 	readonly image: string | null;
 }
 
-interface RefreshTokenRow {
-	readonly id: string;
-	readonly user_id: string;
-	readonly token_hash: string;
-	readonly expires_at: string;
-}
 
 // ============================================================
 // JWT関連ユーティリティ（Web Crypto API使用）
 // ============================================================
 
-function base64UrlEncode(data: Uint8Array): string {
-	return btoa(String.fromCharCode(...data))
-		.replace(/\+/g, "-")
-		.replace(/\//g, "_")
-		.replace(/=+$/, "");
-}
-
-function base64UrlDecode(str: string): Uint8Array {
-	const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-	const padded = base64.padEnd(
-		base64.length + ((4 - (base64.length % 4)) % 4),
-		"=",
-	);
-	const binary = atob(padded);
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) {
-		bytes[i] = binary.charCodeAt(i);
-	}
-	return bytes;
-}
-
 async function createJwt(
 	payload: Record<string, unknown>,
 	secret: string,
 ): Promise<string> {
+	// シークレット鍵の強度検証（CWE-326 対策）
+	const secretBytes = new TextEncoder().encode(secret);
+	if (secretBytes.length < 32) {
+		throw new Error(
+			"MOBILE_JWT_SECRET は 32バイト以上のランダム文字列を設定してください",
+		);
+	}
+
 	const header = { alg: "HS256", typ: "JWT" };
 	const encoder = new TextEncoder();
 
@@ -357,9 +364,7 @@ async function saveRefreshToken(
 	expiresInSeconds: number,
 ): Promise<void> {
 	const id = crypto.randomUUID();
-	const expiresAt = new Date(
-		Date.now() + expiresInSeconds * 1000,
-	).toISOString();
+	const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
 	const tokenHash = await hashToken(token);
 
 	await db
@@ -370,31 +375,34 @@ async function saveRefreshToken(
 		.run();
 }
 
+/**
+ * リフレッシュトークンを消費（アトミック操作）
+ *
+ * DELETE ... RETURNING で検索と削除を1クエリで実行し、
+ * レースコンディション（CWE-362）を防止します。
+ */
 async function consumeRefreshToken(
 	db: D1Database,
 	token: string,
 ): Promise<UserRow | null> {
 	const tokenHash = await hashToken(token);
+
+	// DELETE と同時にデータを取得（アトミック操作）
 	const row = await db
 		.prepare(
-			"SELECT rt.id, rt.user_id, rt.expires_at FROM refresh_tokens rt WHERE rt.token_hash = ?",
+			"DELETE FROM refresh_tokens WHERE token_hash = ? RETURNING user_id, expires_at",
 		)
 		.bind(tokenHash)
-		.first<RefreshTokenRow>();
+		.first<{ user_id: string; expires_at: number }>();
 
 	if (!row) return null;
 
-	// 使用済みトークンを削除（ローテーション）
-	await db
-		.prepare("DELETE FROM refresh_tokens WHERE id = ?")
-		.bind(row.id)
-		.run();
+	// 有効期限チェック（UNIXタイムスタンプ秒で比較）
+	if (row.expires_at < Math.floor(Date.now() / 1000)) return null;
 
-	// 有効期限チェック
-	if (new Date(row.expires_at) < new Date()) return null;
-
+	// ユーザー情報を取得
 	const user = await db
-		.prepare("SELECT * FROM users WHERE id = ?")
+		.prepare("SELECT id, name, email, image FROM users WHERE id = ?")
 		.bind(row.user_id)
 		.first<UserRow>();
 
@@ -584,7 +592,7 @@ auth.post("/google", async (c) => {
 		// code_verifier と state を httpOnly Cookie に保存
 		setCookie(c, CODE_VERIFIER_COOKIE, codeVerifier, {
 			httpOnly: true,
-			secure: c.env.ENVIRONMENT === "production",
+			secure: c.env.ENVIRONMENT !== "development",
 			sameSite: "Lax",
 			maxAge: 600, // 10分
 			path: "/",
@@ -592,7 +600,7 @@ auth.post("/google", async (c) => {
 
 		setCookie(c, OAUTH_STATE_COOKIE, state, {
 			httpOnly: true,
-			secure: c.env.ENVIRONMENT === "production",
+			secure: c.env.ENVIRONMENT !== "development",
 			sameSite: "Lax",
 			maxAge: 600,
 			path: "/",
@@ -646,8 +654,8 @@ auth.get("/google/callback", async (c) => {
 			);
 		}
 
-		// state検証（CSRF対策）
-		if (state && savedState && state !== savedState) {
+		// state検証（CSRF対策: 未送信・不一致の両方を拒否）
+		if (!state || !savedState || state !== savedState) {
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("認証セッションが無効です。もう一度お試しください。")}`,
 			);
@@ -667,20 +675,154 @@ auth.get("/google/callback", async (c) => {
 			);
 		}
 
-		// TODO: tokenResult.value（accessToken, refreshToken）を使って
-		// ユーザー情報取得 → findOrCreateUser → JWT発行
-		// 現時点ではカレンダー連携のコールバックとして成功リダイレクト
+		// Google UserInfo API でユーザー情報を取得
+		const userInfoRes = await fetch(
+			"https://www.googleapis.com/oauth2/v2/userinfo",
+			{
+				headers: {
+					Authorization: `Bearer ${tokenResult.value.accessToken}`,
+				},
+			},
+		);
+
+		if (!userInfoRes.ok) {
+			console.error(
+				"[auth] Google UserInfo取得エラー:",
+				userInfoRes.status,
+			);
+			return c.redirect(
+				`${baseUrl}/auth-callback?error=true&message=${encodeURIComponent("ユーザー情報の取得に失敗しました")}`,
+			);
+		}
+
+		const userInfo = (await userInfoRes.json()) as {
+			email?: string;
+			name?: string;
+			picture?: string;
+		};
+
+		if (!userInfo.email) {
+			return c.redirect(
+				`${baseUrl}/auth-callback?error=true&message=${encodeURIComponent("メールアドレスが取得できませんでした")}`,
+			);
+		}
+
+		const db = c.env.DB;
+		if (!db) {
+			return c.redirect(
+				`${baseUrl}/auth-callback?error=true&message=${encodeURIComponent("サーバー設定エラー")}`,
+			);
+		}
+
+		// ユーザーを検索・作成
+		const user = await findOrCreateUser(
+			db,
+			userInfo.email,
+			userInfo.name ?? "",
+			userInfo.picture ?? "",
+		);
+
+		// ワンタイム認可コードを生成（30秒TTL）
+		cleanupExpiredAuthCodes();
+		const oneTimeCode = crypto.randomUUID();
+		authCodeStore.set(oneTimeCode, {
+			userId: user.id,
+			expiresAt: Date.now() + AUTH_CODE_TTL_MS,
+		});
 
 		// code_verifier, state Cookie を削除
 		deleteCookie(c, CODE_VERIFIER_COOKIE, { path: "/" });
 		deleteCookie(c, OAUTH_STATE_COOKIE, { path: "/" });
 
-		return c.redirect(`${baseUrl}/settings/calendars?calendar=success`);
+		// フロントエンドにワンタイムコードのみを渡してリダイレクト
+		return c.redirect(`${baseUrl}/auth-callback?code=${oneTimeCode}`);
 	} catch (e) {
 		console.error("[auth] Google OAuthコールバックエラー:", e);
 		return c.redirect(
 			`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("予期しないエラーが発生しました")}`,
 		);
+	}
+});
+
+/**
+ * POST /auth/exchange-code
+ *
+ * ワンタイム認可コードをJWT + リフレッシュトークンに交換する。
+ * OAuth コールバック後のフロントエンドから呼び出される。
+ * コードは1回限り有効（消費後即削除）、有効期限30秒。
+ *
+ * Web: Set-Cookie でトークンを設定
+ * Mobile: レスポンスBodyでトークンを返却
+ */
+auth.post("/exchange-code", async (c) => {
+	try {
+		const body = await c.req.json();
+		const codeValue =
+			typeof (body as Record<string, unknown>).code === "string"
+				? (body as Record<string, string>).code
+				: null;
+
+		if (!codeValue) {
+			return c.json({ error: "認可コードが必要です" }, 400);
+		}
+
+		// 期限切れコードをクリーンアップ
+		cleanupExpiredAuthCodes();
+
+		// ワンタイムコードを検索・消費（即削除）
+		const entry = authCodeStore.get(codeValue);
+		authCodeStore.delete(codeValue);
+
+		if (!entry) {
+			return c.json({ error: "無効または期限切れの認可コードです" }, 401);
+		}
+
+		// 有効期限チェック
+		if (entry.expiresAt < Date.now()) {
+			return c.json({ error: "認可コードの有効期限が切れています" }, 401);
+		}
+
+		const db = c.env.DB;
+		const jwtSecret = c.env.MOBILE_JWT_SECRET;
+
+		if (!db || !jwtSecret) {
+			return c.json({ error: "サーバー設定エラー" }, 500);
+		}
+
+		// ユーザーを取得
+		const user = await db
+			.prepare("SELECT * FROM users WHERE id = ?")
+			.bind(entry.userId)
+			.first<UserRow>();
+
+		if (!user) {
+			return c.json({ error: "ユーザーが見つかりません" }, 401);
+		}
+
+		// JWT + リフレッシュトークンを発行
+		const result = await issueTokens(db, user, jwtSecret);
+
+		// Web向け: Cookie にもセット
+		setCookie(c, JWT_COOKIE_NAME, result.token, {
+			httpOnly: true,
+			secure: c.env.ENVIRONMENT !== "development",
+			sameSite: "Lax",
+			maxAge: ACCESS_TOKEN_EXPIRES_IN,
+			path: "/",
+		});
+
+		setCookie(c, REFRESH_TOKEN_COOKIE_NAME, result.refreshToken, {
+			httpOnly: true,
+			secure: c.env.ENVIRONMENT !== "development",
+			sameSite: "Strict",
+			maxAge: REFRESH_TOKEN_EXPIRES_IN,
+			path: "/auth",
+		});
+
+		return c.json(result);
+	} catch (e) {
+		console.error("[auth] 認可コード交換エラー:", e);
+		return c.json({ error: "認可コードの交換に失敗しました" }, 500);
 	}
 });
 
@@ -726,7 +868,7 @@ auth.post("/refresh", async (c) => {
 		// Cookie にもセット（Web用）
 		setCookie(c, JWT_COOKIE_NAME, result.token, {
 			httpOnly: true,
-			secure: c.env.ENVIRONMENT === "production",
+			secure: c.env.ENVIRONMENT !== "development",
 			sameSite: "Lax",
 			maxAge: ACCESS_TOKEN_EXPIRES_IN,
 			path: "/",
@@ -734,10 +876,10 @@ auth.post("/refresh", async (c) => {
 
 		setCookie(c, REFRESH_TOKEN_COOKIE_NAME, result.refreshToken, {
 			httpOnly: true,
-			secure: c.env.ENVIRONMENT === "production",
-			sameSite: "Lax",
+			secure: c.env.ENVIRONMENT !== "development",
+			sameSite: "Strict",
 			maxAge: REFRESH_TOKEN_EXPIRES_IN,
-			path: "/",
+			path: "/auth",
 		});
 
 		return c.json(result);
@@ -779,14 +921,14 @@ auth.post("/logout", async (c) => {
 
 		// Cookie を削除
 		deleteCookie(c, JWT_COOKIE_NAME, { path: "/" });
-		deleteCookie(c, REFRESH_TOKEN_COOKIE_NAME, { path: "/" });
+		deleteCookie(c, REFRESH_TOKEN_COOKIE_NAME, { path: "/auth" });
 
 		return c.json({ success: true });
 	} catch (e) {
 		console.error("[auth] ログアウトエラー:", e);
 		// Cookie削除は試行する
 		deleteCookie(c, JWT_COOKIE_NAME, { path: "/" });
-		deleteCookie(c, REFRESH_TOKEN_COOKIE_NAME, { path: "/" });
+		deleteCookie(c, REFRESH_TOKEN_COOKIE_NAME, { path: "/auth" });
 		return c.json({ success: true });
 	}
 });

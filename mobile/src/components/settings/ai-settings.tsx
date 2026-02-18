@@ -9,7 +9,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { AUTH_CONFIG } from "../../auth/config";
+import {
+	type AISettingsResponse,
+	fetchAISettings,
+	updateAISettings,
+} from "../../api/settings";
 import { ApiKeyForm } from "../setup/api-key-form";
 import { OllamaConnector } from "../setup/ollama-connector";
 import { ProviderSelector } from "../setup/provider-selector";
@@ -21,14 +25,6 @@ import {
 // ============================================================
 // 型定義
 // ============================================================
-
-/** AI設定の型定義 */
-interface AiSettings {
-	provider: LLMProvider | null;
-	hasApiKey: boolean;
-	model?: string;
-	baseUrl?: string;
-}
 
 /** 結果メッセージの型定義 */
 interface ResultMessage {
@@ -46,7 +42,7 @@ interface ResultMessage {
  * 現在のAI設定の表示と変更を行います。
  */
 export function AiSettings() {
-	const [settings, setSettings] = useState<AiSettings | null>(null);
+	const [settings, setSettings] = useState<AISettingsResponse | null>(null);
 	const [selectedProvider, setSelectedProvider] =
 		useState<LLMProvider | null>(null);
 	const [apiKey, setApiKey] = useState("");
@@ -60,19 +56,14 @@ export function AiSettings() {
 	/**
 	 * AI設定を取得する
 	 */
-	const fetchSettings = useCallback(async () => {
+	const fetchSettingsData = useCallback(async () => {
 		try {
-			const response = await fetch(
-				`${AUTH_CONFIG.apiBaseUrl}/api/settings/ai`,
-			);
-			if (response.ok) {
-				const data: AiSettings = await response.json();
-				setSettings(data);
-				setSelectedProvider(data.provider);
-				setModel(data.model ?? "");
-				if (data.baseUrl) {
-					setOllamaUrl(data.baseUrl);
-				}
+			const data = await fetchAISettings();
+			setSettings(data);
+			setSelectedProvider(data.provider as LLMProvider | null);
+			setModel(data.model ?? "");
+			if (data.baseUrl) {
+				setOllamaUrl(data.baseUrl);
 			}
 		} catch {
 			setMessage({ type: "error", text: "設定の取得に失敗しました" });
@@ -80,8 +71,8 @@ export function AiSettings() {
 	}, []);
 
 	useEffect(() => {
-		fetchSettings();
-	}, [fetchSettings]);
+		fetchSettingsData();
+	}, [fetchSettingsData]);
 
 	/**
 	 * プロバイダ選択時のハンドラ
@@ -115,44 +106,36 @@ export function AiSettings() {
 		setMessage(null);
 
 		try {
-			const body: Record<string, unknown> = {
+			const requestData: Record<string, unknown> = {
 				provider: selectedProvider,
 			};
 
 			if (selectedProvider !== settings?.provider) {
 				if (selectedProvider === "ollama") {
-					body.baseUrl = ollamaUrl;
+					requestData.baseUrl = ollamaUrl;
 				} else if (apiKey) {
-					body.apiKey = apiKey;
+					requestData.apiKey = apiKey;
 				}
 			}
 
 			if (model.trim()) {
-				body.model = model.trim();
+				requestData.model = model.trim();
 			}
 
-			const response = await fetch(
-				`${AUTH_CONFIG.apiBaseUrl}/api/settings/ai`,
-				{
-					method: "PUT",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(body),
-				},
+			const result = await updateAISettings(
+				requestData as { provider: string; apiKey?: string; baseUrl?: string; model?: string },
 			);
 
-			if (response.ok) {
+			if (result.success) {
 				setMessage({ type: "success", text: "設定を保存しました" });
-				await fetchSettings();
+				await fetchSettingsData();
 				setApiKey("");
 				setApiKeyValidated(false);
 				setOllamaConnected(false);
 			} else {
-				const errorBody = (await response.json().catch(() => null)) as {
-					error?: { message?: string };
-				} | null;
 				setMessage({
 					type: "error",
-					text: errorBody?.error?.message ?? "設定の保存に失敗しました",
+					text: result.error?.message ?? "設定の保存に失敗しました",
 				});
 			}
 		} catch {
@@ -185,7 +168,7 @@ export function AiSettings() {
 					<Text className="text-sm text-fg-muted">プロバイダ:</Text>
 					<Text className="font-medium text-fg">
 						{settings.provider
-							? PROVIDER_INFO[settings.provider].name
+							? (PROVIDER_INFO[settings.provider as LLMProvider]?.name ?? settings.provider)
 							: "未設定"}
 					</Text>
 					{settings.provider && (
@@ -236,7 +219,7 @@ export function AiSettings() {
 				{/* プロバイダ選択 */}
 				<ProviderSelector
 					selectedProvider={selectedProvider}
-					currentProvider={settings.provider ?? undefined}
+					currentProvider={(settings.provider as LLMProvider) ?? undefined}
 					onSelect={handleProviderSelect}
 					disabled={isSaving}
 				/>

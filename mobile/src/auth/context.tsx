@@ -246,6 +246,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				]);
 
 				if (!savedToken || !savedUser) {
+					// Web: メモリ上のトークンが消えてもhttpOnly Cookieでリフレッシュ可能
+					if (Platform.OS === "web") {
+						const refreshed = await refreshWithStoredToken();
+						if (refreshed) {
+							const [newToken, newUser] = await Promise.all([
+								getToken(),
+								getUser(),
+							]);
+							if (newToken && newUser) {
+								setToken(newToken);
+								setUser(newUser);
+							}
+						}
+					}
 					return;
 				}
 
@@ -369,6 +383,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				}
 
 				const data = (await res.json()) as { authUrl: string };
+
+				// リダイレクト先のホスト名を検証（Open Redirect 対策: CWE-601）
+				const authUrlObj = new URL(data.authUrl);
+				if (authUrlObj.hostname !== "accounts.google.com") {
+					throw new Error("不正なリダイレクトURL");
+				}
+
 				// Google OAuth 画面にリダイレクト
 				window.location.href = data.authUrl;
 			} catch (error) {

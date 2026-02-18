@@ -2,14 +2,23 @@
  * OAuth コールバック画面
  *
  * Web: Google OAuth 完了後に Hono API からリダイレクトされる画面。
- * URL パラメータからトークンとユーザー情報を受け取り、
- * ストレージに保存してメイン画面にリダイレクトする。
+ * URL パラメータからワンタイム認可コードのみを受け取り、
+ * POST /auth/exchange-code でJWTを取得してストレージに保存する。
+ * （CWE-598 対策: JWTをURLパラメータに露出させない）
  *
  * Mobile: この画面は使用しない（expo-auth-session がコールバックを処理する）
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import {
+	ActivityIndicator,
+	Platform,
+	StyleSheet,
+	Text,
+	View,
+} from "react-native";
+import { AUTH_CONFIG } from "../src/auth/config";
+import type { StoredUser } from "../src/auth/storage";
 import {
 	saveRefreshToken,
 	saveToken,
@@ -20,11 +29,7 @@ export default function AuthCallbackScreen() {
 	const [error, setError] = useState<string | null>(null);
 
 	const params = useLocalSearchParams<{
-		token?: string;
-		refreshToken?: string;
-		userId?: string;
-		email?: string;
-		name?: string;
+		code?: string;
 		error?: string;
 		message?: string;
 	}>();
@@ -41,26 +46,54 @@ export default function AuthCallbackScreen() {
 				return;
 			}
 
-			// トークンがある場合: 保存してメイン画面へ
-			if (params.token && params.refreshToken) {
+			// ワンタイム認可コードがある場合: exchange-code でJWTを取得
+			if (params.code) {
 				try {
-					await saveToken(params.token);
-					await saveRefreshToken(params.refreshToken);
+					const res = await fetch(
+						`${AUTH_CONFIG.apiBaseUrl}/auth/exchange-code`,
+						{
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							credentials: "include",
+							body: JSON.stringify({ code: params.code }),
+						},
+					);
 
-					if (params.userId && params.email) {
-						await saveUser({
-							id: params.userId,
-							email: params.email,
-							name: params.name ?? "",
-							image: null,
-						});
+					if (!res.ok) {
+						const errorData = (await res.json().catch(() => ({}))) as {
+							error?: string;
+						};
+						throw new Error(
+							errorData.error ?? `認可コード交換失敗: ${res.status}`,
+						);
+					}
+
+					const data = (await res.json()) as {
+						token: string;
+						refreshToken: string;
+						user: StoredUser;
+					};
+
+					// Web: Cookie でトークンが管理されるが、メモリにも保存
+					// Mobile: SecureStore に保存
+					await saveToken(data.token);
+					await saveUser(data.user);
+
+					if (Platform.OS !== "web") {
+						// Mobile のみ: リフレッシュトークンを SecureStore に保存
+						// Web はhttpOnly Cookieで管理されるため保存不要
+						await saveRefreshToken(data.refreshToken);
 					}
 
 					// 認証済み画面にリダイレクト
 					router.replace("/(auth)");
 				} catch (e) {
-					console.error("[auth-callback] トークン保存エラー:", e);
-					setError("認証情報の保存に失敗しました");
+					console.error("[auth-callback] コード交換エラー:", e);
+					setError(
+						e instanceof Error
+							? e.message
+							: "認証情報の取得に失敗しました",
+					);
 					setTimeout(() => {
 						router.replace("/sign-in");
 					}, 3000);
@@ -74,7 +107,7 @@ export default function AuthCallbackScreen() {
 				router.replace("/sign-in");
 			}, 3000);
 		})();
-	}, [params.token, params.refreshToken, params.userId, params.email, params.name, params.error, params.message]);
+	}, [params.code, params.error, params.message]);
 
 	return (
 		<View style={styles.container}>

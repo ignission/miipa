@@ -10,9 +10,8 @@
 import type { MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
 import type { AppType } from "@/context/app-context";
-
-/** JWT Cookie名 */
-const JWT_COOKIE_NAME = "miipa_token";
+import { JWT_COOKIE_NAME } from "@/lib/auth/constants";
+import { base64UrlDecode } from "@/lib/utils/base64url";
 
 /** JWTペイロード型 */
 interface JwtPayload {
@@ -21,16 +20,6 @@ interface JwtPayload {
 	name: string;
 	iat: number;
 	exp: number;
-}
-
-/**
- * Base64URL デコード
- */
-function base64UrlDecode(str: string): Uint8Array {
-	const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-	const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-	const binary = atob(padded);
-	return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 
 /**
@@ -52,6 +41,13 @@ export async function verifyJwt(
 		if (parts.length !== 3) return null;
 
 		const [headerB64, payloadB64, signatureB64] = parts;
+
+		// alg ヘッダー検証（CVE-2015-9235 対策: "none" や不正アルゴリズムを拒否）
+		const header = JSON.parse(
+			new TextDecoder().decode(base64UrlDecode(headerB64)),
+		) as Record<string, unknown>;
+		if (header.alg !== "HS256") return null;
+
 		const data = `${headerB64}.${payloadB64}`;
 		const encoder = new TextEncoder();
 

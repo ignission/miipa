@@ -11,7 +11,14 @@ import { Hono } from "hono";
 import type { AppType } from "@/context/app-context";
 import { corsMiddleware } from "@/middleware/cors";
 import { errorHandler } from "@/middleware/error-handler";
+import { authMiddleware } from "@/middleware/auth";
 import { auth } from "@/routes/auth";
+import { calendars } from "@/routes/calendars";
+import { events } from "@/routes/events";
+import { chat } from "@/routes/chat";
+import { settings } from "@/routes/settings";
+import { setup } from "@/routes/setup";
+import { account } from "@/routes/account";
 
 const app = new Hono<AppType>();
 
@@ -19,18 +26,21 @@ const app = new Hono<AppType>();
 app.use("/*", corsMiddleware);
 app.onError(errorHandler);
 
-// ヘルスチェック
+// ヘルスチェック（認証不要）
 app.get("/health", (c) => c.json({ status: "ok" }));
 
-// ルート
+// 認証ルート（認証不要）
 app.route("/auth", auth);
 
-// 他のルートは後続タスクで追加
-// app.route("/calendars", calendars);
-// app.route("/events", events);
-// app.route("/chat", chat);
-// app.route("/settings", settings);
-// app.route("/setup", setup);
-// app.route("/account", account);
+// 認証が必要なルートグループ
+const protectedApp = new Hono<AppType>();
+protectedApp.use("/*", authMiddleware);
+protectedApp.route("/calendars", calendars);
+protectedApp.route("/events", events);
+protectedApp.route("/chat", chat);
+protectedApp.route("/settings", settings);
+protectedApp.route("/setup", setup);
+protectedApp.route("/account", account);
+app.route("/", protectedApp);
 
 export default app;

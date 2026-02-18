@@ -10,8 +10,8 @@
 import { Stack } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
+import { apiFetch } from "../../src/api/client";
 import { ChatPanel } from "../../src/components/chat/chat-panel";
-import { AUTH_CONFIG } from "../../src/auth/config";
 
 // ============================================================
 // 型定義
@@ -52,26 +52,17 @@ export default function ChatScreen() {
 			setError(null);
 
 			try {
-				const res = await fetch(
-					`${AUTH_CONFIG.apiBaseUrl}/api/ask`,
-					{
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						credentials: "include",
-						body: JSON.stringify({
-							message: messageText.trim(),
-						}),
-					},
-				);
-
-				if (!res.ok) {
-					throw new Error(`応答の取得に失敗しました (${res.status})`);
-				}
-
-				const data = (await res.json()) as {
+				const data = await apiFetch<{
 					message?: string;
 					answer?: string;
-				};
+				}>("/api/ask", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						message: messageText.trim(),
+					}),
+				});
+
 				const assistantContent =
 					data.message ?? data.answer ?? "応答を取得できませんでした";
 

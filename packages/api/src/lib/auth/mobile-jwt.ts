@@ -2,22 +2,14 @@
  * モバイルアプリ用JWT検証ヘルパー
  */
 
+import { base64UrlDecode } from "@/lib/utils/base64url";
+
 interface JwtPayload {
 	sub: string;
 	email: string;
 	name: string;
 	iat: number;
 	exp: number;
-}
-
-/**
- * Base64URL デコード
- */
-function base64UrlDecode(str: string): Uint8Array {
-	const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-	const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-	const binary = atob(padded);
-	return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 
 /**

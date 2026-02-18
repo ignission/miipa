@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { AUTH_CONFIG } from "../../auth/config";
+import { apiFetch, ApiError } from "../../api/client";
 import { Dialog } from "../ui/dialog";
 
 // ============================================================
@@ -54,21 +54,11 @@ export function DeleteAccountDialog({
 		setIsDeleting(true);
 		setError(null);
 		try {
-			const res = await fetch(`${AUTH_CONFIG.apiBaseUrl}/api/account`, {
-				method: "DELETE",
-			});
-			if (!res.ok) {
-				const data = (await res.json().catch(() => null)) as {
-					error?: string;
-				} | null;
-				throw new Error(
-					data?.error ?? "アカウントの削除に失敗しました",
-				);
-			}
+			await apiFetch("/api/account", { method: "DELETE" });
 			onLogout();
 		} catch (e) {
 			setError(
-				e instanceof Error
+				e instanceof ApiError || e instanceof Error
 					? e.message
 					: "アカウントの削除に失敗しました",
 			);

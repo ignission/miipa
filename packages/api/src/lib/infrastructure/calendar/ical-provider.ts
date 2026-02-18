@@ -48,9 +48,42 @@ export interface ICalMeta {
 // ============================================================
 
 /**
+ * ホスト名が内部ネットワーク（プライベートIP、ループバック等）かを判定
+ *
+ * SSRF（CWE-918）対策として、外部向けURLのみ許可します。
+ *
+ * @param hostname - 検証対象のホスト名
+ * @returns 内部ネットワークの場合 true
+ */
+function isInternalHost(hostname: string): boolean {
+	const lower = hostname.toLowerCase();
+
+	// ループバックアドレス
+	if (lower === "localhost" || lower === "[::1]") return true;
+
+	// IPv4 プライベート/ループバック/特殊アドレス
+	const ipv4Patterns = [
+		/^127\./, // ループバック
+		/^10\./, // クラスA プライベート
+		/^172\.(1[6-9]|2\d|3[01])\./, // クラスB プライベート
+		/^192\.168\./, // クラスC プライベート
+		/^169\.254\./, // リンクローカル
+		/^0\./, // カレントネットワーク
+		/^100\.(6[4-9]|[7-9]\d|1[0-2]\d)\./, // CGNAT (RFC 6598)
+	];
+	if (ipv4Patterns.some((p) => p.test(lower))) return true;
+
+	// クラウドメタデータサービス
+	if (lower === "metadata.google.internal") return true;
+
+	return false;
+}
+
+/**
  * iCal URL を検証
  *
  * 指定されたURLが有効なiCalフィードかどうかを検証します。
+ * SSRF対策として内部ネットワークのURLを拒否し、
  * 実際にURLにアクセスしてiCalデータをパースし、メタ情報を返します。
  *
  * @param url - 検証対象のiCal URL
@@ -69,8 +102,9 @@ export async function validateICalUrl(
 	url: string,
 ): Promise<Result<ICalMeta, CalendarError>> {
 	// URLの形式チェック
+	let parsed: URL;
 	try {
-		const parsed = new URL(url);
+		parsed = new URL(url);
 		if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
 			return err(
 				invalidUrl("URLはhttp://またはhttps://で始まる必要があります"),
@@ -78,6 +112,11 @@ export async function validateICalUrl(
 		}
 	} catch {
 		return err(invalidUrl("無効なURL形式です"));
+	}
+
+	// SSRF対策: 内部ネットワークのURLを拒否（CWE-918）
+	if (isInternalHost(parsed.hostname)) {
+		return err(invalidUrl("内部ネットワークのURLは指定できません"));
 	}
 
 	// 実際にフェッチして検証

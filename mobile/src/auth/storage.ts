@@ -13,12 +13,12 @@ export interface StoredUser {
 
 // ============================================================
 // Web用: メモリストレージ
-// Web ではアクセストークンをメモリに保持し、Authorization ヘッダーに使う
-// Cookie（httpOnly）はHono APIが Set-Cookie で管理するためフロント側での保存は不要
+// Web ではアクセストークンとユーザー情報をメモリに保持
+// リフレッシュトークンは httpOnly Cookie で Hono API が管理するため
+// フロント側では保存しない（CWE-922 対策）
 // ============================================================
 
 let webAccessToken: string | null = null;
-let webRefreshToken: string | null = null;
 let webUser: StoredUser | null = null;
 
 // ============================================================
@@ -85,10 +85,13 @@ export async function deleteToken(): Promise<void> {
 
 /**
  * リフレッシュトークンを安全に保存
+ *
+ * Web: httpOnly Cookie で Hono API が管理するためフロント側では保存しない
+ * Mobile: SecureStore に保存
  */
 export async function saveRefreshToken(token: string): Promise<void> {
 	if (Platform.OS === "web") {
-		webRefreshToken = token;
+		// Web: httpOnly Cookie で Hono API が管理するためフロント側では保存しない
 		return;
 	}
 	const store = await getSecureStore();
@@ -97,10 +100,14 @@ export async function saveRefreshToken(token: string): Promise<void> {
 
 /**
  * リフレッシュトークンを取得
+ *
+ * Web: httpOnly Cookie で管理されているため常に null を返す
+ * Mobile: SecureStore から取得
  */
 export async function getRefreshToken(): Promise<string | null> {
 	if (Platform.OS === "web") {
-		return webRefreshToken;
+		// Web: httpOnly Cookie で管理されているためフロント側からはアクセスしない
+		return null;
 	}
 	const store = await getSecureStore();
 	return store.getItemAsync(REFRESH_TOKEN_KEY);
@@ -108,10 +115,13 @@ export async function getRefreshToken(): Promise<string | null> {
 
 /**
  * リフレッシュトークンを削除
+ *
+ * Web: httpOnly Cookie で管理されているためフロント側では何もしない
+ * Mobile: SecureStore から削除
  */
 export async function deleteRefreshToken(): Promise<void> {
 	if (Platform.OS === "web") {
-		webRefreshToken = null;
+		// Web: httpOnly Cookie で管理されているためフロント側では何もしない
 		return;
 	}
 	const store = await getSecureStore();

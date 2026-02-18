@@ -69,6 +69,10 @@ account.delete("/", async (c) => {
 
 		// 関連データを順次削除
 		await db
+			.prepare("DELETE FROM refresh_tokens WHERE user_id = ?")
+			.bind(userId)
+			.run();
+		await db
 			.prepare("DELETE FROM sessions WHERE userId = ?")
 			.bind(userId)
 			.run();

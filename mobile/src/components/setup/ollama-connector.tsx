@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { AUTH_CONFIG } from "../../auth/config";
+import { apiFetch } from "../../api/client";
 
 // ============================================================
 // 型定義
@@ -61,16 +61,14 @@ export function OllamaConnector({
 		setErrorMessage("");
 
 		try {
-			const response = await fetch(
-				`${AUTH_CONFIG.apiBaseUrl}/api/setup/validate-key`,
+			const result = await apiFetch<ConnectionResult>(
+				"/api/setup/validate-key",
 				{
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ provider: "ollama", apiKey: url }),
 				},
 			);
-
-			const result: ConnectionResult = await response.json();
 
 			if (result.valid) {
 				setStatus("connected");

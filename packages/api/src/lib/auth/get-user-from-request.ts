@@ -6,9 +6,7 @@
  */
 
 import { extractBearerToken, verifyMobileJwt } from "./mobile-jwt";
-
-/** Cookie名 */
-const JWT_COOKIE_NAME = "miipa_token";
+import { JWT_COOKIE_NAME } from "./constants";
 
 /**
  * Cookie文字列から指定されたCookieの値を取得

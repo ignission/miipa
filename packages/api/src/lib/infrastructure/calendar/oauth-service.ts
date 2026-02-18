@@ -14,6 +14,7 @@ import {
 	networkError,
 } from "@/lib/domain/calendar";
 import { err, ok, type Result } from "@/lib/domain/shared";
+import { base64UrlEncode } from "@/lib/utils/base64url";
 
 // ============================================================
 // 型定義
@@ -56,14 +57,6 @@ const SCOPES = [
 // ============================================================
 // 内部ユーティリティ関数
 // ============================================================
-
-function base64UrlEncode(bytes: Uint8Array): string {
-	const binString = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
-	return btoa(binString)
-		.replace(/\+/g, "-")
-		.replace(/\//g, "_")
-		.replace(/=+$/, "");
-}
 
 function generateCodeVerifier(): string {
 	const array = new Uint8Array(32);

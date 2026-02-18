@@ -147,7 +147,21 @@ setup.post("/settings", async (c) => {
 		);
 	}
 
-	const body = (await c.req.json()) as SaveSettingsRequest;
+	let body: SaveSettingsRequest;
+	try {
+		body = (await c.req.json()) as SaveSettingsRequest;
+	} catch {
+		return c.json(
+			{
+				success: false,
+				error: {
+					code: "INVALID_REQUEST",
+					message: "不正なリクエスト形式です",
+				},
+			},
+			400,
+		);
+	}
 
 	// 必須パラメータのバリデーション
 	if (!body.provider) {
@@ -206,7 +220,21 @@ setup.post("/settings", async (c) => {
 // ============================================================
 
 setup.post("/validate-key", async (c) => {
-	const body = (await c.req.json()) as ValidateKeyRequest;
+	let body: ValidateKeyRequest;
+	try {
+		body = (await c.req.json()) as ValidateKeyRequest;
+	} catch {
+		return c.json(
+			{
+				valid: false,
+				error: {
+					code: "INVALID_REQUEST",
+					message: "不正なリクエスト形式です",
+				},
+			},
+			400,
+		);
+	}
 
 	// 必須パラメータのバリデーション
 	if (!body.provider || !body.apiKey) {

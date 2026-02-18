@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { Linking, Pressable, Text, TextInput, View } from "react-native";
-import { AUTH_CONFIG } from "../../auth/config";
+import { apiFetch } from "../../api/client";
 import { type LLMProvider, PROVIDER_INFO } from "./types";
 
 // ============================================================
@@ -72,8 +72,8 @@ export function ApiKeyForm({
 		setValidationResult(null);
 
 		try {
-			const response = await fetch(
-				`${AUTH_CONFIG.apiBaseUrl}/api/setup/validate-key`,
+			const result = await apiFetch<ValidationResult>(
+				"/api/setup/validate-key",
 				{
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
@@ -81,7 +81,6 @@ export function ApiKeyForm({
 				},
 			);
 
-			const result: ValidationResult = await response.json();
 			setValidationResult(result);
 			onValidated(result.valid);
 		} catch {
