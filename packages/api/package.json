@@ -1,0 +1,20 @@
+{
+	"name": "@miipa/api",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"hono": "^4.7.0",
+		"ical.js": "^2.2.1",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20260206.0",
+		"typescript": "^5",
+		"wrangler": "^4.63.0"
+	}
+}

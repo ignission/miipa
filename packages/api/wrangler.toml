@@ -1,0 +1,20 @@
+name = "miipa-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "development"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "miipa-db"
+database_id = "e7f76aa8-06b3-49eb-a3ff-71531c4efd78"
+
+# 本番環境設定
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.production.routes]
+pattern = "api.miipa.app"
+custom_domain = true

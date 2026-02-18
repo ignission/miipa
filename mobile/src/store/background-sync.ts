@@ -1,14 +1,26 @@
-import * as BackgroundFetch from "expo-background-fetch";
-import * as TaskManager from "expo-task-manager";
+import { Platform } from "react-native";
 import { fetchTodayEvents } from "../api/events";
 import { DEFAULT_CALENDAR_COLOR } from "../theme";
 import { writeWidgetData } from "./app-group";
 import { syncToWatch } from "./watch-sync";
 
+// Web環境ではバックグラウンドフェッチは利用不可のため、動的にインポート
+type BackgroundFetchModule = typeof import("expo-background-fetch");
+type TaskManagerModule = typeof import("expo-task-manager");
+
+let BackgroundFetch: BackgroundFetchModule | null = null;
+let TaskManager: TaskManagerModule | null = null;
+
+if (Platform.OS !== "web") {
+	BackgroundFetch =
+		require("expo-background-fetch") as BackgroundFetchModule;
+	TaskManager = require("expo-task-manager") as TaskManagerModule;
+}
+
 const BACKGROUND_FETCH_TASK = "miipa-background-sync";
 
 /**
- * バックグラウンドタスクの定義
+ * バックグラウンドタスクの定義（Mobile限定）
  *
  * 実行内容:
  * 1. APIからイベントを同期
@@ -16,55 +28,65 @@ const BACKGROUND_FETCH_TASK = "miipa-background-sync";
  * 3. Widget用データ更新（App Groups）
  * 4. Watch用データ更新（WatchConnectivity）
  */
-TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
-	try {
-		// APIからイベント取得
-		const data = await fetchTodayEvents();
+if (TaskManager && BackgroundFetch) {
+	const BF = BackgroundFetch;
+	TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
+		try {
+			// APIからイベント取得
+			const data = await fetchTodayEvents();
 
-		// Widget用データを更新
-		await writeWidgetData({
-			events: data.events.map((e) => ({
+			// Widget用データを更新
+			await writeWidgetData({
+				events: data.events.map((e) => ({
+					id: e.id,
+					title: e.title,
+					startTime: e.startTime,
+					endTime: e.endTime,
+					isAllDay: e.isAllDay,
+					calendarColor: DEFAULT_CALENDAR_COLOR,
+					...(e.location ? { location: e.location } : {}),
+				})),
+				lastUpdated: new Date().toISOString(),
+			});
+
+			// Watch同期（UICalendarEvent形式に変換して渡す）
+			const uiEvents = data.events.map((e) => ({
 				id: e.id,
 				title: e.title,
-				startTime: e.startTime,
-				endTime: e.endTime,
+				startTime: new Date(e.startTime),
+				endTime: new Date(e.endTime),
 				isAllDay: e.isAllDay,
-				calendarColor: DEFAULT_CALENDAR_COLOR,
-				...(e.location ? { location: e.location } : {}),
-			})),
-			lastUpdated: new Date().toISOString(),
-		});
+				location: e.location,
+				description: e.description,
+				calendarId: "",
+				source: e.source,
+			}));
+			await syncToWatch(uiEvents);
 
-		// Watch同期（UICalendarEvent形式に変換して渡す）
-		const uiEvents = data.events.map((e) => ({
-			id: e.id,
-			title: e.title,
-			startTime: new Date(e.startTime),
-			endTime: new Date(e.endTime),
-			isAllDay: e.isAllDay,
-			location: e.location,
-			description: e.description,
-			calendarId: "",
-			source: e.source,
-		}));
-		await syncToWatch(uiEvents);
-
-		console.log("[background-sync] 同期完了:", data.events.length, "件");
-		return BackgroundFetch.BackgroundFetchResult.NewData;
-	} catch (error) {
-		console.error("[background-sync] 同期エラー:", error);
-		return BackgroundFetch.BackgroundFetchResult.Failed;
-	}
-});
+			console.log(
+				"[background-sync] 同期完了:",
+				data.events.length,
+				"件",
+			);
+			return BF.BackgroundFetchResult.NewData;
+		} catch (error) {
+			console.error("[background-sync] 同期エラー:", error);
+			return BF.BackgroundFetchResult.Failed;
+		}
+	});
+}
 
 /**
  * バックグラウンド同期を登録
  *
+ * Web環境ではno-op。
  * 最小間隔15分でバックグラウンドfetchを実行。
  * iOS のバックグラウンドfetchはOSが最適なタイミングで実行するため、
  * 正確に15分間隔ではない。
  */
 export async function registerBackgroundSync(): Promise<void> {
+	if (Platform.OS === "web" || !BackgroundFetch) return;
+
 	try {
 		const status = await BackgroundFetch.getStatusAsync();
 
@@ -92,8 +114,12 @@ export async function registerBackgroundSync(): Promise<void> {
 
 /**
  * バックグラウンド同期の登録を解除
+ *
+ * Web環境ではno-op。
  */
 export async function unregisterBackgroundSync(): Promise<void> {
+	if (Platform.OS === "web" || !BackgroundFetch) return;
+
 	try {
 		await BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
 	} catch {

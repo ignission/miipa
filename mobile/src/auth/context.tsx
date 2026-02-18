@@ -1,5 +1,3 @@
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
 import type { ReactNode } from "react";
 import {
 	createContext,
@@ -9,6 +7,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { Platform } from "react-native";
 import { AUTH_CONFIG } from "./config";
 import type { StoredUser } from "./storage";
 import {
@@ -23,7 +22,41 @@ import {
 	saveUser,
 } from "./storage";
 
-WebBrowser.maybeCompleteAuthSession();
+// ============================================================
+// Mobile 専用モジュール: Web では読み込まない
+// ============================================================
+
+type GoogleAuthHook = [
+	unknown,
+	{ type: string; params: Record<string, string> } | null,
+	() => Promise<unknown>,
+];
+
+/**
+ * Mobile 用 Google OAuth フック（Web では no-op）
+ */
+function useMobileGoogleAuth(): GoogleAuthHook {
+	if (Platform.OS === "web") {
+		// Web では expo-auth-session を使わない
+		return [null, null, async () => {}];
+	}
+
+	// Mobile 環境でのみ動的に require
+	// biome-ignore lint: Web では到達しないため動的 require が必要
+	const Google = require("expo-auth-session/providers/google");
+	// biome-ignore lint: Web では到達しないため動的 require が必要
+	const WebBrowser = require("expo-web-browser");
+	WebBrowser.maybeCompleteAuthSession();
+
+	return Google.useIdTokenAuthRequest({
+		iosClientId: AUTH_CONFIG.googleIosClientId,
+		webClientId: AUTH_CONFIG.googleWebClientId,
+	});
+}
+
+// ============================================================
+// 型定義
+// ============================================================
 
 interface AuthState {
 	/** 認証済みかどうか */
@@ -55,46 +88,79 @@ export function useAuth(): AuthState {
 	return context;
 }
 
+// ============================================================
+// ユーティリティ関数
+// ============================================================
+
+/** バッファ秒数（期限切れ判定を早めに行う） */
+const TOKEN_EXPIRY_BUFFER_SECONDS = 30;
+
+/**
+ * Base64URLエンコードされた文字列をデコードする
+ */
+function decodeBase64Url(input: string): string {
+	let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+	const pad = base64.length % 4;
+	if (pad === 2) base64 += "==";
+	else if (pad === 3) base64 += "=";
+	return atob(base64);
+}
+
 /**
  * JWTペイロードをデコードして有効期限切れかチェック
- *
- * @param token - JWT文字列
- * @returns 期限切れならtrue
  */
 function isTokenExpired(token: string): boolean {
 	try {
 		const parts = token.split(".");
-		if (parts.length !== 3) {
-			return true;
-		}
-		// Base64URLデコード（文字置換とパディング補完）
-		let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-		const pad = payload.length % 4;
-		if (pad === 2) payload += "==";
-		else if (pad === 3) payload += "=";
-		const decoded = JSON.parse(atob(payload)) as { exp?: number };
+		if (parts.length !== 3) return true;
 
-		if (!decoded.exp) {
-			return true;
-		}
+		const decoded = JSON.parse(decodeBase64Url(parts[1])) as {
+			exp?: number;
+		};
+		if (!decoded.exp) return true;
 
-		// 期限の30秒前をバッファとして持たせる
-		return decoded.exp - 30 < Math.floor(Date.now() / 1000);
+		const now = Math.floor(Date.now() / 1000);
+		return decoded.exp - TOKEN_EXPIRY_BUFFER_SECONDS < now;
 	} catch {
 		return true;
 	}
 }
 
 /**
- * SecureStoreに保存されたリフレッシュトークンで新しいアクセストークンを取得
- *
- * @returns 成功ならtrue
+ * Web用: Cookie ベースでリフレッシュトークンを送信
  */
-async function refreshWithStoredToken(): Promise<boolean> {
-	const refreshToken = await getRefreshToken();
-	if (!refreshToken) {
+async function refreshOnWeb(): Promise<boolean> {
+	try {
+		const res = await fetch(
+			`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.refreshEndpoint}`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify({}),
+			},
+		);
+
+		if (!res.ok) return false;
+
+		const data = (await res.json()) as {
+			token: string;
+			user: StoredUser;
+		};
+
+		await Promise.all([saveToken(data.token), saveUser(data.user)]);
+		return true;
+	} catch {
 		return false;
 	}
+}
+
+/**
+ * Mobile用: SecureStore のリフレッシュトークンで新しいアクセストークンを取得
+ */
+async function refreshOnMobile(): Promise<boolean> {
+	const refreshToken = await getRefreshToken();
+	if (!refreshToken) return false;
 
 	try {
 		const res = await fetch(
@@ -109,32 +175,49 @@ async function refreshWithStoredToken(): Promise<boolean> {
 			},
 		);
 
-		if (!res.ok) {
-			return false;
-		}
+		if (!res.ok) return false;
 
-		const data = await res.json();
-		const {
-			token: newJwt,
-			refreshToken: newRefreshToken,
-			user: userData,
-		} = data as {
+		const data = (await res.json()) as {
 			token: string;
 			refreshToken: string;
 			user: StoredUser;
 		};
 
 		await Promise.all([
-			saveToken(newJwt),
-			saveRefreshToken(newRefreshToken),
-			saveUser(userData),
+			saveToken(data.token),
+			saveRefreshToken(data.refreshToken),
+			saveUser(data.user),
 		]);
-
 		return true;
 	} catch {
 		return false;
 	}
 }
+
+/**
+ * プラットフォームに応じたリフレッシュ処理を実行
+ */
+async function refreshWithStoredToken(): Promise<boolean> {
+	return Platform.OS === "web" ? refreshOnWeb() : refreshOnMobile();
+}
+
+/**
+ * ストレージからトークンとユーザー情報を読み込む
+ *
+ * @returns トークンとユーザーのペア。いずれかが欠けている場合は null
+ */
+async function loadStoredAuth(): Promise<{
+	token: string;
+	user: StoredUser;
+} | null> {
+	const [token, user] = await Promise.all([getToken(), getUser()]);
+	if (!token || !user) return null;
+	return { token, user };
+}
+
+// ============================================================
+// AuthProvider
+// ============================================================
 
 interface AuthProviderProps {
 	children: ReactNode;
@@ -142,6 +225,10 @@ interface AuthProviderProps {
 
 /**
  * 認証プロバイダー
+ *
+ * Web/Mobile 統一の認証コンテキストを提供:
+ * - Web: Hono API の Google OAuth フロー（リダイレクト方式）
+ * - Mobile: expo-auth-session による Google ID Token 取得 + JWT交換
  */
 export function AuthProvider({ children }: AuthProviderProps) {
 	const [isLoading, setIsLoading] = useState(true);
@@ -149,61 +236,63 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const [user, setUser] = useState<StoredUser | null>(null);
 	const [token, setToken] = useState<string | null>(null);
 
-	// Google OAuth設定（iOS用Client ID + Web用Client IDでIDトークンを取得）
-	const [_request, response, promptAsync] = Google.useIdTokenAuthRequest({
-		iosClientId: AUTH_CONFIG.googleIosClientId,
-		webClientId: AUTH_CONFIG.googleWebClientId,
-	});
+	// Mobile: Google OAuth設定（iOS用Client ID + Web用Client IDでIDトークンを取得）
+	// Web: no-op フック
+	const [_request, response, promptAsync] = useMobileGoogleAuth();
+
+	/**
+	 * リフレッシュ後のトークンをストレージから読み込み、ステートに反映する
+	 */
+	const applyRefreshedAuth = useCallback(async () => {
+		const auth = await loadStoredAuth();
+		if (auth) {
+			setToken(auth.token);
+			setUser(auth.user);
+		}
+	}, []);
 
 	// 起動時にトークンを復元（有効期限切れの場合はリフレッシュ）
 	useEffect(() => {
 		(async () => {
 			try {
-				const [savedToken, savedUser] = await Promise.all([
-					getToken(),
-					getUser(),
-				]);
+				const stored = await loadStoredAuth();
 
-				if (!savedToken || !savedUser) {
+				// トークン未保存: Web のみ Cookie ベースでリフレッシュを試行
+				if (!stored) {
+					if (Platform.OS === "web") {
+						const refreshed = await refreshWithStoredToken();
+						if (refreshed) await applyRefreshedAuth();
+					}
 					return;
 				}
 
-				// JWTの有効期限をチェック
-				if (isTokenExpired(savedToken)) {
-					// リフレッシュトークンで新しいアクセストークンを取得
-					const refreshed = await refreshWithStoredToken();
-					if (!refreshed) {
-						// リフレッシュ失敗: ログアウト状態にする
-						await Promise.all([
-							deleteToken(),
-							deleteRefreshToken(),
-							deleteUser(),
-						]);
-						return;
-					}
+				// トークンが有効ならそのまま復元
+				if (!isTokenExpired(stored.token)) {
+					setToken(stored.token);
+					setUser(stored.user);
+					return;
+				}
 
-					// リフレッシュ成功: 新しいトークンとユーザー情報を設定
-					const [newToken, newUser] = await Promise.all([
-						getToken(),
-						getUser(),
+				// トークン期限切れ: リフレッシュを試行
+				const refreshed = await refreshWithStoredToken();
+				if (refreshed) {
+					await applyRefreshedAuth();
+				} else {
+					// リフレッシュ失敗: ログアウト状態にする
+					await Promise.all([
+						deleteToken(),
+						deleteRefreshToken(),
+						deleteUser(),
 					]);
-					if (newToken && newUser) {
-						setToken(newToken);
-						setUser(newUser);
-					}
-					return;
 				}
-
-				setToken(savedToken);
-				setUser(savedUser);
 			} finally {
 				setIsLoading(false);
 			}
 		})();
-	}, []);
+	}, [applyRefreshedAuth]);
 
 	/**
-	 * Google ID Token をバックエンドのJWTに交換
+	 * Google ID Token をバックエンドのJWTに交換（Mobile用）
 	 */
 	const exchangeToken = useCallback(async (idToken: string) => {
 		try {
@@ -245,8 +334,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		}
 	}, []);
 
-	// Google OAuth レスポンス処理
+	// Mobile: Google OAuth レスポンス処理
 	useEffect(() => {
+		if (Platform.OS === "web") return;
+
 		if (response?.type === "success") {
 			const { id_token: idToken } = response.params;
 			if (idToken) {
@@ -261,7 +352,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		}
 	}, [response, exchangeToken]);
 
+	/**
+	 * ログイン実行
+	 *
+	 * Web: Hono API に Google OAuth URL を取得してブラウザリダイレクト
+	 * Mobile: expo-auth-session で Google ID Token を取得
+	 */
 	const signIn = useCallback(async () => {
+		if (Platform.OS === "web") {
+			setIsSigningIn(true);
+			try {
+				const res = await fetch(
+					`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.googleAuthEndpoint}`,
+					{
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						credentials: "include",
+						body: JSON.stringify({}),
+					},
+				);
+
+				if (!res.ok) {
+					throw new Error(`OAuth URL取得失敗: ${res.status}`);
+				}
+
+				const data = (await res.json()) as { authUrl: string };
+
+				// リダイレクト先のホスト名を検証（Open Redirect 対策: CWE-601）
+				const authUrlObj = new URL(data.authUrl);
+				if (authUrlObj.hostname !== "accounts.google.com") {
+					throw new Error("不正なリダイレクトURL");
+				}
+
+				// Google OAuth 画面にリダイレクト
+				window.location.href = data.authUrl;
+			} catch (error) {
+				console.error("[auth] Web OAuth開始エラー:", error);
+				setIsSigningIn(false);
+			}
+			return;
+		}
+
+		// Mobile: expo-auth-session
 		setIsSigningIn(true);
 		try {
 			await promptAsync();
@@ -271,7 +403,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		}
 	}, [promptAsync]);
 
+	/**
+	 * ログアウト実行
+	 *
+	 * Web: Hono API のログアウトエンドポイントを呼び出し（Cookie削除）
+	 * Mobile: ローカルストレージのトークンを削除
+	 */
 	const signOut = useCallback(async () => {
+		if (Platform.OS === "web") {
+			try {
+				await fetch(
+					`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.logoutEndpoint}`,
+					{
+						method: "POST",
+						credentials: "include",
+					},
+				);
+			} catch (error) {
+				console.error("[auth] ログアウトAPIエラー:", error);
+			}
+		}
+
 		await Promise.all([deleteToken(), deleteRefreshToken(), deleteUser()]);
 		setToken(null);
 		setUser(null);

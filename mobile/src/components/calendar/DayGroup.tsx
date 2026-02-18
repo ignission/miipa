@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import type { UICalendarEvent } from "../../hooks/useEvents";
 import { EventCard } from "./EventCard";
 
@@ -24,65 +24,41 @@ function formatDate(date: Date, isToday: boolean): string {
 
 /**
  * 日別イベントグループコンポーネント
+ *
+ * 日付ヘッダーとその日のイベント一覧を表示します。
+ * 今日の場合はアクセントカラーで強調表示されます。
  */
 export function DayGroup({ date, events, isToday }: DayGroupProps) {
 	return (
-		<View style={styles.container}>
-			<View style={[styles.header, isToday && styles.todayHeader]}>
-				<Text style={[styles.dateText, isToday && styles.todayDateText]}>
+		<View className="mb-4">
+			{/* 日付ヘッダー */}
+			<View
+				className={`flex-row items-center justify-between px-4 py-2 ${
+					isToday ? "mx-2 rounded-lg bg-accent-50" : ""
+				}`}
+			>
+				<Text
+					className={`text-[15px] font-semibold ${
+						isToday ? "text-accent-600" : "text-fg"
+					}`}
+				>
 					{formatDate(date, isToday)}
 				</Text>
-				<Text style={styles.eventCount}>
+				<Text className="text-xs text-fg-subtle">
 					{events.length > 0 ? `${events.length}件` : "予定なし"}
 				</Text>
 			</View>
 
+			{/* イベント一覧 */}
 			{events.length > 0 ? (
 				events.map((event) => <EventCard key={event.id} event={event} />)
 			) : (
-				<View style={styles.empty}>
-					<Text style={styles.emptyText}>予定はありません</Text>
+				<View className="px-4 py-3">
+					<Text className="text-center text-[13px] text-border">
+						予定はありません
+					</Text>
 				</View>
 			)}
 		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		marginBottom: 16,
-	},
-	header: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-	},
-	todayHeader: {
-		backgroundColor: "#FFF7ED",
-		borderRadius: 8,
-		marginHorizontal: 8,
-	},
-	dateText: {
-		fontSize: 15,
-		fontWeight: "600",
-		color: "#404040",
-	},
-	todayDateText: {
-		color: "#EA580C",
-	},
-	eventCount: {
-		fontSize: 12,
-		color: "#A3A3A3",
-	},
-	empty: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-	},
-	emptyText: {
-		fontSize: 13,
-		color: "#D4D4D4",
-		textAlign: "center",
-	},
-});

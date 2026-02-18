@@ -1,10 +1,14 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import type { UICalendarEvent } from "../../hooks/useEvents";
 import { DEFAULT_CALENDAR_COLOR } from "../../theme";
 
+/** 1時間あたりの高さ（px） */
 const HOUR_HEIGHT = 60;
+/** 表示開始時刻 */
 const DAY_START_HOUR = 6;
+/** 表示終了時刻 */
 const DAY_END_HOUR = 22;
+/** 時刻ラベルの幅 */
 const TIME_LABEL_WIDTH = 50;
 
 interface TimelineViewProps {
@@ -20,7 +24,7 @@ function formatHourLabel(hour: number): string {
 }
 
 /**
- * イベントのY座標を計算
+ * イベントのY座標と高さを計算
  */
 function getEventPosition(event: UICalendarEvent): {
 	top: number;
@@ -28,7 +32,8 @@ function getEventPosition(event: UICalendarEvent): {
 } {
 	const startHour =
 		event.startTime.getHours() + event.startTime.getMinutes() / 60;
-	const rawEndHour = event.endTime.getHours() + event.endTime.getMinutes() / 60;
+	const rawEndHour =
+		event.endTime.getHours() + event.endTime.getMinutes() / 60;
 	// 深夜跨ぎ（例: 23:00→翌01:00）の場合、表示範囲の終端まで描画する
 	const endHour = rawEndHour < startHour ? DAY_END_HOUR : rawEndHour;
 
@@ -43,15 +48,21 @@ function getEventPosition(event: UICalendarEvent): {
 
 /**
  * タイムラインビューコンポーネント
+ *
+ * 時間軸に沿ってイベントをブロック表示するビューです。
+ * 終日イベントは上部に別セクションとして表示します。
+ * 現在時刻のインジケータ（赤い線）も表示されます。
+ *
+ * 注意: 複雑な絶対配置レイアウトのため、一部のスタイルは
+ * style prop で直接指定しています（動的な top/height/left 値）。
  */
 export function TimelineView({ events, currentTime }: TimelineViewProps) {
-	// 終日でないイベントのうち、表示時間帯（DAY_START_HOUR〜DAY_END_HOUR）と
-	// 重なるもののみ表示する。範囲外イベントのゴーストブロック描画を防止する。
+	// 終日でないイベントのうち、表示時間帯と重なるもののみ表示する
 	const timeEvents = events.filter((e) => {
 		if (e.isAllDay) return false;
 		const startHour = e.startTime.getHours() + e.startTime.getMinutes() / 60;
 		const rawEndHour = e.endTime.getHours() + e.endTime.getMinutes() / 60;
-		// 深夜跨ぎ（例: 23:00→翌01:00）の場合、表示範囲の終端まで表示する
+		// 深夜跨ぎの場合、表示範囲の終端まで表示する
 		const endHour = rawEndHour < startHour ? DAY_END_HOUR : rawEndHour;
 		return endHour > DAY_START_HOUR && startHour < DAY_END_HOUR;
 	});
@@ -70,23 +81,25 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 
 	return (
 		<View>
-			{/* 終日イベント */}
+			{/* 終日イベントセクション */}
 			{allDayEvents.length > 0 && (
-				<View style={styles.allDaySection}>
-					<Text style={styles.allDayLabel}>終日</Text>
+				<View className="border-b border-bg-muted bg-bg-subtle px-4 py-2">
+					<Text className="mb-1 text-xs text-fg-muted">終日</Text>
 					{allDayEvents.map((event) => (
 						<View
 							key={event.id}
-							style={[
-								styles.allDayEvent,
-								{
-									backgroundColor:
-										(event.color ?? DEFAULT_CALENDAR_COLOR) + "20",
-									borderLeftColor: event.color ?? DEFAULT_CALENDAR_COLOR,
-								},
-							]}
+							className="mb-1 rounded-md px-2 py-1.5"
+							style={{
+								backgroundColor:
+									`${event.color ?? DEFAULT_CALENDAR_COLOR}20`,
+								borderLeftWidth: 3,
+								borderLeftColor: event.color ?? DEFAULT_CALENDAR_COLOR,
+							}}
 						>
-							<Text style={styles.allDayEventText} numberOfLines={1}>
+							<Text
+								className="text-[13px] font-medium text-fg"
+								numberOfLines={1}
+							>
 								{event.title}
 							</Text>
 						</View>
@@ -95,30 +108,43 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 			)}
 
 			{/* タイムライングリッド */}
-			<View style={[styles.timeline, { height: hours.length * HOUR_HEIGHT }]}>
+			<View
+				className="relative mt-2"
+				style={{ height: hours.length * HOUR_HEIGHT }}
+			>
 				{/* 時刻ラベルとグリッド線 */}
 				{hours.map((hour) => (
 					<View
 						key={hour}
-						style={[
-							styles.hourRow,
-							{ top: (hour - DAY_START_HOUR) * HOUR_HEIGHT },
-						]}
+						className="absolute left-0 right-0 flex-row items-start"
+						style={{ top: (hour - DAY_START_HOUR) * HOUR_HEIGHT }}
 					>
-						<Text style={styles.hourLabel}>{formatHourLabel(hour)}</Text>
-						<View style={styles.hourLine} />
+						<Text
+							className="text-right text-[11px] text-fg-subtle"
+							style={{
+								width: TIME_LABEL_WIDTH,
+								paddingRight: 8,
+								marginTop: -6,
+							}}
+						>
+							{formatHourLabel(hour)}
+						</Text>
+						<View className="h-px flex-1 bg-bg-muted" />
 					</View>
 				))}
 
 				{/* 現在時刻インジケータ */}
 				{showIndicator && (
-					<View style={[styles.currentTimeIndicator, { top: indicatorTop }]}>
-						<View style={styles.currentTimeDot} />
-						<View style={styles.currentTimeLine} />
+					<View
+						className="absolute right-0 z-10 flex-row items-center"
+						style={{ top: indicatorTop, left: TIME_LABEL_WIDTH - 4 }}
+					>
+						<View className="h-2 w-2 rounded-full bg-red-500" />
+						<View className="h-0.5 flex-1 bg-red-500" />
 					</View>
 				)}
 
-				{/* イベント */}
+				{/* イベントブロック */}
 				{timeEvents.map((event) => {
 					const { top, height } = getEventPosition(event);
 					const eventColor = event.color ?? DEFAULT_CALENDAR_COLOR;
@@ -126,25 +152,27 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 					return (
 						<View
 							key={event.id}
-							style={[
-								styles.event,
-								{
-									top,
-									height,
-									left: TIME_LABEL_WIDTH + 4,
-									backgroundColor: eventColor + "20",
-									borderLeftColor: eventColor,
-								},
-							]}
+							className="absolute right-4 rounded-md px-2 py-1"
+							style={{
+								top,
+								height,
+								left: TIME_LABEL_WIDTH + 4,
+								backgroundColor: `${eventColor}20`,
+								borderLeftWidth: 3,
+								borderLeftColor: eventColor,
+							}}
 						>
-							<Text style={styles.eventTime} numberOfLines={1}>
+							<Text className="text-[10px] text-fg-muted" numberOfLines={1}>
 								{event.startTime.toLocaleTimeString("ja-JP", {
 									hour: "2-digit",
 									minute: "2-digit",
 									hour12: false,
 								})}
 							</Text>
-							<Text style={styles.eventTitle} numberOfLines={2}>
+							<Text
+								className="text-xs font-medium text-fg"
+								numberOfLines={2}
+							>
 								{event.title}
 							</Text>
 						</View>
@@ -154,90 +182,3 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	allDaySection: {
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-		backgroundColor: "#FAFAFA",
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E5E5",
-	},
-	allDayLabel: {
-		fontSize: 12,
-		color: "#737373",
-		marginBottom: 4,
-	},
-	allDayEvent: {
-		paddingVertical: 6,
-		paddingHorizontal: 8,
-		borderRadius: 6,
-		borderLeftWidth: 3,
-		marginBottom: 4,
-	},
-	allDayEventText: {
-		fontSize: 13,
-		fontWeight: "500",
-		color: "#171717",
-	},
-	timeline: {
-		position: "relative",
-		marginTop: 8,
-	},
-	hourRow: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		flexDirection: "row",
-		alignItems: "flex-start",
-	},
-	hourLabel: {
-		width: TIME_LABEL_WIDTH,
-		fontSize: 11,
-		color: "#A3A3A3",
-		textAlign: "right",
-		paddingRight: 8,
-		marginTop: -6,
-	},
-	hourLine: {
-		flex: 1,
-		height: 1,
-		backgroundColor: "#E5E5E5",
-	},
-	currentTimeIndicator: {
-		position: "absolute",
-		left: TIME_LABEL_WIDTH - 4,
-		right: 0,
-		flexDirection: "row",
-		alignItems: "center",
-		zIndex: 10,
-	},
-	currentTimeDot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "#EF4444",
-	},
-	currentTimeLine: {
-		flex: 1,
-		height: 2,
-		backgroundColor: "#EF4444",
-	},
-	event: {
-		position: "absolute",
-		right: 16,
-		borderLeftWidth: 3,
-		borderRadius: 6,
-		paddingVertical: 4,
-		paddingHorizontal: 8,
-	},
-	eventTime: {
-		fontSize: 10,
-		color: "#737373",
-	},
-	eventTitle: {
-		fontSize: 12,
-		fontWeight: "500",
-		color: "#171717",
-	},
-});

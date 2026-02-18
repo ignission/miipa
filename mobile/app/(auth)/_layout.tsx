@@ -1,3 +1,13 @@
+/**
+ * 認証済み画面レイアウト
+ *
+ * 認証状態を確認し、未認証ならサインイン画面にリダイレクトします。
+ * タブナビゲーション（今日 / 今週 / 設定）を提供し、
+ * 設定サブ画面・セットアップ・チャットの Stack.Screen も含みます。
+ *
+ * @module app/(auth)/_layout
+ */
+
 import { Redirect, Tabs } from "expo-router";
 import { ActivityIndicator, useColorScheme, View } from "react-native";
 import { TabBarIcon } from "../../components/navigation/TabBarIcon";
@@ -11,7 +21,13 @@ export default function AuthLayout() {
 	// 認証状態の読み込み中はprotectedコンテンツを表示しない
 	if (isLoading) {
 		return (
-			<View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+			<View
+				style={{
+					flex: 1,
+					justifyContent: "center",
+					alignItems: "center",
+				}}
+			>
 				<ActivityIndicator size="large" color="#F97316" />
 			</View>
 		);
@@ -35,7 +51,9 @@ export default function AuthLayout() {
 					title: "今日",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
-							name={focused ? "calendar" : "calendar-outline"}
+							name={
+								focused ? "calendar" : "calendar-outline"
+							}
 							color={color}
 						/>
 					),
@@ -47,7 +65,27 @@ export default function AuthLayout() {
 					title: "今週",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
-							name={focused ? "calendar-number" : "calendar-number-outline"}
+							name={
+								focused
+									? "calendar-number"
+									: "calendar-number-outline"
+							}
+							color={color}
+						/>
+					),
+				}}
+			/>
+			<Tabs.Screen
+				name="chat"
+				options={{
+					title: "AI",
+					tabBarIcon: ({ color, focused }) => (
+						<TabBarIcon
+							name={
+								focused
+									? "chatbubble-ellipses"
+									: "chatbubble-ellipses-outline"
+							}
 							color={color}
 						/>
 					),
@@ -59,10 +97,48 @@ export default function AuthLayout() {
 					title: "設定",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
-							name={focused ? "settings" : "settings-outline"}
+							name={
+								focused ? "settings" : "settings-outline"
+							}
 							color={color}
 						/>
 					),
+				}}
+			/>
+
+			{/* タブバーに表示しないが Stack ナビゲーションで使う画面 */}
+			<Tabs.Screen
+				name="settings/calendars"
+				options={{
+					href: null,
+					title: "カレンダー設定",
+				}}
+			/>
+			<Tabs.Screen
+				name="settings/ai"
+				options={{
+					href: null,
+					title: "AI設定",
+				}}
+			/>
+			<Tabs.Screen
+				name="settings/account"
+				options={{
+					href: null,
+					title: "アカウント",
+				}}
+			/>
+			<Tabs.Screen
+				name="settings/_layout"
+				options={{
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="setup"
+				options={{
+					href: null,
+					title: "セットアップ",
 				}}
 			/>
 		</Tabs>

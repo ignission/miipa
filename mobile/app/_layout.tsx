@@ -1,3 +1,5 @@
+import "../global.css";
+
 import {
 	DarkTheme,
 	DefaultTheme,
@@ -10,6 +12,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
+import { GluestackUIProvider } from "../components/ui/gluestack-ui-provider";
 import { AuthProvider } from "../src/auth";
 import { registerBackgroundSync } from "../src/store/background-sync";
 
@@ -48,18 +51,34 @@ export default function RootLayout() {
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<AuthProvider>
-				<ThemeProvider
-					value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-				>
-					<Stack>
-						<Stack.Screen name="sign-in" options={{ headerShown: false }} />
-						<Stack.Screen name="(auth)" options={{ headerShown: false }} />
-						<Stack.Screen name="+not-found" />
-					</Stack>
-					<StatusBar style="auto" />
-				</ThemeProvider>
-			</AuthProvider>
+			<GluestackUIProvider mode={colorScheme === "dark" ? "dark" : "light"}>
+				<AuthProvider>
+					<ThemeProvider
+						value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+					>
+						<Stack>
+							<Stack.Screen name="index" options={{ headerShown: false }} />
+							<Stack.Screen name="sign-in" options={{ headerShown: false }} />
+							<Stack.Screen
+								name="auth-callback"
+								options={{ headerShown: false }}
+							/>
+							<Stack.Screen name="(auth)" options={{ headerShown: false }} />
+							<Stack.Screen
+								name="privacy"
+								options={{ title: "プライバシーポリシー" }}
+							/>
+							<Stack.Screen name="terms" options={{ title: "利用規約" }} />
+							<Stack.Screen
+								name="tokushoho"
+								options={{ title: "特定商取引法に基づく表記" }}
+							/>
+							<Stack.Screen name="+not-found" />
+						</Stack>
+						<StatusBar style="auto" />
+					</ThemeProvider>
+				</AuthProvider>
+			</GluestackUIProvider>
 		</QueryClientProvider>
 	);
 }
