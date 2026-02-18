@@ -28,6 +28,8 @@ interface ColumnLayout {
 	column: number;
 	/** このイベントの重複グループの総列数 */
 	totalColumns: number;
+	/** 右方向に拡張できる列数（1=拡張なし） */
+	span: number;
 }
 
 /**
@@ -137,10 +139,20 @@ function calculateColumnLayout(
 	const result = new Map<string, ColumnLayout>();
 	for (const event of events) {
 		const root = find(event.id);
-		result.set(event.id, {
-			column: columnMap.get(event.id) ?? 0,
-			totalColumns: (clusterMaxColumn.get(root) ?? 0) + 1,
-		});
+		const col = columnMap.get(event.id) ?? 0;
+		const totalColumns = (clusterMaxColumn.get(root) ?? 0) + 1;
+
+		// 右方向に空き列があれば拡張（Google Calendar 方式）
+		const overlapping = events.filter(
+			(other) => other.id !== event.id && eventsOverlap(event, other),
+		);
+		let span = 1;
+		for (let c = col + 1; c < totalColumns; c++) {
+			if (overlapping.some((o) => (columnMap.get(o.id) ?? 0) === c)) break;
+			span++;
+		}
+
+		result.set(event.id, { column: col, totalColumns, span });
 	}
 
 	return result;
@@ -310,10 +322,11 @@ export function TimelineView({ events, currentTime }: TimelineViewProps) {
 						const layout = columnLayoutMap.get(event.id) ?? {
 							column: 0,
 							totalColumns: 1,
+							span: 1,
 						};
 						const columnWidth = availableWidth / layout.totalColumns;
 						const eventLeft = EVENT_LEFT_OFFSET + layout.column * columnWidth;
-						const eventWidth = columnWidth - COLUMN_GAP;
+						const eventWidth = columnWidth * layout.span - COLUMN_GAP;
 
 						return (
 							<View
