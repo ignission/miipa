@@ -191,7 +191,7 @@ function getEventPosition(event: UICalendarEvent): {
 	const clampedEnd = Math.min(endHour, DAY_END_HOUR);
 
 	const top = (clampedStart - DAY_START_HOUR) * HOUR_HEIGHT;
-	const height = Math.max((clampedEnd - clampedStart) * HOUR_HEIGHT, 24);
+	const height = (clampedEnd - clampedStart) * HOUR_HEIGHT;
 
 	return { top, height };
 }
