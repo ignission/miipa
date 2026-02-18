@@ -1,12 +1,16 @@
+/**
+ * サインイン画面
+ *
+ * 未認証ユーザーにサインインUIを表示します。
+ * Web用のGoogleOAuthリダイレクト対応とNativeWindスタイルを適用しています。
+ *
+ * @module app/sign-in
+ */
+
 import { Redirect } from "expo-router";
-import {
-	ActivityIndicator,
-	Pressable,
-	StyleSheet,
-	Text,
-	View,
-} from "react-native";
+import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import { useAuth } from "../src/auth";
+import { LandingPage } from "../src/components/lp/landing-page";
 
 export default function SignInScreen() {
 	const { isAuthenticated, isLoading, isSigningIn, signIn } = useAuth();
@@ -14,7 +18,7 @@ export default function SignInScreen() {
 	// 初期化中はローディング表示
 	if (isLoading) {
 		return (
-			<View style={styles.container}>
+			<View className="flex-1 items-center justify-center bg-orange-50">
 				<ActivityIndicator size="large" color="#F97316" />
 			</View>
 		);
@@ -25,85 +29,41 @@ export default function SignInScreen() {
 		return <Redirect href="/(auth)" />;
 	}
 
+	// Web: 未認証時はLPを表示
+	if (Platform.OS === "web") {
+		return <LandingPage onSignIn={signIn} />;
+	}
+
+	// Mobile: サインインUI
 	return (
-		<View style={styles.container}>
+		<View className="flex-1 items-center justify-center bg-orange-50 p-6">
 			{/* キャラクターエリア */}
-			<View style={styles.characterArea}>
-				<Text style={styles.emoji}>🐾</Text>
-				<Text style={styles.appName}>miipa</Text>
-				<Text style={styles.tagline}>今日の予定を30秒で把握</Text>
+			<View className="mb-12 items-center">
+				<Text className="mb-4 text-7xl">🐾</Text>
+				<Text className="mb-2 text-4xl font-bold text-orange-600">
+					miipa
+				</Text>
+				<Text className="text-base text-orange-900">
+					今日の予定を30秒で把握
+				</Text>
 			</View>
 
 			{/* ログインボタン */}
-			<View style={styles.buttonArea}>
+			<View className="w-full max-w-xs">
 				<Pressable
-					style={({ pressed }) => [
-						styles.googleButton,
-						pressed && styles.googleButtonPressed,
-					]}
+					className="items-center rounded-xl bg-orange-600 px-6 py-4 shadow-md active:bg-orange-700"
 					onPress={signIn}
 					disabled={isSigningIn}
 				>
 					{isSigningIn ? (
 						<ActivityIndicator size="small" color="#fff" />
 					) : (
-						<Text style={styles.googleButtonText}>Google でログイン</Text>
+						<Text className="text-base font-semibold text-white">
+							Google でログイン
+						</Text>
 					)}
 				</Pressable>
 			</View>
 		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFF7ED",
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 24,
-	},
-	characterArea: {
-		alignItems: "center",
-		marginBottom: 48,
-	},
-	emoji: {
-		fontSize: 80,
-		marginBottom: 16,
-	},
-	appName: {
-		fontSize: 36,
-		fontWeight: "700",
-		color: "#EA580C",
-		marginBottom: 8,
-	},
-	tagline: {
-		fontSize: 16,
-		color: "#9A3412",
-		textAlign: "center",
-	},
-	buttonArea: {
-		width: "100%",
-		maxWidth: 320,
-	},
-	googleButton: {
-		backgroundColor: "#EA580C",
-		paddingVertical: 16,
-		paddingHorizontal: 24,
-		borderRadius: 12,
-		alignItems: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.15,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-	googleButtonPressed: {
-		backgroundColor: "#C2410C",
-	},
-	googleButtonText: {
-		color: "#fff",
-		fontSize: 16,
-		fontWeight: "600",
-	},
-});

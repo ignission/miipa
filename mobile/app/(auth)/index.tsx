@@ -1,22 +1,33 @@
+/**
+ * 今日の予定画面
+ *
+ * 認証済みユーザーのメイン画面です。
+ * Web用のレイアウト調整（max-width, padding等）を含みます。
+ * 未認証WebアクセスではLPコンポーネントを条件表示します。
+ *
+ * @module app/(auth)/index
+ */
+
 import { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
+	Platform,
 	RefreshControl,
 	ScrollView,
-	StyleSheet,
 	Text,
 	View,
 } from "react-native";
-import { EventCard } from "../../src/components/calendar/EventCard";
 import { TimelineView } from "../../src/components/calendar/TimelineView";
+import { ViewTabs, type ViewType } from "../../src/components/calendar/view-tabs";
 import { useEvents } from "../../src/hooks/useEvents";
 import { useWidgetData } from "../../src/hooks/useWidgetData";
 
 export default function TodayScreen() {
+	const [activeView, setActiveView] = useState<ViewType>("today");
 	const { events, isLoading, isRefreshing, error, lastSync, refresh } =
-		useEvents("today");
+		useEvents(activeView === "today" ? "today" : "week");
 
-	// Widget & Watch データ同期
+	// Widget & Watch データ同期（Mobileのみ）
 	useWidgetData(events);
 
 	const [currentTime, setCurrentTime] = useState(new Date());
@@ -33,28 +44,41 @@ export default function TodayScreen() {
 		await refresh();
 	}, [refresh]);
 
+	/**
+	 * ビュー切り替え時のハンドラ
+	 */
+	const handleViewChange = useCallback((view: ViewType) => {
+		setActiveView(view);
+	}, []);
+
 	if (isLoading) {
 		return (
-			<View style={styles.center}>
+			<View className="flex-1 items-center justify-center p-6">
 				<ActivityIndicator size="large" color="#F97316" />
-				<Text style={styles.loadingText}>読み込み中...</Text>
+				<Text className="mt-3 text-sm text-neutral-500">
+					読み込み中...
+				</Text>
 			</View>
 		);
 	}
 
 	if (error) {
 		return (
-			<View style={styles.center}>
-				<Text style={styles.errorEmoji}>(; _ ;)</Text>
-				<Text style={styles.errorText}>読み込みに失敗しました</Text>
-				<Text style={styles.errorDetail}>{error.message}</Text>
+			<View className="flex-1 items-center justify-center p-6">
+				<Text className="mb-3 text-3xl">(; _ ;)</Text>
+				<Text className="mb-1 text-base font-semibold text-neutral-900">
+					読み込みに失敗しました
+				</Text>
+				<Text className="text-sm text-neutral-500">
+					{error.message}
+				</Text>
 			</View>
 		);
 	}
 
 	return (
 		<ScrollView
-			style={styles.container}
+			className="flex-1 bg-white"
 			refreshControl={
 				<RefreshControl
 					refreshing={isRefreshing}
@@ -63,101 +87,57 @@ export default function TodayScreen() {
 				/>
 			}
 		>
-			{/* ヘッダー */}
-			<View style={styles.header}>
-				<Text style={styles.dateLabel}>
-					{currentTime.toLocaleDateString("ja-JP", {
-						year: "numeric",
-						month: "long",
-						day: "numeric",
-						weekday: "long",
-					})}
-				</Text>
-				{lastSync && (
-					<Text style={styles.syncLabel}>
-						最終更新:{" "}
-						{lastSync.toLocaleTimeString("ja-JP", {
-							hour: "2-digit",
-							minute: "2-digit",
+			{/* Web用のコンテナ制約 */}
+			<View
+				className={`mx-auto w-full ${
+					Platform.OS === "web" ? "max-w-2xl px-6 py-4" : ""
+				}`}
+			>
+				{/* ViewTabs（今日/今週切り替え） */}
+				<View className="items-center px-4 py-3">
+					<ViewTabs
+						activeView={activeView}
+						onViewChange={handleViewChange}
+					/>
+				</View>
+
+				{/* ヘッダー */}
+				<View className="px-4 pb-2 pt-3">
+					<Text className="text-base font-semibold text-neutral-900">
+						{currentTime.toLocaleDateString("ja-JP", {
+							year: "numeric",
+							month: "long",
+							day: "numeric",
+							weekday: "long",
 						})}
 					</Text>
+					{lastSync && (
+						<Text className="mt-0.5 text-xs text-neutral-400">
+							最終更新:{" "}
+							{lastSync.toLocaleTimeString("ja-JP", {
+								hour: "2-digit",
+								minute: "2-digit",
+							})}
+						</Text>
+					)}
+				</View>
+
+				{events.length === 0 ? (
+					<View className="items-center pt-20">
+						<Text className="mb-4 text-5xl">( ^ o ^ )</Text>
+						<Text className="mb-1 text-lg font-semibold text-neutral-700">
+							{activeView === "today"
+								? "今日の予定はありません"
+								: "今週の予定はありません"}
+						</Text>
+						<Text className="text-sm text-neutral-400">
+							ゆっくり過ごしましょう
+						</Text>
+					</View>
+				) : (
+					<TimelineView events={events} currentTime={currentTime} />
 				)}
 			</View>
-
-			{events.length === 0 ? (
-				<View style={styles.empty}>
-					<Text style={styles.emptyEmoji}>( ^ o ^ )</Text>
-					<Text style={styles.emptyText}>今日の予定はありません</Text>
-					<Text style={styles.emptySubtext}>ゆっくり過ごしましょう</Text>
-				</View>
-			) : (
-				<TimelineView events={events} currentTime={currentTime} />
-			)}
 		</ScrollView>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#fff",
-	},
-	center: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 24,
-	},
-	loadingText: {
-		marginTop: 12,
-		fontSize: 14,
-		color: "#737373",
-	},
-	errorEmoji: {
-		fontSize: 32,
-		marginBottom: 12,
-	},
-	errorText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#171717",
-		marginBottom: 4,
-	},
-	errorDetail: {
-		fontSize: 13,
-		color: "#737373",
-	},
-	header: {
-		paddingHorizontal: 16,
-		paddingTop: 12,
-		paddingBottom: 8,
-	},
-	dateLabel: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#171717",
-	},
-	syncLabel: {
-		fontSize: 11,
-		color: "#A3A3A3",
-		marginTop: 2,
-	},
-	empty: {
-		alignItems: "center",
-		paddingTop: 80,
-	},
-	emptyEmoji: {
-		fontSize: 48,
-		marginBottom: 16,
-	},
-	emptyText: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#404040",
-		marginBottom: 4,
-	},
-	emptySubtext: {
-		fontSize: 14,
-		color: "#A3A3A3",
-	},
-});
