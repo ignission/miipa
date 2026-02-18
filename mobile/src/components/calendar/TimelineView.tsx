@@ -93,18 +93,53 @@ function calculateColumnLayout(
 		columnMap.set(event.id, assignedColumn);
 	}
 
-	// 各イベントについて、重複するイベント群の最大列数を計算
-	const result = new Map<string, ColumnLayout>();
+	// 重複の連結成分（クラスタ）を Union-Find で構築
+	// 直接重複しないイベントでも、間接的に繋がっていれば同じクラスタ
+	const parent = new Map<string, string>();
+	const find = (id: string): string => {
+		let root = id;
+		while (parent.get(root) !== root) {
+			root = parent.get(root) ?? root;
+		}
+		// 経路圧縮
+		let current = id;
+		while (current !== root) {
+			const next = parent.get(current) ?? current;
+			parent.set(current, root);
+			current = next;
+		}
+		return root;
+	};
+	const union = (a: string, b: string) => {
+		const ra = find(a);
+		const rb = find(b);
+		if (ra !== rb) parent.set(ra, rb);
+	};
 
+	for (const e of events) parent.set(e.id, e.id);
+	for (let i = 0; i < events.length; i++) {
+		for (let j = i + 1; j < events.length; j++) {
+			if (eventsOverlap(events[i], events[j])) {
+				union(events[i].id, events[j].id);
+			}
+		}
+	}
+
+	// クラスタごとの最大列番号を計算
+	const clusterMaxColumn = new Map<string, number>();
 	for (const event of events) {
-		const overlapping = events.filter((other) => eventsOverlap(event, other));
-		const maxColumn = Math.max(
-			...overlapping.map((e) => columnMap.get(e.id) ?? 0),
-		);
+		const root = find(event.id);
+		const col = columnMap.get(event.id) ?? 0;
+		clusterMaxColumn.set(root, Math.max(clusterMaxColumn.get(root) ?? 0, col));
+	}
 
+	// 同じクラスタのイベントは同じ totalColumns を共有
+	const result = new Map<string, ColumnLayout>();
+	for (const event of events) {
+		const root = find(event.id);
 		result.set(event.id, {
 			column: columnMap.get(event.id) ?? 0,
-			totalColumns: maxColumn + 1,
+			totalColumns: (clusterMaxColumn.get(root) ?? 0) + 1,
 		});
 	}
 
