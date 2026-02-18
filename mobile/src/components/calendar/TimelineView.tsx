@@ -191,7 +191,9 @@ function getEventPosition(event: UICalendarEvent): {
 	const clampedEnd = Math.min(endHour, DAY_END_HOUR);
 
 	const top = (clampedStart - DAY_START_HOUR) * HOUR_HEIGHT;
-	const height = (clampedEnd - clampedStart) * HOUR_HEIGHT;
+	// 30分未満のイベントも最低30分の高さで表示し、隣接イベントとの隙間を軽減
+	const minHeight = HOUR_HEIGHT / 2;
+	const height = Math.max((clampedEnd - clampedStart) * HOUR_HEIGHT, minHeight);
 
 	return { top, height };
 }
