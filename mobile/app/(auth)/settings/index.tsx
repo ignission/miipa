@@ -18,8 +18,11 @@ import {
 	View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { useAuth } from "../../src/auth";
-import { useCalendars, useSyncCalendars } from "../../src/hooks/useCalendars";
+import { useAuth } from "../../../src/auth";
+import {
+	useCalendars,
+	useSyncCalendars,
+} from "../../../src/hooks/useCalendars";
 
 // ============================================================
 // サブコンポーネント

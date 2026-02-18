@@ -60,7 +60,7 @@ interface SettingsSaveResponse {
  * AI設定を取得
  */
 export function fetchAISettings(): Promise<AISettingsResponse> {
-	return apiFetch<AISettingsResponse>("/api/settings/ai");
+	return apiFetch<AISettingsResponse>("/settings/ai");
 }
 
 /**
@@ -69,7 +69,7 @@ export function fetchAISettings(): Promise<AISettingsResponse> {
 export function updateAISettings(
 	data: UpdateAISettingsRequest,
 ): Promise<SettingsSaveResponse> {
-	return apiFetch<SettingsSaveResponse>("/api/settings/ai", {
+	return apiFetch<SettingsSaveResponse>("/settings/ai", {
 		method: "PUT",
 		body: JSON.stringify(data),
 	});
@@ -83,7 +83,7 @@ export function updateAISettings(
  * チャット送信キー設定を取得
  */
 export function fetchChatSettings(): Promise<ChatSettingsResponse> {
-	return apiFetch<ChatSettingsResponse>("/api/settings/chat");
+	return apiFetch<ChatSettingsResponse>("/settings/chat");
 }
 
 /**
@@ -92,7 +92,7 @@ export function fetchChatSettings(): Promise<ChatSettingsResponse> {
 export function updateChatSettings(
 	data: UpdateChatSettingsRequest,
 ): Promise<SettingsSaveResponse> {
-	return apiFetch<SettingsSaveResponse>("/api/settings/chat", {
+	return apiFetch<SettingsSaveResponse>("/settings/chat", {
 		method: "PUT",
 		body: JSON.stringify(data),
 	});

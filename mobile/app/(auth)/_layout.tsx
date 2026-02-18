@@ -96,34 +96,7 @@ export default function AuthLayout() {
 				}}
 			/>
 
-			{/* タブバーに表示しないが Stack ナビゲーションで使う画面 */}
-			<Tabs.Screen
-				name="settings/calendars"
-				options={{
-					href: null,
-					title: "カレンダー設定",
-				}}
-			/>
-			<Tabs.Screen
-				name="settings/ai"
-				options={{
-					href: null,
-					title: "AI設定",
-				}}
-			/>
-			<Tabs.Screen
-				name="settings/account"
-				options={{
-					href: null,
-					title: "アカウント",
-				}}
-			/>
-			<Tabs.Screen
-				name="settings/_layout"
-				options={{
-					href: null,
-				}}
-			/>
+			{/* タブバーに表示しないが Tabs 外で管理する画面 */}
 			<Tabs.Screen
 				name="setup"
 				options={{
