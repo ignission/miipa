@@ -54,7 +54,7 @@ interface ChatRequest {
 /**
  * チャット履歴を取得
  */
-export function fetchChatHistory(): Promise<ChatHistoryResponse> {
+export function fetchChatHistory(): Promise<ChatHistoryResponse | null> {
 	return apiFetch<ChatHistoryResponse>("/chat");
 }
 

@@ -68,6 +68,17 @@ export function ApiKeyForm({
 
 		try {
 			const result = await validateApiKey({ provider, apiKey });
+			if (!result) {
+				setValidationResult({
+					valid: false,
+					error: {
+						code: "NULL_RESPONSE",
+						message: "APIキーの検証に失敗しました",
+					},
+				});
+				onValidated(false);
+				return;
+			}
 			setValidationResult(result);
 			onValidated(result.valid);
 		} catch {

@@ -69,14 +69,14 @@ interface ToggleCalendarResponse {
 /**
  * カレンダー一覧を取得
  */
-export function fetchCalendars(): Promise<CalendarsApiResponse> {
+export function fetchCalendars(): Promise<CalendarsApiResponse | null> {
 	return apiFetch<CalendarsApiResponse>("/calendars");
 }
 
 /**
  * カレンダー同期を実行
  */
-export function syncCalendars(): Promise<SyncResponse> {
+export function syncCalendars(): Promise<SyncResponse | null> {
 	return apiFetch<SyncResponse>("/calendars/sync", {
 		method: "POST",
 	});
@@ -91,7 +91,7 @@ export function syncCalendars(): Promise<SyncResponse> {
 export function toggleCalendar(
 	id: string,
 	enabled: boolean,
-): Promise<ToggleCalendarResponse> {
+): Promise<ToggleCalendarResponse | null> {
 	return apiFetch<ToggleCalendarResponse>(
 		`/calendars/${encodeURIComponent(id)}`,
 		{
@@ -121,7 +121,7 @@ export function deleteCalendar(id: string): Promise<null> {
  */
 export function startGoogleAuth(
 	loginHint?: string,
-): Promise<GoogleAuthResponse> {
+): Promise<GoogleAuthResponse | null> {
 	return apiFetch<GoogleAuthResponse>("/calendars/google", {
 		method: "POST",
 		body: JSON.stringify({ loginHint }),
@@ -137,7 +137,7 @@ export function startGoogleAuth(
 export function addICalCalendar(
 	url: string,
 	name?: string,
-): Promise<AddICalResponse> {
+): Promise<AddICalResponse | null> {
 	return apiFetch<AddICalResponse>("/calendars/ical", {
 		method: "POST",
 		body: JSON.stringify({ url, name }),

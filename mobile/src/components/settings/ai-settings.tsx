@@ -72,6 +72,10 @@ export function AiSettings() {
 	const fetchSettingsData = useCallback(async () => {
 		try {
 			const data = await fetchAISettings();
+			if (!data) {
+				setMessage({ type: "error", text: "設定の取得に失敗しました" });
+				return;
+			}
 			setSettings(data);
 			setSelectedProvider(data.provider as LLMProvider | null);
 			setModel(data.model ?? "");
@@ -140,6 +144,14 @@ export function AiSettings() {
 			}
 
 			const result = await updateAISettings(requestData);
+
+			if (!result) {
+				setMessage({
+					type: "error",
+					text: "設定の保存に失敗しました",
+				});
+				return;
+			}
 
 			if (result.success) {
 				setMessage({ type: "success", text: "設定を保存しました" });

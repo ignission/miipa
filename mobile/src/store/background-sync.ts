@@ -34,6 +34,11 @@ if (TaskManager && BackgroundFetch) {
 			// APIからイベント取得
 			const data = await fetchTodayEvents();
 
+			if (!data) {
+				console.warn("[background-sync] APIからnullが返されました");
+				return BF.BackgroundFetchResult.NoData;
+			}
+
 			// Widget用データを更新
 			await writeWidgetData({
 				events: data.events.map((e) => ({
