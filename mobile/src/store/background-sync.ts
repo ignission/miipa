@@ -2,7 +2,6 @@ import { Platform } from "react-native";
 import { fetchTodayEvents } from "../api/events";
 import { DEFAULT_CALENDAR_COLOR } from "../theme";
 import { writeWidgetData } from "./app-group";
-import { syncToWatch } from "./watch-sync";
 
 // Web環境ではバックグラウンドフェッチは利用不可のため、動的にインポート
 type BackgroundFetchModule = typeof import("expo-background-fetch");
@@ -25,7 +24,6 @@ const BACKGROUND_FETCH_TASK = "miipa-background-sync";
  * 1. APIからイベントを同期
  * 2. ローカルキャッシュ更新
  * 3. Widget用データ更新（App Groups）
- * 4. Watch用データ更新（WatchConnectivity）
  */
 if (TaskManager && BackgroundFetch) {
 	const BF = BackgroundFetch;
@@ -52,21 +50,6 @@ if (TaskManager && BackgroundFetch) {
 				})),
 				lastUpdated: new Date().toISOString(),
 			});
-
-			// Watch同期（UICalendarEvent形式に変換して渡す）
-			const uiEvents = data.events.map((e) => ({
-				id: e.id,
-				title: e.title,
-				startTime: new Date(e.startTime),
-				endTime: new Date(e.endTime),
-				isAllDay: e.isAllDay,
-				location: e.location,
-				description: e.description,
-				calendarId: "",
-				color: undefined,
-				source: e.source,
-			}));
-			await syncToWatch(uiEvents);
 
 			console.log("[background-sync] 同期完了:", data.events.length, "件");
 			return BF.BackgroundFetchResult.NewData;
