@@ -1,5 +1,4 @@
-import { requireNativeModule } from "expo";
-import { Platform } from "react-native";
+import { requireOptionalNativeModule } from "expo";
 
 interface SharedUserDefaultsNativeModule {
 	setItem(key: string, value: string, suiteName: string): Promise<void>;
@@ -7,11 +6,11 @@ interface SharedUserDefaultsNativeModule {
 	removeItem(key: string, suiteName: string): Promise<void>;
 }
 
-// iOS のみで利用可能
-const NativeModule: SharedUserDefaultsNativeModule | null =
-	Platform.OS === "ios"
-		? requireNativeModule<SharedUserDefaultsNativeModule>("SharedUserDefaults")
-		: null;
+// iOS のみで利用可能（見つからない場合は null）
+const NativeModule =
+	requireOptionalNativeModule<SharedUserDefaultsNativeModule>(
+		"SharedUserDefaults",
+	);
 
 export async function setItem(
 	key: string,
