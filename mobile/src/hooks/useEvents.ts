@@ -1,4 +1,4 @@
-import type { EventResponse, EventsApiResponse } from "@miipa/shared";
+import type { EventResponse } from "@miipa/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { fetchTodayEvents, fetchWeekEvents } from "../api/events";
@@ -22,7 +22,7 @@ export interface UICalendarEvent {
 	source: {
 		type: "google" | "ical";
 		calendarName: string;
-		accountEmail?: string | null;
+		accountEmail?: string;
 	};
 }
 
@@ -39,7 +39,11 @@ function toUIEvent(event: EventResponse): UICalendarEvent {
 		location: event.location,
 		description: event.description,
 		calendarId: "",
-		source: event.source,
+		source: {
+			type: event.source.type,
+			calendarName: event.source.calendarName,
+			accountEmail: event.source.accountEmail ?? undefined,
+		},
 	};
 }
 
@@ -61,8 +65,12 @@ export function useEvents(range: EventRange) {
 			events: UICalendarEvent[];
 			lastSync: Date | null;
 		}> => {
-			const data: EventsApiResponse =
+			const data =
 				range === "week" ? await fetchWeekEvents() : await fetchTodayEvents();
+
+			if (!data) {
+				return { events: [], lastSync: null };
+			}
 
 			return {
 				events: data.events.map(toUIEvent),

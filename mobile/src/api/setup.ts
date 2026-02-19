@@ -67,7 +67,7 @@ export interface ValidateKeyResponse {
 /**
  * セットアップ状態を取得
  */
-export function fetchSetupStatus(): Promise<SetupStatusResponse> {
+export function fetchSetupStatus(): Promise<SetupStatusResponse | null> {
 	return apiFetch<SetupStatusResponse>("/setup/status");
 }
 
@@ -76,7 +76,7 @@ export function fetchSetupStatus(): Promise<SetupStatusResponse> {
  */
 export function saveSetupSettings(
 	data: SaveSetupSettingsRequest,
-): Promise<SaveSetupSettingsResponse> {
+): Promise<SaveSetupSettingsResponse | null> {
 	return apiFetch<SaveSetupSettingsResponse>("/setup/settings", {
 		method: "POST",
 		body: JSON.stringify(data),
@@ -88,7 +88,7 @@ export function saveSetupSettings(
  */
 export function validateApiKey(
 	data: ValidateKeyRequest,
-): Promise<ValidateKeyResponse> {
+): Promise<ValidateKeyResponse | null> {
 	return apiFetch<ValidateKeyResponse>("/setup/validate-key", {
 		method: "POST",
 		body: JSON.stringify(data),

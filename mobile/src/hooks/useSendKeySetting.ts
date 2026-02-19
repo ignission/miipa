@@ -66,7 +66,7 @@ export function useSendKeySetting(): UseSendKeySettingReturn {
 		async function loadSetting() {
 			try {
 				const data = await fetchChatSettings();
-				if (data.sendKey) {
+				if (data?.sendKey) {
 					setSendKey(data.sendKey);
 				}
 			} catch {
@@ -99,7 +99,7 @@ export function useSendKeySetting(): UseSendKeySettingReturn {
 		// APIへ保存（失敗時はロールバック）
 		updateChatSettings({ sendKey: nextValue })
 			.then((result) => {
-				if (!result.success) {
+				if (!result?.success) {
 					// 保存失敗: ロールバック
 					setSendKey(previousValue);
 				}

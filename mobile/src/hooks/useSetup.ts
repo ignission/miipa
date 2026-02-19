@@ -82,6 +82,10 @@ export function useSetup(): UseSetupReturn {
 
 		try {
 			const data = await fetchSetupStatus();
+			if (!data) {
+				setError("セットアップ状態の取得に失敗しました");
+				return;
+			}
 			setStatus(data);
 		} catch (err) {
 			const message =
@@ -110,6 +114,11 @@ export function useSetup(): UseSetupReturn {
 			try {
 				const result = await saveSetupSettings(data);
 
+				if (!result) {
+					setError("設定の保存に失敗しました");
+					return false;
+				}
+
 				if (result.success) {
 					return true;
 				}
@@ -120,6 +129,10 @@ export function useSetup(): UseSetupReturn {
 						...data,
 						overwriteExisting: true,
 					});
+					if (!retryResult) {
+						setError("設定の保存に失敗しました");
+						return false;
+					}
 					if (retryResult.success) {
 						return true;
 					}
@@ -156,6 +169,11 @@ export function useSetup(): UseSetupReturn {
 
 			try {
 				const result = await validateApiKey(data);
+
+				if (!result) {
+					setError("APIキーの検証に失敗しました");
+					return false;
+				}
 
 				if (result.valid) {
 					return true;

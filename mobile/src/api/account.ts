@@ -20,7 +20,7 @@ interface DeleteAccountResponse {
  * 関連するすべてのデータ（カレンダー、設定、チャット履歴等）も
  * 合わせて削除されます。
  */
-export function deleteAccount(): Promise<DeleteAccountResponse> {
+export function deleteAccount(): Promise<DeleteAccountResponse | null> {
 	return apiFetch<DeleteAccountResponse>("/account", {
 		method: "DELETE",
 	});

@@ -24,7 +24,7 @@ export function useCalendars() {
 		queryKey: ["calendars"],
 		queryFn: async () => {
 			const data = await fetchCalendars();
-			return data.calendars;
+			return data?.calendars ?? [];
 		},
 	});
 

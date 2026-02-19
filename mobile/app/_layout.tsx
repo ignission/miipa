@@ -14,7 +14,10 @@ import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { GluestackUIProvider } from "../components/ui/gluestack-ui-provider";
 import { AuthProvider } from "../src/auth";
-import { registerBackgroundSync } from "../src/store/background-sync";
+import {
+	registerBackgroundSync,
+	unregisterBackgroundSync,
+} from "../src/store/background-sync";
 
 // スプラッシュスクリーンを自動非表示にしない
 SplashScreen.preventAutoHideAsync();
@@ -42,7 +45,10 @@ export default function RootLayout() {
 
 	// バックグラウンド同期を登録
 	useEffect(() => {
-		registerBackgroundSync();
+		void registerBackgroundSync();
+		return () => {
+			void unregisterBackgroundSync();
+		};
 	}, []);
 
 	if (!loaded) {

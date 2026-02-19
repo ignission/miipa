@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-import type { SyncResponse } from "../api/calendars";
 import { syncCalendars } from "../api/calendars";
 
 // ============================================================
@@ -60,7 +59,11 @@ export function useSyncStatus(): UseSyncStatusResult {
 		setError(null);
 
 		try {
-			const data: SyncResponse = await syncCalendars();
+			const data = await syncCalendars();
+
+			if (!data) {
+				throw new Error("カレンダーの同期に失敗しました");
+			}
 
 			if (!data.success) {
 				throw new Error(data.error ?? "カレンダーの同期に失敗しました");

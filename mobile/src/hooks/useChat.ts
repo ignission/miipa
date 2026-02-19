@@ -73,7 +73,7 @@ export function useChat(): UseChatReturn {
 		async function loadHistory() {
 			try {
 				const data = await fetchChatHistory();
-				if (data.messages && data.messages.length > 0) {
+				if (data?.messages && data.messages.length > 0) {
 					setMessages(data.messages);
 				}
 			} catch {

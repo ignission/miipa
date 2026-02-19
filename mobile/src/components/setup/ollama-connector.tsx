@@ -56,6 +56,12 @@ export function OllamaConnector({
 		try {
 			const result = await validateApiKey({ provider: "ollama", apiKey: url });
 
+			if (!result) {
+				setStatus("error");
+				setErrorMessage("接続に失敗しました");
+				return;
+			}
+
 			if (result.valid) {
 				setStatus("connected");
 				setAvailableModels(result.models ?? []);

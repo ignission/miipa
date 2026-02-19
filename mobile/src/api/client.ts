@@ -49,7 +49,7 @@ function buildHeaders(
  *
  * @throws {ApiError} レスポンスがエラーの場合
  */
-async function handleResponse<T>(response: Response): Promise<T> {
+async function handleResponse<T>(response: Response): Promise<T | null> {
 	if (!response.ok) {
 		const body = await response.json().catch(() => null);
 		const message =
@@ -58,7 +58,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 	}
 
 	if (isEmptyBody(response)) {
-		return null as T;
+		return null;
 	}
 
 	return response.json() as Promise<T>;
@@ -200,7 +200,7 @@ async function executeRequest(
 export async function apiFetch<T>(
 	path: string,
 	options: RequestInit = {},
-): Promise<T> {
+): Promise<T | null> {
 	const token = await getToken();
 	const response = await executeRequest(path, options, token);
 

@@ -25,6 +25,13 @@ export async function verifyMobileJwt(
 		if (parts.length !== 3) return null;
 
 		const [headerB64, payloadB64, signatureB64] = parts;
+
+		// alg ヘッダー検証（CVE-2015-9235 対策: "none" や不正アルゴリズムを拒否）
+		const header = JSON.parse(
+			new TextDecoder().decode(base64UrlDecode(headerB64)),
+		) as Record<string, unknown>;
+		if (header.alg !== "HS256") return null;
+
 		const data = `${headerB64}.${payloadB64}`;
 		const encoder = new TextEncoder();
 
@@ -54,6 +61,9 @@ export async function verifyMobileJwt(
 		// ペイロードの必須フィールドを検証
 		if (typeof payload.sub !== "string" || payload.sub.length === 0)
 			return null;
+		if (typeof payload.email !== "string" || payload.email.length === 0)
+			return null;
+		if (typeof payload.name !== "string") return null;
 		if (typeof payload.exp !== "number") return null;
 
 		// 有効期限チェック

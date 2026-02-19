@@ -12,7 +12,10 @@
 			}
 		},
 		"preview": {
-			"distribution": "store"
+			"distribution": "store",
+			"env": {
+				"EXPO_PUBLIC_API_BASE_URL": "https://miipa.app"
+			}
 		},
 		"production": {
 			"distribution": "store",
@@ -21,7 +24,8 @@
 				"cocoapods": "1.16.2"
 			},
 			"env": {
-				"USE_CCACHE": "0"
+				"USE_CCACHE": "0",
+				"EXPO_PUBLIC_API_BASE_URL": "https://miipa.app"
 			}
 		}
 	},
