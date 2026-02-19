@@ -46,7 +46,7 @@ export default function AuthLayout() {
 			}}
 		>
 			<Tabs.Screen
-				name="index"
+				name="home"
 				options={{
 					title: "今日",
 					tabBarIcon: ({ color, focused }) => (

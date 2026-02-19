@@ -57,7 +57,7 @@ export default function SetupScreen() {
 	 * セットアップ完了時：メイン画面へ遷移
 	 */
 	const handleStart = useCallback(() => {
-		router.replace("/(auth)");
+		router.replace("/(auth)/home");
 	}, []);
 
 	/**
