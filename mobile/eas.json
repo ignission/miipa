@@ -14,8 +14,6 @@
 		"preview": {
 			"distribution": "store",
 			"env": {
-				"EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "697100098781-2uvmdsbqeaoklp5sielcruec0n4oj8ht.apps.googleusercontent.com",
-				"EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "697100098781-ni0tims8cfenblkk7b63btbb9vlcp3ct.apps.googleusercontent.com",
 				"EXPO_PUBLIC_API_BASE_URL": "https://miipa.app"
 			}
 		},
@@ -27,8 +25,6 @@
 			},
 			"env": {
 				"USE_CCACHE": "0",
-				"EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "697100098781-2uvmdsbqeaoklp5sielcruec0n4oj8ht.apps.googleusercontent.com",
-				"EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "697100098781-ni0tims8cfenblkk7b63btbb9vlcp3ct.apps.googleusercontent.com",
 				"EXPO_PUBLIC_API_BASE_URL": "https://miipa.app"
 			}
 		}
