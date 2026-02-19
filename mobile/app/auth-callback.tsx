@@ -96,7 +96,7 @@ export default function AuthCallbackScreen() {
 
 					await Promise.all(savePromises);
 
-					router.replace("/(auth)");
+					router.replace("/(auth)/home");
 				} catch (e) {
 					console.error("[auth-callback] コード交換エラー:", e);
 					const message =

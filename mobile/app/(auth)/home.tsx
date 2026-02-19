@@ -5,7 +5,7 @@
  * Web用のレイアウト調整（max-width, padding等）を含みます。
  * 未認証WebアクセスではLPコンポーネントを条件表示します。
  *
- * @module app/(auth)/index
+ * @module app/(auth)/home
  */
 
 import { useCallback, useEffect, useState } from "react";

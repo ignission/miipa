@@ -25,7 +25,7 @@ export default function SignInScreen() {
 
 	// 認証済みならタブ画面にリダイレクト
 	if (isAuthenticated) {
-		return <Redirect href="/(auth)" />;
+		return <Redirect href="/(auth)/home" />;
 	}
 
 	return (
