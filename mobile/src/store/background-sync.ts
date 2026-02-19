@@ -58,6 +58,7 @@ if (TaskManager && BackgroundFetch) {
 				location: e.location,
 				description: e.description,
 				calendarId: "",
+				color: undefined,
 				source: e.source,
 			}));
 			await syncToWatch(uiEvents);

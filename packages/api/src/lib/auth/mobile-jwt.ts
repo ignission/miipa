@@ -55,6 +55,8 @@ export async function verifyMobileJwt(
 		if (typeof payload.sub !== "string" || payload.sub.length === 0)
 			return null;
 		if (typeof payload.exp !== "number") return null;
+		if (typeof payload.email !== "string") return null;
+		if (typeof payload.name !== "string") return null;
 
 		// 有効期限チェック
 		if (payload.exp < Date.now() / 1000) return null;

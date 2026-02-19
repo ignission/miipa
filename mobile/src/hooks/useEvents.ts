@@ -22,7 +22,7 @@ export interface UICalendarEvent {
 	source: {
 		type: "google" | "ical";
 		calendarName: string;
-		accountEmail?: string | null;
+		accountEmail?: string;
 	};
 }
 
@@ -39,7 +39,11 @@ function toUIEvent(event: EventResponse): UICalendarEvent {
 		location: event.location,
 		description: event.description,
 		calendarId: "",
-		source: event.source,
+		source: {
+			type: event.source.type,
+			calendarName: event.source.calendarName,
+			accountEmail: event.source.accountEmail ?? undefined,
+		},
 	};
 }
 
