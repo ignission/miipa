@@ -35,7 +35,7 @@ export default function AuthLayout() {
 
 	// 未認証ならサインイン画面にリダイレクト
 	if (!isAuthenticated) {
-		return <Redirect href="/sign-in" />;
+		return <Redirect href="/" />;
 	}
 
 	return (

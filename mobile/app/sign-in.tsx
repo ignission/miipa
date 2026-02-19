@@ -2,21 +2,14 @@
  * サインイン画面
  *
  * 未認証ユーザーにサインインUIを表示します。
- * Web用のGoogleOAuthリダイレクト対応とNativeWindスタイルを適用しています。
+ * 全プラットフォームで統一されたサインイン画面を提供します。
  *
  * @module app/sign-in
  */
 
 import { Redirect } from "expo-router";
-import {
-	ActivityIndicator,
-	Platform,
-	Pressable,
-	Text,
-	View,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useAuth } from "../src/auth";
-import { LandingPage } from "../src/components/lp/landing-page";
 
 export default function SignInScreen() {
 	const { isAuthenticated, isLoading, isSigningIn, signIn } = useAuth();
@@ -35,12 +28,6 @@ export default function SignInScreen() {
 		return <Redirect href="/(auth)" />;
 	}
 
-	// Web: 未認証時はLPを表示
-	if (Platform.OS === "web") {
-		return <LandingPage onSignIn={signIn} />;
-	}
-
-	// Mobile: サインインUI
 	return (
 		<View className="flex-1 items-center justify-center bg-orange-50 p-6">
 			{/* キャラクターエリア */}
