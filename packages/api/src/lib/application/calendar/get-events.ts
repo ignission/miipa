@@ -34,6 +34,7 @@ import {
 	type CalendarEvent,
 	type CalendarProvider,
 	createTimeRange,
+	getMonthRange,
 	getTodayRange,
 	getWeekRange,
 	sortEventsByStartTime,
@@ -464,5 +465,23 @@ export async function getEventsForWeek(
 ): Promise<Result<CalendarEvent[], GetEventsError>> {
 	const weekRange = getWeekRange();
 	const range = createTimeRange(weekRange.startDate, weekRange.endDate);
+	return getEventsForRange(ctx, range);
+}
+
+/**
+ * 指定月のイベントを取得
+ *
+ * @param ctx - カレンダーコンテキスト
+ * @param year - 年
+ * @param month - 月（1〜12）
+ * @returns 指定月のイベントの配列、またはエラー
+ */
+export async function getEventsForMonth(
+	ctx: CalendarContext,
+	year: number,
+	month: number,
+): Promise<Result<CalendarEvent[], GetEventsError>> {
+	const monthRange = getMonthRange(year, month);
+	const range = createTimeRange(monthRange.startDate, monthRange.endDate);
 	return getEventsForRange(ctx, range);
 }

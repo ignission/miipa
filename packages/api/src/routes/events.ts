@@ -12,6 +12,7 @@
 import { Hono } from "hono";
 import type { AppType } from "@/context/app-context";
 import {
+	getEventsForMonth,
 	getEventsForToday,
 	getEventsForWeek,
 } from "@/lib/application/calendar";
@@ -111,10 +112,24 @@ events.get("/", async (c) => {
 	const range = c.req.query("range") || "today";
 
 	// range に応じた関数を呼び出し
-	const result =
-		range === "week"
-			? await getEventsForWeek(ctx)
-			: await getEventsForToday(ctx);
+	let result: Awaited<ReturnType<typeof getEventsForToday>>;
+	if (range === "month") {
+		const now = new Date();
+		const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+		const yearParam = c.req.query("year");
+		const monthParam = c.req.query("month");
+		const year = yearParam
+			? Number.parseInt(yearParam, 10)
+			: jstNow.getUTCFullYear();
+		const month = monthParam
+			? Number.parseInt(monthParam, 10)
+			: jstNow.getUTCMonth() + 1;
+		result = await getEventsForMonth(ctx, year, month);
+	} else if (range === "week") {
+		result = await getEventsForWeek(ctx);
+	} else {
+		result = await getEventsForToday(ctx);
+	}
 
 	if (isOk(result)) {
 		const eventList = result.value;

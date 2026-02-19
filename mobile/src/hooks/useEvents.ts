@@ -29,7 +29,7 @@ export interface UICalendarEvent {
 /**
  * シリアライズされたイベントをUI用に変換
  */
-function toUIEvent(event: EventResponse): UICalendarEvent {
+export function toUIEvent(event: EventResponse): UICalendarEvent {
 	return {
 		id: event.id,
 		title: event.title,

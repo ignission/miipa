@@ -71,6 +71,7 @@
 export type { GetEventsError, GetEventsErrorCode } from "./get-events";
 
 export {
+	getEventsForMonth,
 	getEventsForRange,
 	getEventsForToday,
 	getEventsForWeek,
