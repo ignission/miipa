@@ -71,6 +71,8 @@ export default function MonthScreen() {
 	return (
 		<ScrollView
 			style={styles.container}
+			contentContainerStyle={{ flexGrow: 1 }}
+			alwaysBounceVertical
 			refreshControl={
 				<RefreshControl
 					refreshing={isRefreshing}

@@ -236,6 +236,9 @@ export function getWeekRange(): DateRangeResult {
  * @returns 指定月のDateRangeResult（UTC時刻）
  */
 export function getMonthRange(year: number, month: number): DateRangeResult {
+	if (month < 1 || month > 12) {
+		throw new RangeError(`month must be between 1 and 12, got ${month}`);
+	}
 	// monthは1-12だが、Date.UTCは0-11
 	const m = month - 1;
 

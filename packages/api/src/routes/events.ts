@@ -118,12 +118,19 @@ events.get("/", async (c) => {
 		const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 		const yearParam = c.req.query("year");
 		const monthParam = c.req.query("month");
-		const year = yearParam
-			? Number.parseInt(yearParam, 10)
-			: jstNow.getUTCFullYear();
-		const month = monthParam
-			? Number.parseInt(monthParam, 10)
-			: jstNow.getUTCMonth() + 1;
+		const parsedYear = yearParam ? Number.parseInt(yearParam, 10) : null;
+		const parsedMonth = monthParam ? Number.parseInt(monthParam, 10) : null;
+		const year =
+			parsedYear != null && !Number.isNaN(parsedYear)
+				? parsedYear
+				: jstNow.getUTCFullYear();
+		const month =
+			parsedMonth != null &&
+			!Number.isNaN(parsedMonth) &&
+			parsedMonth >= 1 &&
+			parsedMonth <= 12
+				? parsedMonth
+				: jstNow.getUTCMonth() + 1;
 		result = await getEventsForMonth(ctx, year, month);
 	} else if (range === "week") {
 		result = await getEventsForWeek(ctx);

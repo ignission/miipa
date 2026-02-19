@@ -14,16 +14,23 @@ export interface CalendarDay {
 	dateKey: string;
 }
 
+/** JSTオフセット（ミリ秒）: UTC+9 */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
 /**
- * 日付キーを生成（YYYY-MM-DD）
+ * 日付キーを生成（YYYY-MM-DD、JST基準）
+ *
+ * APIサーバー側のJST基準と一致させるため、
+ * UTC時刻をJSTに変換してから日付部分を抽出します。
  *
  * @param date - 対象の日付
- * @returns YYYY-MM-DD 形式の文字列
+ * @returns YYYY-MM-DD 形式の文字列（JST基準）
  */
 export function formatDateKey(date: Date): string {
-	const y = date.getFullYear();
-	const m = (date.getMonth() + 1).toString().padStart(2, "0");
-	const d = date.getDate().toString().padStart(2, "0");
+	const jst = new Date(date.getTime() + JST_OFFSET_MS);
+	const y = jst.getUTCFullYear();
+	const m = (jst.getUTCMonth() + 1).toString().padStart(2, "0");
+	const d = jst.getUTCDate().toString().padStart(2, "0");
 	return `${y}-${m}-${d}`;
 }
 

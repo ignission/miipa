@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import type { UICalendarEvent } from "../../hooks/useEvents";
 import {
@@ -44,6 +44,17 @@ export function MonthView({
 	const [selectedDateKey, setSelectedDateKey] = useState(todayKey);
 
 	const grid = useMemo(() => generateCalendarGrid(year, month), [year, month]);
+
+	useEffect(() => {
+		const today = new Date();
+		const currentMonthMatch =
+			today.getFullYear() === year && today.getMonth() + 1 === month;
+		if (currentMonthMatch) {
+			setSelectedDateKey(formatDateKey(today));
+		} else {
+			setSelectedDateKey(formatDateKey(new Date(year, month - 1, 1)));
+		}
+	}, [year, month]);
 
 	const eventsByDate = useMemo(() => groupEventsByDate(events), [events]);
 
