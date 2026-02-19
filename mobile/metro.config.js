@@ -8,7 +8,7 @@ const sharedRoot = path.resolve(projectRoot, "../shared");
 const config = getDefaultConfig(projectRoot);
 
 // モノレポ対応: shared/ パッケージを監視対象に追加
-config.watchFolders = [sharedRoot];
+config.watchFolders = [...(config.watchFolders || []), sharedRoot];
 
 // shared/ パッケージの node_modules を解決対象に含める
 config.resolver.nodeModulesPaths = [
