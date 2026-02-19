@@ -3,6 +3,12 @@ import { Dimensions, StyleSheet, Text, View } from "react-native";
 const CELL_SIZE = Math.floor(Dimensions.get("window").width / 7);
 const WEEKDAYS = ["月", "火", "水", "木", "金", "土", "日"];
 
+/**
+ * 曜日ヘッダーコンポーネント
+ *
+ * カレンダーグリッドの上部に月〜日の曜日ラベルを表示します。
+ * 土曜日は青色、日曜日は赤色で表示されます。
+ */
 export function WeekdayHeader() {
 	return (
 		<View style={styles.container}>

@@ -15,6 +15,13 @@ function getInitialYearMonth(): { year: number; month: number } {
 	return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
+/**
+ * 月表示スクリーン
+ *
+ * 月カレンダーの画面コンポーネントです。
+ * 年月の状態管理、イベント取得、プルトゥリフレッシュ、
+ * ローディング/エラー表示を統合します。
+ */
 export default function MonthScreen() {
 	const [{ year, month }, setYearMonth] = useState(getInitialYearMonth);
 

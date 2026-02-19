@@ -2,11 +2,20 @@ import { StyleSheet, Text, View } from "react-native";
 import type { UICalendarEvent } from "../../hooks/useEvents";
 import { EventCard } from "./EventCard";
 
+/** 日別イベントリストコンポーネントのProps */
 interface DayEventListProps {
+	/** 表示するイベントの配列 */
 	events: UICalendarEvent[];
+	/** 日付ラベル（例: 「今日 2/19（木）」） */
 	dateLabel: string;
 }
 
+/**
+ * 日別イベントリストコンポーネント
+ *
+ * 選択された日付のイベント一覧を表示します。
+ * イベントがない場合は「予定はありません」メッセージを表示します。
+ */
 export function DayEventList({ events, dateLabel }: DayEventListProps) {
 	return (
 		<View style={styles.container}>

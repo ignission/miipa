@@ -16,6 +16,9 @@ export interface CalendarDay {
 
 /**
  * 日付キーを生成（YYYY-MM-DD）
+ *
+ * @param date - 対象の日付
+ * @returns YYYY-MM-DD 形式の文字列
  */
 export function formatDateKey(date: Date): string {
 	const y = date.getFullYear();

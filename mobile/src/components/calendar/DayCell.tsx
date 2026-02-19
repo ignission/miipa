@@ -4,13 +4,24 @@ import type { CalendarDay } from "../../lib/calendar-utils";
 
 const CELL_SIZE = Math.floor(Dimensions.get("window").width / 7);
 
+/** 日付セルコンポーネントのProps */
 interface DayCellProps {
+	/** カレンダーの日付データ */
 	day: CalendarDay;
+	/** 選択中かどうか */
 	isSelected: boolean;
+	/** イベントが存在するかどうか */
 	hasEvents: boolean;
+	/** 日付が押されたときのコールバック */
 	onPress: (day: CalendarDay) => void;
 }
 
+/**
+ * 日付セルコンポーネント
+ *
+ * カレンダーグリッド内の1日分のセルを描画します。
+ * 今日の日付、選択状態、イベントの有無をビジュアルで表現します。
+ */
 export const DayCell = memo(function DayCell({
 	day,
 	isSelected,

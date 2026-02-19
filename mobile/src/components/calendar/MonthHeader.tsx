@@ -1,13 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+/** 月ヘッダーコンポーネントのProps */
 interface MonthHeaderProps {
+	/** 年 */
 	year: number;
+	/** 月（1〜12） */
 	month: number;
+	/** 前月へ移動するコールバック */
 	onPrevMonth: () => void;
+	/** 次月へ移動するコールバック */
 	onNextMonth: () => void;
 }
 
+/**
+ * 月ヘッダーコンポーネント
+ *
+ * 「YYYY年MM月」のタイトルと前月・次月への
+ * ナビゲーションボタンを表示します。
+ */
 export function MonthHeader({
 	year,
 	month,

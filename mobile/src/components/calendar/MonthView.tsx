@@ -12,14 +12,27 @@ import { DayEventList } from "./DayEventList";
 import { MonthHeader } from "./MonthHeader";
 import { WeekdayHeader } from "./WeekdayHeader";
 
+/** 月表示コンポーネントのProps */
 interface MonthViewProps {
+	/** 年 */
 	year: number;
+	/** 月（1〜12） */
 	month: number;
+	/** 表示するイベントの配列 */
 	events: UICalendarEvent[];
+	/** 前月へ移動するコールバック */
 	onPrevMonth: () => void;
+	/** 次月へ移動するコールバック */
 	onNextMonth: () => void;
 }
 
+/**
+ * 月表示コンポーネント
+ *
+ * 月ヘッダー、曜日ヘッダー、カレンダーグリッド、
+ * 選択日のイベントリストを統合した月カレンダービューです。
+ * 日付選択状態を内部で管理します。
+ */
 export function MonthView({
 	year,
 	month,
