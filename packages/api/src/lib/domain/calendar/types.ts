@@ -228,6 +228,33 @@ export function getWeekRange(): DateRangeResult {
 	return Object.freeze({ startDate, endDate });
 }
 
+/**
+ * 指定月の時間範囲を取得します（JST基準）
+ *
+ * @param year - 年
+ * @param month - 月（1〜12）
+ * @returns 指定月のDateRangeResult（UTC時刻）
+ */
+export function getMonthRange(year: number, month: number): DateRangeResult {
+	if (month < 1 || month > 12) {
+		throw new RangeError(`month must be between 1 and 12, got ${month}`);
+	}
+	// monthは1-12だが、Date.UTCは0-11
+	const m = month - 1;
+
+	// JSTの指定月1日 00:00:00 をUTCに変換
+	const startDate = new Date(
+		Date.UTC(year, m, 1, 0, 0, 0, 0) - JST_OFFSET_MS,
+	);
+	// JSTの指定月末日 23:59:59.999 をUTCに変換
+	// 翌月1日の0日目 = 当月末日
+	const endDate = new Date(
+		Date.UTC(year, m + 1, 0, 23, 59, 59, 999) - JST_OFFSET_MS,
+	);
+
+	return Object.freeze({ startDate, endDate });
+}
+
 // ============================================================
 // カレンダー設定
 // ============================================================

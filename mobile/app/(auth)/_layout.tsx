@@ -70,6 +70,18 @@ export default function AuthLayout() {
 				}}
 			/>
 			<Tabs.Screen
+				name="month"
+				options={{
+					title: "月",
+					tabBarIcon: ({ color, focused }) => (
+						<TabBarIcon
+							name={focused ? "calendar-clear" : "calendar-clear-outline"}
+							color={color}
+						/>
+					),
+				}}
+			/>
+			<Tabs.Screen
 				name="chat"
 				options={{
 					title: "AI",
