@@ -99,8 +99,8 @@ export default function CalendarsSettingsScreen() {
 	const handleStartGoogleAuth = useCallback(async () => {
 		setIsGoogleAuthLoading(true);
 		try {
-			const result = await startGoogleAuth();
-			if (result.authUrl) {
+			const result = await startGoogleAuth(undefined);
+			if (result?.authUrl) {
 				await WebBrowser.openBrowserAsync(result.authUrl);
 			}
 		} finally {

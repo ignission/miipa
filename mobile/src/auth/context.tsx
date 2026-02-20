@@ -76,6 +76,8 @@ interface AuthState {
 	user: StoredUser | null;
 	/** JWTトークン */
 	token: string | null;
+	/** 認証エラーメッセージ */
+	authError: string | null;
 	/** Googleログイン実行 */
 	signIn: () => Promise<void>;
 	/** ログアウト実行 */
@@ -248,6 +250,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const [isSigningIn, setIsSigningIn] = useState(false);
 	const [user, setUser] = useState<StoredUser | null>(null);
 	const [token, setToken] = useState<string | null>(null);
+	const [authError, setAuthError] = useState<string | null>(null);
 
 	// Mobile: Google OAuth設定（iOS用Client ID + Web用Client IDでIDトークンを取得）
 	// Web: no-op フック
@@ -341,6 +344,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			setToken(jwt);
 			setUser(userData);
 		} catch (error) {
+			const message = error instanceof Error ? error.message : "ログインに失敗しました";
+			setAuthError(message);
 			console.error("[auth] トークン交換エラー:", error);
 		} finally {
 			setIsSigningIn(false);
@@ -374,6 +379,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const signIn = useCallback(async () => {
 		if (Platform.OS === "web") {
 			setIsSigningIn(true);
+			setAuthError(null);
 			try {
 				const res = await fetch(
 					`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.googleAuthEndpoint}`,
@@ -408,6 +414,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 		// Mobile: expo-auth-session
 		setIsSigningIn(true);
+		setAuthError(null);
 		try {
 			await promptAsync();
 		} catch {
@@ -472,11 +479,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			isSigningIn,
 			user,
 			token,
+			authError,
 			signIn,
 			signOut,
 			login,
 		}),
-		[isLoading, isSigningIn, user, token, signIn, signOut, login],
+		[isLoading, isSigningIn, user, token, authError, signIn, signOut, login],
 	);
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

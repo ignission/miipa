@@ -14,7 +14,7 @@
 		"preview": {
 			"distribution": "store",
 			"env": {
-				"EXPO_PUBLIC_API_BASE_URL": "https://miipa.app"
+				"EXPO_PUBLIC_API_BASE_URL": "https://api.miipa.app"
 			}
 		},
 		"production": {
@@ -25,7 +25,7 @@
 			},
 			"env": {
 				"USE_CCACHE": "0",
-				"EXPO_PUBLIC_API_BASE_URL": "https://miipa.app"
+				"EXPO_PUBLIC_API_BASE_URL": "https://api.miipa.app"
 			}
 		}
 	},

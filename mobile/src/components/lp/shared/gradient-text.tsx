@@ -12,11 +12,13 @@ export function GradientText({ children, className = "" }: GradientTextProps) {
 			<View>
 				<Text
 					className={className}
-					style={{
-						backgroundImage: "linear-gradient(135deg, #F97316, #EA580C)",
-						WebkitBackgroundClip: "text",
-						WebkitTextFillColor: "transparent",
-					}}
+					style={
+						{
+							backgroundImage: "linear-gradient(135deg, #F97316, #EA580C)",
+							WebkitBackgroundClip: "text",
+							WebkitTextFillColor: "transparent",
+						} as unknown as import("react-native").TextStyle
+					}
 				>
 					{children}
 				</Text>

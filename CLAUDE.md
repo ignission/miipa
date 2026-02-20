@@ -49,6 +49,33 @@ npm run build:worker && npx wrangler deploy
 
 - **Cloudflare Pages デプロイ時の日本語コミットメッセージ**: `wrangler pages deploy` がgitのコミットメッセージをCloudflare APIに送信する際、日本語（非ASCII）文字が `Invalid commit message, it must be a valid UTF-8 string. [code: 8000111]` エラーを引き起こすことがある。**コミットメッセージは英語で記述すること**。
 
+## Mobileビルドの教訓
+
+### expo doctor の警告は全て修正する
+
+`npx expo doctor` の警告は「単なる警告」ではなく、ビルドクラッシュの直接原因になる。特に:
+
+- **Reactバージョン不整合**: `react` と `react-native-renderer` のバージョンが一致しないと、Debugビルドでは動くがReleaseビルドで即クラッシュする
+- **New Architecture未対応モジュール**: TurboModule初期化時にNSException→SIGABRT
+
+### クラッシュ調査はシミュレータReleaseビルドで
+
+```bash
+# Release構成でビルド（Debugでは再現しないクラッシュがある）
+npx expo run:ios --configuration Release
+
+# 手動インストール＆ログ取得
+xcrun simctl install <device-id> <.app path>
+xcrun simctl spawn <device-id> log stream \
+  --predicate 'process == "miipa"' --level debug
+xcrun simctl launch <device-id> app.miipa
+```
+
+### Expo Modules APIでカスタムモジュール作成時
+
+- `requireNativeModule` ではなく `requireOptionalNativeModule` を使う（見つからない場合にthrowしない）
+- パッケージ追加後は必ず `npx expo install --fix` でバージョン整合性を確認
+
 ## 開発方針
 
 ### 最重要: UXに一番時間をかける
