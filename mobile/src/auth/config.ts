@@ -22,7 +22,7 @@ export const AUTH_CONFIG = {
 	apiBaseUrl:
 		Platform.OS === "web"
 			? (process.env.EXPO_PUBLIC_API_BASE_URL ?? "")
-			: (process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://miipa.app"),
+			: (process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://api.miipa.app"),
 	/** Google OAuth クライアントID (iOS) */
 	googleIosClientId,
 	/** Google OAuth クライアントID (Web) - IDトークンのaudience用 */
