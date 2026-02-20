@@ -1,15 +1,5 @@
 import { Platform } from "react-native";
-
-// iOSのみで利用可能なため、モジュール読み込みに失敗した場合はnullにフォールバック
-let SharedGroupPreferences:
-	| typeof import("react-native-shared-group-preferences").default
-	| null = null;
-try {
-	SharedGroupPreferences =
-		require("react-native-shared-group-preferences").default;
-} catch {
-	// Android等、パッケージが利用できない環境では無視する
-}
+import { setItem } from "../../modules/shared-user-defaults";
 
 const APP_GROUP_ID = "group.app.miipa.shared";
 
@@ -35,14 +25,9 @@ export interface WidgetData {
  */
 export async function writeWidgetData(data: WidgetData): Promise<void> {
 	if (Platform.OS !== "ios") return;
-	if (!SharedGroupPreferences) return;
 
 	try {
-		await SharedGroupPreferences.setItem(
-			"widgetData",
-			JSON.stringify(data),
-			APP_GROUP_ID,
-		);
+		await setItem("widgetData", JSON.stringify(data), APP_GROUP_ID);
 	} catch (error) {
 		console.error("[widget] App Groups書き込みエラー:", error);
 	}
