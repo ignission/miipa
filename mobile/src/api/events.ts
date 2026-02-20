@@ -14,3 +14,15 @@ export function fetchTodayEvents(): Promise<EventsApiResponse | null> {
 export function fetchWeekEvents(): Promise<EventsApiResponse | null> {
 	return apiFetch<EventsApiResponse>("/events?range=week");
 }
+
+/**
+ * 指定月のイベントを取得
+ */
+export function fetchMonthEvents(
+	year: number,
+	month: number,
+): Promise<EventsApiResponse | null> {
+	return apiFetch<EventsApiResponse>(
+		`/events?range=month&year=${year}&month=${month}`,
+	);
+}

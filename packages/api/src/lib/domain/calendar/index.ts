@@ -43,6 +43,7 @@ export {
 	createCalendarSource,
 	createEventId,
 	createTimeRange,
+	getMonthRange,
 	getTodayRange,
 	getWeekRange,
 	isValidCalendarConfig,

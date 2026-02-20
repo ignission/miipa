@@ -80,6 +80,12 @@ interface AuthState {
 	signIn: () => Promise<void>;
 	/** ログアウト実行 */
 	signOut: () => Promise<void>;
+	/** 認証情報を保存してステートを更新（auth-callback用） */
+	login: (
+		token: string,
+		user: StoredUser,
+		refreshToken?: string,
+	) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -411,6 +417,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	}, [promptAsync]);
 
 	/**
+	 * 認証情報をストレージに保存し、React ステートも同時に更新する
+	 *
+	 * auth-callback 画面など、AuthProvider 外部で取得したトークンを
+	 * コンテキストに反映させるために使用する。
+	 */
+	const login = useCallback(
+		async (newToken: string, newUser: StoredUser, refreshToken?: string) => {
+			// ストレージに保存
+			const savePromises: Promise<void>[] = [
+				saveToken(newToken),
+				saveUser(newUser),
+			];
+			// Mobile のみ: リフレッシュトークンを SecureStore に保存
+			if (Platform.OS !== "web" && refreshToken) {
+				savePromises.push(saveRefreshToken(refreshToken));
+			}
+			await Promise.all(savePromises);
+
+			// React ステートを更新
+			setToken(newToken);
+			setUser(newUser);
+		},
+		[],
+	);
+
+	/**
 	 * ログアウト実行
 	 *
 	 * Web: Hono API のログアウトエンドポイントを呼び出し（Cookie削除）
@@ -442,8 +474,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			token,
 			signIn,
 			signOut,
+			login,
 		}),
-		[isLoading, isSigningIn, user, token, signIn, signOut],
+		[isLoading, isSigningIn, user, token, signIn, signOut, login],
 	);
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

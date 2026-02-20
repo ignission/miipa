@@ -10,16 +10,10 @@
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-	ActivityIndicator,
-	Platform,
-	StyleSheet,
-	Text,
-	View,
-} from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import type { StoredUser } from "../src/auth";
+import { useAuth } from "../src/auth";
 import { AUTH_CONFIG } from "../src/auth/config";
-import type { StoredUser } from "../src/auth/storage";
-import { saveRefreshToken, saveToken, saveUser } from "../src/auth/storage";
 
 /** エラー表示後にサインイン画面へ戻るまでの遅延(ms) */
 const REDIRECT_DELAY_MS = 3000;
@@ -38,6 +32,7 @@ function showErrorAndRedirect(
 }
 
 export default function AuthCallbackScreen() {
+	const { login } = useAuth();
 	const [error, setError] = useState<string | null>(null);
 
 	const params = useLocalSearchParams<{
@@ -82,19 +77,8 @@ export default function AuthCallbackScreen() {
 						user: StoredUser;
 					};
 
-					// トークンとユーザー情報を並列保存
-					const savePromises: Promise<void>[] = [
-						saveToken(data.token),
-						saveUser(data.user),
-					];
-
-					// Mobile のみ: リフレッシュトークンを SecureStore に保存
-					// Web は httpOnly Cookie で管理されるため保存不要
-					if (Platform.OS !== "web") {
-						savePromises.push(saveRefreshToken(data.refreshToken));
-					}
-
-					await Promise.all(savePromises);
+					// トークンとユーザー情報を保存し、AuthContext のステートも更新
+					await login(data.token, data.user, data.refreshToken);
 
 					router.replace("/(auth)/home");
 				} catch (e) {
@@ -109,7 +93,7 @@ export default function AuthCallbackScreen() {
 			// パラメータが不足している場合
 			showErrorAndRedirect(setError, "認証パラメータが不足しています");
 		})();
-	}, [params.code, params.error, params.message]);
+	}, [params.code, params.error, params.message, login]);
 
 	return (
 		<View style={styles.container}>
