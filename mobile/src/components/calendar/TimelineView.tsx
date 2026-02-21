@@ -8,7 +8,7 @@ const HOUR_HEIGHT = 80;
 /** 表示開始時刻 */
 const DAY_START_HOUR = 6;
 /** 表示終了時刻 */
-const DAY_END_HOUR = 22;
+const DAY_END_HOUR = 23;
 /** 時刻ラベルの幅 */
 const TIME_LABEL_WIDTH = 50;
 /** イベント領域の左オフセット */
