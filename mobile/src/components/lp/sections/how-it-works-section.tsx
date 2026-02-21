@@ -39,12 +39,10 @@ function StepItem({
 	const { animatedStyle } = useEntranceAnimation(index * 150);
 
 	return (
-		<Animated.View style={animatedStyle} className="flex-row items-start gap-4">
-			{/* 番号バッジ + コネクタ */}
-			<View className="items-center">
-				<View className="w-10 h-10 rounded-full bg-accent items-center justify-center">
-					<Text className="text-white font-black">{number}</Text>
-				</View>
+		<Animated.View style={[animatedStyle, { flexDirection: "row", alignItems: "flex-start", gap: 16 }]}>
+			{/* 番号バッジ */}
+			<View className="w-10 h-10 rounded-full bg-accent items-center justify-center">
+				<Text className="text-white font-black">{number}</Text>
 			</View>
 
 			{/* テキスト */}
