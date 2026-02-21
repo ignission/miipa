@@ -10,12 +10,32 @@ struct CalendarEvent: Codable, Identifiable {
     let calendarColor: String
     let location: String?
 
+    /// ミリ秒付きISO8601フォーマッター
+    private static let isoFormatterWithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    /// ミリ秒なしISO8601フォーマッター（フォールバック用）
+    private static let isoFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    /// ISO8601文字列をDateに変換（ミリ秒あり/なし両対応）
+    private static func parseISO8601(_ string: String) -> Date? {
+        isoFormatterWithFractionalSeconds.date(from: string)
+            ?? isoFormatter.date(from: string)
+    }
+
     var startDate: Date {
-        ISO8601DateFormatter().date(from: startTime) ?? Date()
+        Self.parseISO8601(startTime) ?? Date()
     }
 
     var endDate: Date {
-        ISO8601DateFormatter().date(from: endTime) ?? Date()
+        Self.parseISO8601(endTime) ?? Date()
     }
 
     var formattedStartTime: String {

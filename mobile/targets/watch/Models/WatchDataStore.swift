@@ -3,6 +3,15 @@ import WatchConnectivity
 
 /// App Groups経由で親アプリのイベントデータを読み取り、WCSessionでも受信可能
 final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
+    /// ISO8601文字列をDateに変換（ミリ秒あり/なし両対応）
+    private static func parseISO8601(_ string: String) -> Date? {
+        let formatterWithFractional = ISO8601DateFormatter()
+        formatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatterWithFractional.date(from: string) ?? formatter.date(from: string)
+    }
+
     static let shared = WatchDataStore()
 
     @Published var events: [CalendarEvent] = []
@@ -54,7 +63,7 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
             let widgetData = try JSONDecoder().decode(WatchEventData.self, from: data)
             DispatchQueue.main.async {
                 self.events = widgetData.events.sorted { $0.startDate < $1.startDate }
-                self.lastUpdated = ISO8601DateFormatter().date(from: widgetData.lastUpdated)
+                self.lastUpdated = WatchDataStore.parseISO8601(widgetData.lastUpdated)
                 self.saveToAppGroup(dataString)
             }
             replyHandler(["status": "ok"])
@@ -77,7 +86,7 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
         else { return }
 
         events = widgetData.events.sorted { $0.startDate < $1.startDate }
-        lastUpdated = ISO8601DateFormatter().date(from: widgetData.lastUpdated)
+        lastUpdated = WatchDataStore.parseISO8601(widgetData.lastUpdated)
     }
 
     /// App Groupsから最新データを再読み込み（外部から呼び出し可能）
