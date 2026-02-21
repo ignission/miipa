@@ -2,6 +2,7 @@
 module.exports = {
 	type: "watch",
 	name: "MiipaWatch",
+	displayName: "miipa",
 	bundleIdentifier: "app.miipa.watchkitapp",
 	deploymentTarget: "10.0",
 	entitlements: {
