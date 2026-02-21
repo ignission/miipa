@@ -1,68 +1,75 @@
 /**
  * PKCE セッションストア
  *
- * OAuth PKCE フローの code_verifier をインメモリで管理します。
- * Cookie はモバイルの外部ブラウザで共有できないため、
- * Workerインスタンス内のMapで管理します。
+ * OAuth PKCE フローの code_verifier を D1 データベースで管理します。
+ * Cloudflare Workers は複数インスタンスで動作するため、
+ * インメモリではなく D1 に永続化してセッションの一貫性を保証します。
  *
  * @module lib/auth/pkce-session-store
  */
 
-interface PkceSessionEntry {
-	readonly codeVerifier: string;
-	readonly expiresAt: number;
-}
-
-/** PKCE セッションの一時保存用Map（10分TTL、stateをキーとして使用） */
-const pkceSessionStore = new Map<string, PkceSessionEntry>();
-
-/** PKCE セッションの有効期限（ミリ秒）: 10分 */
-const PKCE_SESSION_TTL_MS = 10 * 60 * 1000;
+/** PKCE セッションの有効期限（秒）: 10分 */
+const PKCE_SESSION_TTL_SEC = 10 * 60;
 
 /**
- * 期限切れのPKCEセッションをクリーンアップ
- */
-function cleanupExpiredSessions(): void {
-	const now = Date.now();
-	for (const [state, entry] of pkceSessionStore) {
-		if (entry.expiresAt < now) {
-			pkceSessionStore.delete(state);
-		}
-	}
-}
-
-/**
- * PKCEセッションを保存
+ * PKCEセッションを D1 に保存
  *
+ * @param db - D1 Database インスタンス
  * @param state - OAuth state パラメータ（キー）
  * @param codeVerifier - PKCE code_verifier
  */
-export function savePkceSession(state: string, codeVerifier: string): void {
-	cleanupExpiredSessions();
-	pkceSessionStore.set(state, {
-		codeVerifier,
-		expiresAt: Date.now() + PKCE_SESSION_TTL_MS,
-	});
+export async function savePkceSession(
+	db: D1Database,
+	state: string,
+	codeVerifier: string,
+): Promise<void> {
+	const expiresAt = Math.floor(Date.now() / 1000) + PKCE_SESSION_TTL_SEC;
+
+	// 期限切れエントリを削除してからINSERT
+	await db
+		.prepare("DELETE FROM pkce_sessions WHERE expires_at < ?")
+		.bind(Math.floor(Date.now() / 1000))
+		.run();
+
+	await db
+		.prepare(
+			"INSERT OR REPLACE INTO pkce_sessions (state, code_verifier, expires_at) VALUES (?, ?, ?)",
+		)
+		.bind(state, codeVerifier, expiresAt)
+		.run();
 }
 
 /**
  * PKCEセッションを取得して削除（ワンタイム使用）
  *
+ * @param db - D1 Database インスタンス
  * @param state - OAuth state パラメータ（キー）
  * @returns code_verifier、または見つからない/期限切れの場合 null
  */
-export function consumePkceSession(state: string): string | null {
-	const entry = pkceSessionStore.get(state);
-	if (!entry) {
+export async function consumePkceSession(
+	db: D1Database,
+	state: string,
+): Promise<string | null> {
+	const row = await db
+		.prepare(
+			"SELECT code_verifier, expires_at FROM pkce_sessions WHERE state = ?",
+		)
+		.bind(state)
+		.first<{ code_verifier: string; expires_at: number }>();
+
+	if (!row) {
 		return null;
 	}
 
 	// 使用済みセッションを即座に削除（リプレイ攻撃防止）
-	pkceSessionStore.delete(state);
+	await db
+		.prepare("DELETE FROM pkce_sessions WHERE state = ?")
+		.bind(state)
+		.run();
 
-	if (entry.expiresAt < Date.now()) {
+	if (row.expires_at < Math.floor(Date.now() / 1000)) {
 		return null;
 	}
 
-	return entry.codeVerifier;
+	return row.code_verifier;
 }

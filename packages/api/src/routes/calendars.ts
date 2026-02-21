@@ -304,8 +304,8 @@ calendars.post("/google", async (c) => {
 	if (isOk(result)) {
 		const { url, codeVerifier, state } = result.value;
 
-		// PKCEセッションをインメモリストアに保存
-		savePkceSession(state, codeVerifier);
+		// PKCEセッションをD1に保存
+		await savePkceSession(c.env.DB, state, codeVerifier);
 
 		return c.json({ authUrl: url });
 	}
@@ -343,8 +343,8 @@ calendars.get("/google/reauth", async (c) => {
 	if (isOk(result)) {
 		const { url, codeVerifier, state } = result.value;
 
-		// PKCEセッションをインメモリストアに保存
-		savePkceSession(state, codeVerifier);
+		// PKCEセッションをD1に保存
+		await savePkceSession(c.env.DB, state, codeVerifier);
 
 		// Google 認証画面にリダイレクト
 		return c.redirect(url);

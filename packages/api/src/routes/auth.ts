@@ -514,6 +514,17 @@ function clearAuthCookies(c: Context<AppType>): void {
 }
 
 /**
+ * メールアドレスをマスクしてログ出力用の文字列を生成
+ *
+ * @example maskEmail("shoma@example.com") => "s***@example.com"
+ */
+function maskEmail(email: string): string {
+	const [local, domain] = email.split("@");
+	if (!local || !domain) return "***";
+	return `${local[0]}***@${domain}`;
+}
+
+/**
  * リクエストボディから文字列フィールドを安全に取得
  */
 function getStringField(
@@ -568,7 +579,7 @@ async function saveGoogleCalendarTokens(
 			console.error("[auth] トークン保存に失敗しました:", saveResult.error);
 			return;
 		}
-		console.log(`[auth] Google OAuthトークンを保存しました: ${accountEmail}`);
+		console.log(`[auth] Google OAuthトークンを保存しました: ${maskEmail(accountEmail)}`);
 
 		// カレンダー一覧を取得して設定に追加
 		const provider = new GoogleCalendarProvider(accountEmail, tokens);
@@ -611,16 +622,23 @@ async function saveGoogleCalendarTokens(
 
 		if (newCalendars.length > 0) {
 			const updatedCalendars = [...existingCalendars, ...newCalendars];
-			await configRepo.setSetting(
+			const setResult = await configRepo.setSetting(
 				"calendars",
 				JSON.stringify(updatedCalendars),
 			);
+			if (!isOk(setResult)) {
+				console.error(
+					"[auth] カレンダー設定の保存に失敗しました:",
+					setResult.error,
+				);
+				return;
+			}
 			console.log(
-				`[auth] ${newCalendars.length}件のカレンダーを追加しました: ${accountEmail}`,
+				`[auth] ${newCalendars.length}件のカレンダーを追加しました: ${maskEmail(accountEmail)}`,
 			);
 		} else {
 			console.log(
-				`[auth] 追加するカレンダーはありません（既に登録済み）: ${accountEmail}`,
+				`[auth] 追加するカレンダーはありません（既に登録済み）: ${maskEmail(accountEmail)}`,
 			);
 		}
 	} catch (error) {
@@ -714,7 +732,7 @@ auth.post("/mobile/token", async (c) => {
  *
  * Google OAuth認証URLを生成（PKCE対応）
  * レスポンス: { authUrl: string }
- * code_verifier は state をキーとしてインメモリストアに保存（モバイル外部ブラウザ対応）
+ * code_verifier は state をキーとして D1 に保存（モバイル外部ブラウザ対応）
  */
 auth.post("/google", async (c) => {
 	try {
@@ -732,8 +750,8 @@ auth.post("/google", async (c) => {
 
 		const { url, codeVerifier, state } = result.value;
 
-		// PKCEセッションをインメモリストアに保存（Cookie不使用: モバイル外部ブラウザ対応）
-		savePkceSession(state, codeVerifier);
+		// PKCEセッションをD1に保存（Cookie不使用: モバイル外部ブラウザ対応）
+		await savePkceSession(c.env.DB, state, codeVerifier);
 
 		return c.json({ authUrl: url });
 	} catch (e) {
@@ -773,14 +791,14 @@ auth.get("/google/callback", async (c) => {
 			);
 		}
 
-		// インメモリストアから code_verifier を取得（stateをキーとして使用）
+		// D1から code_verifier を取得（stateをキーとして使用）
 		if (!state) {
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("認証セッションが無効です。もう一度お試しください。")}`,
 			);
 		}
 
-		const codeVerifier = consumePkceSession(state);
+		const codeVerifier = await consumePkceSession(c.env.DB, state);
 		if (!codeVerifier) {
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("認証セッションが無効です。もう一度お試しください。")}`,
