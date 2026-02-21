@@ -49,7 +49,7 @@ export function HeroSection({ onSignIn, scrollY }: HeroSectionProps) {
 								height: 160,
 								borderRadius: 40,
 								...(Platform.OS === "web"
-									? ({ boxShadow: "0 12px 40px rgba(249,115,22,0.25)" } as object)
+									? ({ boxShadow: "0 12px 40px rgba(255,107,74,0.25)" } as object)
 									: {}),
 							}}
 						/>

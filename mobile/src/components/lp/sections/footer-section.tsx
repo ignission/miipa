@@ -11,21 +11,24 @@ export function FooterSection() {
 	const router = useRouter();
 
 	return (
-		<View className="border-t border-border bg-bg-canvas px-6 py-8">
-			<View className="flex-row flex-wrap justify-center gap-6">
+		<View className="px-6 py-8" style={{ backgroundColor: "#1c1917" }}>
+			<View className="flex-row flex-wrap justify-center gap-5">
 				{links.map((link) => (
 					<Pressable
 						key={link.href}
 						onPress={() => router.push(link.href)}
 					>
-						<Text className="text-xs text-fg-muted underline">
+						<Text style={{ color: "rgba(255,255,255,0.6)" }} className="text-xs">
 							{link.label}
 						</Text>
 					</Pressable>
 				))}
 			</View>
 
-			<Text className="mt-4 text-center text-xs text-fg-subtle">
+			<Text
+				className="mt-4 text-center text-xs"
+				style={{ color: "rgba(255,255,255,0.5)" }}
+			>
 				© 2025 miipa
 			</Text>
 		</View>
