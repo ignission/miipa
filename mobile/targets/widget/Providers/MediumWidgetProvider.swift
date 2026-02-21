@@ -4,34 +4,30 @@ import SwiftUI
 struct MediumWidgetEntry: TimelineEntry {
     let date: Date
     let events: [CalendarEvent]
-    let remainingCount: Int
+    let totalEventCount: Int
 }
 
 struct MediumWidgetProvider: TimelineProvider {
-    private let maxDisplayCount = 4
+    private let maxDisplayCount = 5
 
     func placeholder(in context: Context) -> MediumWidgetEntry {
-        MediumWidgetEntry(date: Date(), events: [], remainingCount: 0)
+        MediumWidgetEntry(date: Date(), events: [], totalEventCount: 0)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (MediumWidgetEntry) -> Void) {
-        let todayEvents = SharedDataStore.shared.getTodayEvents()
-        let displayEvents = Array(todayEvents.prefix(maxDisplayCount))
-        let remaining = max(0, todayEvents.count - maxDisplayCount)
-
-        completion(MediumWidgetEntry(date: Date(), events: displayEvents, remainingCount: remaining))
+        let upcoming = SharedDataStore.shared.getUpcomingEvents(days: 3)
+        let displayEvents = Array(upcoming.prefix(maxDisplayCount))
+        completion(MediumWidgetEntry(date: Date(), events: displayEvents, totalEventCount: upcoming.count))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<MediumWidgetEntry>) -> Void) {
-        let todayEvents = SharedDataStore.shared.getTodayEvents()
-        let displayEvents = Array(todayEvents.prefix(maxDisplayCount))
-        let remaining = max(0, todayEvents.count - maxDisplayCount)
+        let upcoming = SharedDataStore.shared.getUpcomingEvents(days: 3)
+        let displayEvents = Array(upcoming.prefix(maxDisplayCount))
+        let entry = MediumWidgetEntry(date: Date(), events: displayEvents, totalEventCount: upcoming.count)
 
-        let entry = MediumWidgetEntry(date: Date(), events: displayEvents, remainingCount: remaining)
-
-        // 次のイベント変更タイミングで更新
+        // 次のイベント終了時に更新
         let now = Date()
-        let nextUpdateDate = todayEvents
+        let nextUpdateDate = upcoming
             .first { $0.endDate > now }
             .map { $0.endDate }
             ?? Calendar.current.date(byAdding: .hour, value: 1, to: now)

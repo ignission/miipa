@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { fetchTodayEvents } from "../api/events";
+import { fetchWeekEvents } from "../api/events";
 import { DEFAULT_CALENDAR_COLOR } from "../theme";
 import { writeWidgetData } from "./app-group";
 
@@ -30,7 +30,7 @@ if (TaskManager && BackgroundFetch) {
 	TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 		try {
 			// APIからイベント取得
-			const data = await fetchTodayEvents();
+			const data = await fetchWeekEvents();
 
 			if (!data) {
 				console.warn("[background-sync] APIからnullが返されました");

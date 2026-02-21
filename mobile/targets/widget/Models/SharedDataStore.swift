@@ -33,6 +33,18 @@ final class SharedDataStore {
         }.sorted { $0.startDate < $1.startDate }
     }
 
+    /// 今後N日間のイベントを時系列順で取得
+    func getUpcomingEvents(days: Int = 3) -> [CalendarEvent] {
+        guard let widgetData = getWidgetData() else { return [] }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let endDate = calendar.date(byAdding: .day, value: days, to: today) else { return [] }
+
+        return widgetData.events.filter { event in
+            event.startDate >= today && event.startDate < endDate
+        }.sorted { $0.startDate < $1.startDate }
+    }
+
     /// 次のイベントを取得
     func getNextEvent() -> CalendarEvent? {
         let now = Date()
