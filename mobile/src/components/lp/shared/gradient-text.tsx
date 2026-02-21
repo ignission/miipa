@@ -14,7 +14,7 @@ export function GradientText({ children, className = "" }: GradientTextProps) {
 					className={className}
 					style={
 						{
-							backgroundImage: "linear-gradient(135deg, #F97316, #EA580C)",
+							backgroundImage: "linear-gradient(135deg, #FF6B4A, #FF9A3C)",
 							WebkitBackgroundClip: "text",
 							WebkitTextFillColor: "transparent",
 						} as unknown as import("react-native").TextStyle
