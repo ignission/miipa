@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { Image, View, Text, Platform } from "react-native";
 import Animated, {
 	useAnimatedStyle,
 	interpolate,
@@ -9,7 +9,7 @@ import { useEntranceAnimation } from "../animations/use-entrance-animation";
 import { useFloatingAnimation } from "../animations/use-floating-animation";
 import { CTAButton } from "../shared/cta-button";
 import { GradientText } from "../shared/gradient-text";
-import { MeerkatHero } from "../illustrations/meerkat-hero";
+
 import { SunRays } from "../illustrations/sun-rays";
 
 interface HeroSectionProps {
@@ -28,7 +28,7 @@ export function HeroSection({ onSignIn, scrollY }: HeroSectionProps) {
 	}));
 
 	return (
-		<View className="w-full items-center bg-accent-50 pb-12 pt-16">
+		<View className="w-full items-center bg-accent-50 pb-16 pt-16">
 			{/* ミーアキャット + SunRays */}
 			<Animated.View
 				style={parallaxStyle}
@@ -40,33 +40,61 @@ export function HeroSection({ onSignIn, scrollY }: HeroSectionProps) {
 						<SunRays size={300} />
 					</View>
 
-					{/* ミーアキャット（フローティング） */}
+					{/* ミーアキャットアイコン（フローティング） */}
 					<Animated.View style={floatingAnimation.animatedStyle}>
-						<MeerkatHero size={200} />
+						<Image
+							source={require("../../../../assets/images/icon-new.png")}
+							style={{
+								width: 160,
+								height: 160,
+								borderRadius: 40,
+								...(Platform.OS === "web"
+									? ({ boxShadow: "0 12px 40px rgba(249,115,22,0.25)" } as object)
+									: {}),
+							}}
+						/>
 					</Animated.View>
 				</View>
 			</Animated.View>
 
+			{/* バッジ */}
+			<Animated.View
+				style={taglineAnimation.animatedStyle}
+				className="mt-6 flex-row items-center gap-1 rounded-full bg-accent-100 px-3 py-1"
+			>
+				<Text className="text-sm">🐾</Text>
+				<Text className="text-xs font-bold text-accent">
+					ミーアキャットが今日をサポート
+				</Text>
+			</Animated.View>
+
 			{/* タグライン */}
-			<Animated.View style={taglineAnimation.animatedStyle} className="mt-6">
-				<GradientText className="text-center text-3xl font-bold">
+			<Animated.View style={subtitleAnimation.animatedStyle} className="mt-4 px-6">
+				<GradientText className="text-center text-4xl font-black">
 					今日のあなたを、30秒で把握。
 				</GradientText>
 			</Animated.View>
 
 			{/* サブタイトル */}
 			<Animated.View
-				style={subtitleAnimation.animatedStyle}
-				className="mt-3 px-6"
+				style={ctaAnimation.animatedStyle}
+				className="mt-3 px-8"
 			>
-				<Text className="text-center text-base text-fg-muted">
-					複数カレンダーを統合して、ミーアキャットがあなたの1日をサポート
+				<Text className="text-center text-base text-fg-muted leading-relaxed">
+					複数のGoogleカレンダーを統合して、{"\n"}AIがあなたの一日をブリーフィング。
 				</Text>
 			</Animated.View>
 
 			{/* CTA ボタン */}
-			<Animated.View style={ctaAnimation.animatedStyle} className="mt-8">
-				<CTAButton label="はじめる" onPress={onSignIn} />
+			<Animated.View style={taglineAnimation.animatedStyle} className="mt-8">
+				<CTAButton label="Googleではじめる（無料）" onPress={onSignIn} />
+			</Animated.View>
+
+			{/* 補足テキスト */}
+			<Animated.View style={taglineAnimation.animatedStyle} className="mt-3">
+				<Text className="text-xs text-fg-subtle text-center">
+					クレジットカード不要 · 30秒でセットアップ
+				</Text>
 			</Animated.View>
 		</View>
 	);

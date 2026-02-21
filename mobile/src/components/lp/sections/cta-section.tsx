@@ -16,11 +16,11 @@ export function CTASection({ onSignIn }: CTASectionProps) {
 
 	return (
 		<SectionWrapper className="bg-accent-50 items-center">
-			<Animated.View style={titleAnimation.animatedStyle}>
-				<Text className="text-center text-2xl font-bold text-fg">
-					さあ、はじめよう
-				</Text>
-			</Animated.View>
+		<Animated.View style={titleAnimation.animatedStyle}>
+			<Text className="text-center text-3xl font-black text-fg">
+				さあ、はじめよう
+			</Text>
+		</Animated.View>
 
 			<Animated.View style={subtitleAnimation.animatedStyle}>
 				<Text className="mt-2 text-center text-fg-muted">

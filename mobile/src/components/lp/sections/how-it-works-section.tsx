@@ -12,20 +12,20 @@ const steps = [
 	{
 		icon: LogIn,
 		number: "1",
-		title: "ログイン",
-		description: "Googleアカウントでかんたんログイン",
+		title: "Googleアカウントでログイン",
+		description: "ワンクリックでサインイン。面倒な登録は一切不要。",
 	},
 	{
 		icon: Link,
 		number: "2",
-		title: "カレンダー連携",
-		description: "使っているカレンダーを追加するだけ",
+		title: "カレンダーを連携",
+		description: "使っているカレンダーを選ぶだけ。複数アカウントもOK。",
 	},
 	{
 		icon: Eye,
 		number: "3",
-		title: "今日を把握",
-		description: "統合されたカレンダーとAIで今日がわかる",
+		title: "今日を把握する",
+		description: "統合されたカレンダーとAIで、今日が一瞬でわかる。",
 	},
 ] as const;
 
@@ -73,8 +73,14 @@ export function HowItWorksSection({
 }: HowItWorksSectionProps) {
 	return (
 		<SectionWrapper className="bg-accent-50">
-			<Text className="text-2xl font-bold text-fg text-center mb-10">
-				かんたん3ステップ
+			<Text className="mb-1 text-center text-xs font-bold uppercase tracking-widest text-accent">
+				How it works
+			</Text>
+			<Text className="mb-2 text-center text-2xl font-black text-fg">
+				かんたん３ステップ
+			</Text>
+			<Text className="mb-10 text-center text-sm text-fg-muted">
+				登録から使い始まで、たったの30秒。
 			</Text>
 
 			{steps.map((step, index) => (

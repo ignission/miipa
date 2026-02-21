@@ -49,7 +49,11 @@ function StoryCardItem({
 	return (
 		<Animated.View
 			style={animatedStyle}
-			className="rounded-2xl border border-border bg-white p-6"
+			className={`rounded-2xl border p-6 ${
+				index === 2
+					? "border-accent-200 bg-accent-50"
+					: "border-border bg-white"
+			}`}
 		>
 			<Text className="mb-2 text-lg font-bold text-fg">{card.title}</Text>
 			<Text className="text-sm leading-relaxed text-fg-muted">{card.body}</Text>
@@ -60,8 +64,11 @@ function StoryCardItem({
 export function StorySection({ scrollY }: StorySectionProps) {
 	return (
 		<SectionWrapper className="bg-bg-canvas">
-			<Text className="mb-8 text-center text-2xl font-bold text-fg">
+			<Text className="mb-1 text-center text-xs font-bold uppercase tracking-widest text-accent">
 				こんな経験、ありませんか？
+			</Text>
+			<Text className="mb-8 text-center text-2xl font-black text-fg">
+				毎朝のカレンダー確認、{"\n"}もう終わりにしませんか。
 			</Text>
 
 			<View className="gap-6">
