@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { ChatInput, type SendKeyType } from "./chat-input";
 import { ChatMessage } from "./chat-message";
@@ -146,6 +146,7 @@ export function ChatPanel({
 		if (!isExpanded) {
 			setIsExpanded(true);
 		}
+		Keyboard.dismiss();
 		sendMessage();
 	}, [isExpanded, sendMessage]);
 
@@ -247,7 +248,7 @@ export function ChatPanel({
 
 	// Mobile: フルスクリーン表示
 	return (
-		<View className="flex-1 bg-bg">
+		<KeyboardAvoidingView behavior="padding" className="flex-1 bg-bg">
 			{/* ヘッダー */}
 			<View className="border-b border-border bg-bg px-4 py-3">
 				<Text className="text-center text-sm font-medium text-fg-muted">
@@ -256,7 +257,12 @@ export function ChatPanel({
 			</View>
 
 			{/* メッセージエリア */}
-			<View className="flex-1 gap-3 py-4">
+			<ScrollView
+				className="flex-1"
+				contentContainerClassName="gap-3 py-4"
+				keyboardDismissMode="on-drag"
+				keyboardShouldPersistTaps="handled"
+			>
 				{/* 会話が空の時: 質問候補を表示 */}
 				{!hasMessages && !isLoading && (
 					<ChatSuggestions onSelect={handleSuggestionSelect} />
@@ -283,7 +289,7 @@ export function ChatPanel({
 						<Text className="text-sm text-red-700">{error}</Text>
 					</View>
 				)}
-			</View>
+			</ScrollView>
 
 			{/* 入力エリア */}
 			<ChatInput
@@ -292,6 +298,6 @@ export function ChatPanel({
 				onSend={handleSend}
 				isLoading={isLoading}
 			/>
-		</View>
+		</KeyboardAvoidingView>
 	);
 }
