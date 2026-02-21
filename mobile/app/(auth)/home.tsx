@@ -18,6 +18,7 @@ import {
 	View,
 } from "react-native";
 import { TimelineView } from "../../src/components/calendar/TimelineView";
+import { WeekTimelineView } from "../../src/components/calendar/WeekTimelineView";
 import {
 	ViewTabs,
 	type ViewType,
@@ -130,6 +131,8 @@ export default function TodayScreen() {
 							ゆっくり過ごしましょう
 						</Text>
 					</View>
+				) : activeView === "week" ? (
+					<WeekTimelineView events={events} currentTime={currentTime} />
 				) : (
 					<TimelineView events={events} currentTime={currentTime} />
 				)}
