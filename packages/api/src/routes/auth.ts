@@ -17,11 +17,22 @@ import {
 	REFRESH_TOKEN_COOKIE_NAME,
 } from "@/lib/auth/constants";
 import { getOAuthConfig } from "@/lib/auth/oauth-config";
+import {
+	consumePkceSession,
+	savePkceSession,
+} from "@/lib/auth/pkce-session-store";
+import type { CalendarConfig } from "@/lib/config";
 import { isOk } from "@/lib/domain/shared/result";
+import { createCalendarId } from "@/lib/domain/shared/types";
+import { GoogleCalendarProvider } from "@/lib/infrastructure/calendar";
 import {
 	exchangeCode,
 	generateAuthUrl,
 } from "@/lib/infrastructure/calendar/oauth-service";
+import { D1ConfigRepository } from "@/lib/infrastructure/config/d1-config-repository";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
+import { D1SecretRepository } from "@/lib/infrastructure/secret/d1-secret-repository";
+import { createGoogleOAuthKey } from "@/lib/infrastructure/secret/types";
 import { base64UrlDecode, base64UrlEncode } from "@/lib/utils/base64url";
 import { verifyJwt } from "@/middleware/auth";
 
@@ -34,12 +45,6 @@ const ACCESS_TOKEN_EXPIRES_IN = 24 * 60 * 60;
 
 /** リフレッシュトークンの有効期限（秒）: 30日 */
 const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60;
-
-/** Google OAuth code_verifier Cookie名 */
-const CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
-
-/** Google OAuth state Cookie名 */
-const OAUTH_STATE_COOKIE = "google_oauth_state";
 
 /** ワンタイム認可コードの有効期限（ミリ秒）: 30秒 */
 const AUTH_CODE_TTL_MS = 30 * 1000;
@@ -509,6 +514,17 @@ function clearAuthCookies(c: Context<AppType>): void {
 }
 
 /**
+ * メールアドレスをマスクしてログ出力用の文字列を生成
+ *
+ * @example maskEmail("shoma@example.com") => "s***@example.com"
+ */
+function maskEmail(email: string): string {
+	const [local, domain] = email.split("@");
+	if (!local || !domain) return "***";
+	return `${local[0]}***@${domain}`;
+}
+
+/**
  * リクエストボディから文字列フィールドを安全に取得
  */
 function getStringField(
@@ -517,6 +533,117 @@ function getStringField(
 ): string | undefined {
 	const value = body[field];
 	return typeof value === "string" ? value : undefined;
+}
+
+// ============================================================
+// Google Calendar トークン保存
+// ============================================================
+
+/**
+ * Google OAuth トークンを保存し、カレンダーを自動追加
+ *
+ * コールバック内で非同期に実行。失敗してもログイン自体は成功させる。
+ */
+async function saveGoogleCalendarTokens(
+	db: D1Database,
+	userId: string,
+	encryptionKeyBase64: string,
+	accountEmail: string,
+	tokens: { accessToken: string; refreshToken: string; expiresAt: Date },
+): Promise<void> {
+	try {
+		const cryptoKeyResult = await importEncryptionKey(encryptionKeyBase64);
+		if (!isOk(cryptoKeyResult)) {
+			console.error("[auth] 暗号化キーのインポートに失敗しました");
+			return;
+		}
+
+		const secretRepo = new D1SecretRepository(
+			db,
+			userId,
+			cryptoKeyResult.value,
+		);
+		const configRepo = new D1ConfigRepository(db, userId);
+
+		// トークンを暗号化して保存
+		const tokenData = JSON.stringify({
+			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken,
+			expiresAt: tokens.expiresAt.toISOString(),
+		});
+		const saveResult = await secretRepo.setSecret(
+			createGoogleOAuthKey(accountEmail),
+			tokenData,
+		);
+		if (!isOk(saveResult)) {
+			console.error("[auth] トークン保存に失敗しました:", saveResult.error);
+			return;
+		}
+		console.log(`[auth] Google OAuthトークンを保存しました: ${maskEmail(accountEmail)}`);
+
+		// カレンダー一覧を取得して設定に追加
+		const provider = new GoogleCalendarProvider(accountEmail, tokens);
+		const calendarsResult = await provider.getCalendars();
+		if (!isOk(calendarsResult)) {
+			console.error(
+				"[auth] カレンダー一覧の取得に失敗しました:",
+				calendarsResult.error,
+			);
+			return;
+		}
+
+		const providerCalendars = calendarsResult.value;
+
+		// 既存のカレンダー設定を取得
+		const existingResult = await configRepo.getSetting("calendars");
+		const existingCalendars: CalendarConfig[] =
+			isOk(existingResult) && existingResult.value
+				? (JSON.parse(existingResult.value) as CalendarConfig[])
+				: [];
+		const existingIds = new Set(existingCalendars.map((c) => c.id as string));
+
+		// 新しいカレンダーを追加（重複回避）
+		const newCalendars: CalendarConfig[] = [];
+		for (const cal of providerCalendars) {
+			const configId = `google-${accountEmail.replace(/[@.]/g, "-")}-${cal.id.replace(/[@.]/g, "-")}`;
+			if (existingIds.has(configId)) {
+				continue;
+			}
+			newCalendars.push({
+				id: createCalendarId(configId),
+				type: "google",
+				name: cal.name,
+				enabled: cal.primary,
+				color: cal.color,
+				googleAccountEmail: accountEmail,
+				googleCalendarId: cal.id,
+			});
+		}
+
+		if (newCalendars.length > 0) {
+			const updatedCalendars = [...existingCalendars, ...newCalendars];
+			const setResult = await configRepo.setSetting(
+				"calendars",
+				JSON.stringify(updatedCalendars),
+			);
+			if (!isOk(setResult)) {
+				console.error(
+					"[auth] カレンダー設定の保存に失敗しました:",
+					setResult.error,
+				);
+				return;
+			}
+			console.log(
+				`[auth] ${newCalendars.length}件のカレンダーを追加しました: ${maskEmail(accountEmail)}`,
+			);
+		} else {
+			console.log(
+				`[auth] 追加するカレンダーはありません（既に登録済み）: ${maskEmail(accountEmail)}`,
+			);
+		}
+	} catch (error) {
+		console.error("[auth] カレンダートークン保存エラー:", error);
+	}
 }
 
 // ============================================================
@@ -605,7 +732,7 @@ auth.post("/mobile/token", async (c) => {
  *
  * Google OAuth認証URLを生成（PKCE対応）
  * レスポンス: { authUrl: string }
- * code_verifier と state は httpOnly Cookie に保存
+ * code_verifier は state をキーとして D1 に保存（モバイル外部ブラウザ対応）
  */
 auth.post("/google", async (c) => {
 	try {
@@ -623,22 +750,13 @@ auth.post("/google", async (c) => {
 
 		const { url, codeVerifier, state } = result.value;
 
-		// code_verifier と state を httpOnly Cookie に保存
-		setCookie(c, CODE_VERIFIER_COOKIE, codeVerifier, {
-			httpOnly: true,
-			secure: c.env.ENVIRONMENT !== "development",
-			sameSite: "Lax",
-			maxAge: 600, // 10分
-			path: "/",
-		});
-
-		setCookie(c, OAUTH_STATE_COOKIE, state, {
-			httpOnly: true,
-			secure: c.env.ENVIRONMENT !== "development",
-			sameSite: "Lax",
-			maxAge: 600,
-			path: "/",
-		});
+		// PKCEセッションをD1に保存（Cookie不使用: モバイル外部ブラウザ対応）
+		try {
+			await savePkceSession(c.env.DB, state, codeVerifier);
+		} catch (e) {
+			console.error("[auth] PKCEセッション保存エラー:", e);
+			return c.json({ error: "認証セッションの保存に失敗しました" }, 500);
+		}
 
 		return c.json({ authUrl: url });
 	} catch (e) {
@@ -678,18 +796,15 @@ auth.get("/google/callback", async (c) => {
 			);
 		}
 
-		// Cookie から code_verifier と state を取得
-		const codeVerifier = getCookie(c, CODE_VERIFIER_COOKIE);
-		const savedState = getCookie(c, OAUTH_STATE_COOKIE);
-
-		if (!codeVerifier) {
+		// D1から code_verifier を取得（stateをキーとして使用）
+		if (!state) {
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("認証セッションが無効です。もう一度お試しください。")}`,
 			);
 		}
 
-		// state検証（CSRF対策: 未送信・不一致の両方を拒否）
-		if (!state || !savedState || state !== savedState) {
+		const codeVerifier = await consumePkceSession(c.env.DB, state);
+		if (!codeVerifier) {
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("認証セッションが無効です。もう一度お試しください。")}`,
 			);
@@ -753,6 +868,15 @@ auth.get("/google/callback", async (c) => {
 			userInfo.picture ?? "",
 		);
 
+		// Google Calendar OAuthトークンを保存し、カレンダーを自動追加
+		await saveGoogleCalendarTokens(
+			db,
+			user.id,
+			c.env.ENCRYPTION_KEY,
+			userInfo.email,
+			tokenResult.value,
+		);
+
 		// ワンタイム認可コードを生成（30秒TTL）
 		cleanupExpiredAuthCodes();
 		const oneTimeCode = crypto.randomUUID();
@@ -760,10 +884,6 @@ auth.get("/google/callback", async (c) => {
 			userId: user.id,
 			expiresAt: Date.now() + AUTH_CODE_TTL_MS,
 		});
-
-		// code_verifier, state Cookie を削除
-		deleteCookie(c, CODE_VERIFIER_COOKIE, { path: "/" });
-		deleteCookie(c, OAUTH_STATE_COOKIE, { path: "/" });
 
 		// フロントエンドにワンタイムコードのみを渡してリダイレクト
 		return c.redirect(`${baseUrl}/auth-callback?code=${oneTimeCode}`);

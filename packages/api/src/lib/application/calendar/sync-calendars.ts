@@ -589,7 +589,12 @@ async function fetchGoogleCalendarEvents(
 	};
 
 	// プロバイダを作成してイベントを取得
-	const provider = new GoogleCalendarProvider(accountEmail, tokens);
+	const provider = new GoogleCalendarProvider(
+		accountEmail,
+		tokens,
+		ctx.secretRepository,
+		ctx.oauthConfig,
+	);
 	const eventsResult = await provider.getEvents(
 		createCalendarId(googleCalendarId),
 		timeRange,

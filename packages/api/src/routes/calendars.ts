@@ -14,7 +14,6 @@
  */
 
 import { Hono } from "hono";
-import { setCookie } from "hono/cookie";
 import { z } from "zod";
 import type { AppType } from "@/context/app-context";
 import {
@@ -23,6 +22,7 @@ import {
 	syncAllCalendars,
 } from "@/lib/application/calendar";
 import { getOAuthConfig } from "@/lib/auth/oauth-config";
+import { savePkceSession } from "@/lib/auth/pkce-session-store";
 import { buildCalendarContext } from "@/lib/context/build-calendar-context";
 import type { CalendarContext } from "@/lib/context/calendar-context";
 import { isOk } from "@/lib/domain/shared/result";
@@ -31,12 +31,6 @@ import { createCalendarId } from "@/lib/domain/shared/types";
 // ============================================================
 // 定数・型定義
 // ============================================================
-
-/** code_verifier を保存する Cookie 名（コールバックと共通） */
-const CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
-
-/** Cookie の有効期限（10分） */
-const COOKIE_MAX_AGE = 60 * 10;
 
 /** カレンダー設定の型 */
 interface CalendarEntry {
@@ -308,16 +302,18 @@ calendars.post("/google", async (c) => {
 	const result = await startGoogleAuth(oauthConfig, loginHint);
 
 	if (isOk(result)) {
-		const { url, codeVerifier } = result.value;
+		const { url, codeVerifier, state } = result.value;
 
-		// code_verifier を Cookie に保存
-		setCookie(c, CODE_VERIFIER_COOKIE, codeVerifier, {
-			httpOnly: true,
-			secure: true,
-			sameSite: "Lax",
-			maxAge: COOKIE_MAX_AGE,
-			path: "/",
-		});
+		// PKCEセッションをD1に保存
+		try {
+			await savePkceSession(c.env.DB, state, codeVerifier);
+		} catch (e) {
+			console.error("[calendars] PKCEセッション保存エラー:", e);
+			return c.json(
+				{ error: { code: "SESSION_SAVE_FAILED", message: "認証セッションの保存に失敗しました" } },
+				500,
+			);
+		}
 
 		return c.json({ authUrl: url });
 	}
@@ -353,16 +349,18 @@ calendars.get("/google/reauth", async (c) => {
 	const result = await startGoogleAuth(oauthConfig, email);
 
 	if (isOk(result)) {
-		const { url, codeVerifier } = result.value;
+		const { url, codeVerifier, state } = result.value;
 
-		// code_verifier を Cookie に保存
-		setCookie(c, CODE_VERIFIER_COOKIE, codeVerifier, {
-			httpOnly: true,
-			secure: true,
-			sameSite: "Lax",
-			maxAge: COOKIE_MAX_AGE,
-			path: "/",
-		});
+		// PKCEセッションをD1に保存
+		try {
+			await savePkceSession(c.env.DB, state, codeVerifier);
+		} catch (e) {
+			console.error("[calendars] PKCEセッション保存エラー（再認証）:", e);
+			return c.json(
+				{ error: { code: "SESSION_SAVE_FAILED", message: "認証セッションの保存に失敗しました" } },
+				500,
+			);
+		}
 
 		// Google 認証画面にリダイレクト
 		return c.redirect(url);
@@ -448,10 +446,12 @@ calendars.post("/ical", async (c) => {
 // ============================================================
 
 calendars.post("/sync", async (c) => {
+	const oauthConfig = getOAuthConfig(c.env);
 	const ctx = await buildCalendarContext(
 		c.get("db"),
 		c.get("userId"),
 		c.get("encryptionKey"),
+		oauthConfig,
 	);
 	if (!ctx) {
 		return c.json(

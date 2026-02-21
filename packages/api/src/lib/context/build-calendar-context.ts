@@ -8,6 +8,7 @@
  */
 
 import { isOk } from "@/lib/domain/shared/result";
+import type { OAuthConfig } from "@/lib/infrastructure/calendar/oauth-service";
 import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
 import {
 	type CalendarContext,
@@ -23,16 +24,18 @@ import {
  * @param db - D1データベース接続
  * @param userId - ユーザーID
  * @param encryptionKeyBase64 - Base64エンコードされた暗号化キー
+ * @param oauthConfig - OAuth設定（トークンリフレッシュ用、省略可）
  * @returns CalendarContext または null
  */
 export async function buildCalendarContext(
 	db: D1Database,
 	userId: string,
 	encryptionKeyBase64: string,
+	oauthConfig?: OAuthConfig,
 ): Promise<CalendarContext | null> {
 	const cryptoKeyResult = await importEncryptionKey(encryptionKeyBase64);
 	if (!isOk(cryptoKeyResult)) {
 		return null;
 	}
-	return createCalendarContext(db, userId, cryptoKeyResult.value);
+	return createCalendarContext(db, userId, cryptoKeyResult.value, oauthConfig);
 }

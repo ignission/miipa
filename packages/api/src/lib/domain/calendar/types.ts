@@ -243,9 +243,7 @@ export function getMonthRange(year: number, month: number): DateRangeResult {
 	const m = month - 1;
 
 	// JSTの指定月1日 00:00:00 をUTCに変換
-	const startDate = new Date(
-		Date.UTC(year, m, 1, 0, 0, 0, 0) - JST_OFFSET_MS,
-	);
+	const startDate = new Date(Date.UTC(year, m, 1, 0, 0, 0, 0) - JST_OFFSET_MS);
 	// JSTの指定月末日 23:59:59.999 をUTCに変換
 	// 翌月1日の0日目 = 当月末日
 	const endDate = new Date(

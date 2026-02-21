@@ -16,6 +16,7 @@ import {
 	getEventsForToday,
 	getEventsForWeek,
 } from "@/lib/application/calendar";
+import { getOAuthConfig } from "@/lib/auth/oauth-config";
 import { createCalendarContext } from "@/lib/context/calendar-context";
 import type { CalendarEvent } from "@/lib/domain/calendar";
 import { isSome } from "@/lib/domain/shared/option";
@@ -106,7 +107,13 @@ events.get("/", async (c) => {
 	}
 
 	// コンテキスト作成
-	const ctx = createCalendarContext(db, userId, cryptoKeyResult.value);
+	const oauthConfig = getOAuthConfig(c.env);
+	const ctx = createCalendarContext(
+		db,
+		userId,
+		cryptoKeyResult.value,
+		oauthConfig,
+	);
 
 	// クエリパラメータから range と force を取得
 	const range = c.req.query("range") || "today";

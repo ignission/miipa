@@ -30,9 +30,10 @@ export default function TodayScreen() {
 	const [activeView, setActiveView] = useState<ViewType>("today");
 	const { events, isLoading, isRefreshing, error, lastSync, refresh } =
 		useEvents(activeView === "today" ? "today" : "week");
+	const { events: weekEventsForWidget, refresh: refreshWeek } = useEvents("week");
 
-	// Widget & Watch データ同期（Mobileのみ）
-	useWidgetData(events);
+	// Widget & Watch データ同期（Mobileのみ）- 3日間表示のため常にweekデータを使用
+	useWidgetData(weekEventsForWidget);
 
 	const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -45,8 +46,8 @@ export default function TodayScreen() {
 	}, []);
 
 	const onRefresh = useCallback(async () => {
-		await refresh();
-	}, [refresh]);
+		await Promise.all([refresh(), refreshWeek()]);
+	}, [refresh, refreshWeek]);
 
 	/**
 	 * ビュー切り替え時のハンドラ

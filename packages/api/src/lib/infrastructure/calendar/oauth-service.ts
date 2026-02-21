@@ -108,7 +108,7 @@ export async function generateAuthUrl(
 		response_type: "code",
 		scope: SCOPES.join(" "),
 		access_type: "offline",
-		prompt: "consent",
+		prompt: "consent select_account",
 		code_challenge: codeChallenge,
 		code_challenge_method: "S256",
 		state,
