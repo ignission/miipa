@@ -57,23 +57,22 @@ export function WeekTimelineView({
 	currentTime,
 }: WeekTimelineViewProps) {
 	const sections: DaySection[] = useMemo(() => {
-		const now = new Date();
-		const todayKey = formatDateKey(now);
+		const todayKey = formatDateKey(currentTime);
 
-		// イベントを日付キーでグルーピング
-		const grouped = new Map<string, UICalendarEvent[]>();
-		for (const event of events) {
-			const key = formatDateKey(event.startTime);
-			const list = grouped.get(key) ?? [];
-			list.push(event);
-			grouped.set(key, list);
-		}
+		// イベントを日付キーでグルーピング（イミュータブル）
+		const grouped = events.reduce<Record<string, UICalendarEvent[]>>(
+			(acc, event) => {
+				const key = formatDateKey(event.startTime);
+				return { ...acc, [key]: [...(acc[key] ?? []), event] };
+			},
+			{},
+		);
 
 		// 7日分のセクションを生成
 		return Array.from({ length: DAYS_TO_SHOW }, (_, i) => {
-			const date = new Date(now.getTime() + i * DAY_MS);
+			const date = new Date(currentTime.getTime() + i * DAY_MS);
 			const key = formatDateKey(date);
-			const dayEvents = grouped.get(key) ?? [];
+			const dayEvents = grouped[key] ?? [];
 			const isToday = key === todayKey;
 
 			return {
@@ -84,7 +83,7 @@ export function WeekTimelineView({
 				events: dayEvents,
 			};
 		});
-	}, [events]);
+	}, [events, currentTime]);
 
 	return (
 		<View>
