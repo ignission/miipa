@@ -52,8 +52,8 @@ struct MiipaWatchComplication: Widget {
         StaticConfiguration(kind: kind, provider: MiipaComplicationProvider()) { entry in
             ComplicationEntryView(entry: entry)
         }
-        .configurationDisplayName("miipa")
-        .description("次の予定を表示します")
+        .configurationDisplayName("次の予定")
+        .description("miipa - 次の予定を表示")
         .supportedFamilies([
             .accessoryCorner,
             .accessoryCircular,
