@@ -1,6 +1,5 @@
 import { View, Text } from "react-native";
 import Animated, { type SharedValue } from "react-native-reanimated";
-import { Calendar, Sparkles, Shield, Zap } from "lucide-react-native";
 import { useEntranceAnimation } from "../animations/use-entrance-animation";
 import { SectionWrapper } from "../shared/section-wrapper";
 import { DotPattern } from "../illustrations/dot-pattern";
@@ -11,38 +10,34 @@ interface FeaturesSectionProps {
 
 const features = [
 	{
-		icon: Calendar,
+		emoji: "📅",
 		title: "カレンダー統合",
-		description:
-			"Google、iCal など複数のカレンダーをひとつにまとめて表示。",
+		description: "Google、iCal など複数のカレンダーをひとつにまとめて表示。",
 	},
 	{
-		icon: Sparkles,
+		emoji: "✨",
 		title: "AI質問応答",
-		description:
-			"「今日の予定は？」「来週の空き時間は？」AIに聴くだけ。",
+		description: "「今日の予定は？」「来週の空き時間は？」AIに聞くだけ。",
 	},
 	{
-		icon: Shield,
+		emoji: "🛡️",
 		title: "安心のセキュリティ",
-		description:
-			"データは暗号化して保存。カレンダーは読み取り専用。",
+		description: "データは暗号化して保存。カレンダーは読み取り専用。",
 	},
 	{
-		icon: Zap,
+		emoji: "⚡",
 		title: "30秒で把握",
-		description:
-			"開いた瞬間に今日の全体像がわかる、ダッシュボード設計。",
+		description: "開いた瞬間に今日の全体像がわかる、ダッシュボード設計。",
 	},
-] as const;
+];
 
 function FeatureCard({
-	icon: Icon,
+	emoji,
 	title,
 	description,
 	index,
 }: {
-	icon: (typeof features)[number]["icon"];
+	emoji: string;
 	title: string;
 	description: string;
 	index: number;
@@ -52,10 +47,10 @@ function FeatureCard({
 	return (
 		<Animated.View
 			style={animatedStyle}
-			className="bg-white rounded-2xl p-5 border border-border flex-row items-center gap-4"
+			className="bg-bg-canvas rounded-2xl p-5 border border-border flex-row items-start gap-4"
 		>
 			<View className="w-12 h-12 rounded-xl bg-accent-50 items-center justify-center">
-				<Icon size={24} color="#F97316" />
+				<Text className="text-xl">{emoji}</Text>
 			</View>
 			<View className="flex-1">
 				<Text className="text-base font-bold text-fg">{title}</Text>
@@ -88,7 +83,7 @@ export function FeaturesSection({ scrollY: _scrollY }: FeaturesSectionProps) {
 					{features.map((feature, index) => (
 						<FeatureCard
 							key={feature.title}
-							icon={feature.icon}
+							emoji={feature.emoji}
 							title={feature.title}
 							description={feature.description}
 							index={index}

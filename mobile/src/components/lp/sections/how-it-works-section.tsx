@@ -1,6 +1,5 @@
 import { View, Text } from "react-native";
 import Animated, { type SharedValue } from "react-native-reanimated";
-import { LogIn, Link, Eye } from "lucide-react-native";
 import { useEntranceAnimation } from "../animations/use-entrance-animation";
 import { SectionWrapper } from "../shared/section-wrapper";
 
@@ -10,33 +9,28 @@ interface HowItWorksSectionProps {
 
 const steps = [
 	{
-		icon: LogIn,
 		number: "1",
 		title: "Googleアカウントでログイン",
 		description: "ワンクリックでサインイン。面倒な登録は一切不要。",
 	},
 	{
-		icon: Link,
 		number: "2",
 		title: "カレンダーを連携",
 		description: "使っているカレンダーを選ぶだけ。複数アカウントもOK。",
 	},
 	{
-		icon: Eye,
 		number: "3",
 		title: "今日を把握する",
 		description: "統合されたカレンダーとAIで、今日が一瞬でわかる。",
 	},
-] as const;
+];
 
 function StepItem({
-	icon: Icon,
 	number,
 	title,
 	description,
 	index,
 }: {
-	icon: (typeof steps)[number]["icon"];
 	number: string;
 	title: string;
 	description: string;
@@ -46,16 +40,17 @@ function StepItem({
 
 	return (
 		<Animated.View style={animatedStyle} className="flex-row items-start gap-4">
-			{/* 番号バッジ */}
-			<View className="w-10 h-10 rounded-full bg-accent items-center justify-center">
-				<Text className="text-white font-bold">{number}</Text>
+			{/* 番号バッジ + コネクタ */}
+			<View className="items-center">
+				<View className="w-10 h-10 rounded-full bg-accent items-center justify-center">
+					<Text className="text-white font-black">{number}</Text>
+				</View>
 			</View>
 
-			{/* テキストとアイコン */}
-			<View className="flex-1">
+			{/* テキスト */}
+			<View className="flex-1 pb-8">
 				<Text className="text-base font-bold text-fg">{title}</Text>
 				<Text className="text-sm text-fg-muted mt-1">{description}</Text>
-				<Icon size={20} color="#78716c" style={{ marginTop: 8 }} />
 			</View>
 		</Animated.View>
 	);
@@ -80,13 +75,12 @@ export function HowItWorksSection({
 				かんたん３ステップ
 			</Text>
 			<Text className="mb-10 text-center text-sm text-fg-muted">
-				登録から使い始まで、たったの30秒。
+				登録から使い始めるまで、たったの30秒。
 			</Text>
 
 			{steps.map((step, index) => (
 				<View key={step.number}>
 					<StepItem
-						icon={step.icon}
 						number={step.number}
 						title={step.title}
 						description={step.description}

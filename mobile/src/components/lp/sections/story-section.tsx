@@ -3,7 +3,6 @@ import Animated, { type SharedValue } from "react-native-reanimated";
 
 import { useScrollAnimation } from "../animations/use-scroll-animation";
 import { SectionWrapper } from "../shared/section-wrapper";
-import { MeerkatPeek } from "../illustrations/meerkat-peek";
 
 interface StorySectionProps {
 	scrollY: SharedValue<number>;
@@ -17,15 +16,15 @@ interface StoryCard {
 const storyCards: StoryCard[] = [
 	{
 		title: "📅 朝、3つのカレンダーアプリを開く",
-		body: "Google、Outlook、iCal… バラバラのカレンダーを行き来して、やっと今日の全体像がつかめる",
+		body: "Google、iCal… バラバラのカレンダーを行き来して、やっと今日の全体像がつかめる。",
 	},
 	{
 		title: "🔄 毎日、同じことの繰り返し",
-		body: "カレンダーの確認だけで5分。そのわりに「あれ、今日何時からだっけ？」が減らない",
+		body: "カレンダーの確認だけで5分。そのわりに「あれ、今日何時からだっけ？」が減らない。",
 	},
 	{
 		title: "✨ miipaなら、開いた瞬間にわかる",
-		body: "複数のカレンダーを統合して、AIがあなたの今日を30秒でブリーフィング",
+		body: "複数のカレンダーを統合して、AIがあなたの今日を30秒でブリーフィング。",
 	},
 ];
 
@@ -71,7 +70,7 @@ export function StorySection({ scrollY }: StorySectionProps) {
 				毎朝のカレンダー確認、{"\n"}もう終わりにしませんか。
 			</Text>
 
-			<View className="gap-6">
+			<View className="gap-4">
 				{storyCards.map((card, index) => (
 					<StoryCardItem
 						key={card.title}
@@ -82,9 +81,10 @@ export function StorySection({ scrollY }: StorySectionProps) {
 				))}
 			</View>
 
-			{/* 覗くミーアキャット */}
 			<View className="mt-4 self-end">
-				<MeerkatPeek size={80} />
+				<View className="w-16 h-16 rounded-full bg-accent-100 items-center justify-center">
+					<Text className="text-3xl">🐾</Text>
+				</View>
 			</View>
 		</SectionWrapper>
 	);
