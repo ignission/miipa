@@ -8,6 +8,8 @@ import {
 	syncCalendars,
 	toggleCalendar,
 } from "../api/calendars";
+import { fetchTodayEvents, fetchWeekEvents } from "../api/events";
+import { toUIEvent } from "./useEvents";
 
 /**
  * カレンダー一覧取得フック
@@ -98,10 +100,32 @@ export function useSyncCalendars() {
 
 	return useMutation({
 		mutationFn: syncCalendars,
-		onSuccess: () => {
-			// 同期後にイベントとカレンダーを再取得
-			queryClient.invalidateQueries({ queryKey: ["events"] });
-			queryClient.invalidateQueries({ queryKey: ["calendars"] });
+		onSuccess: async () => {
+			// 同期後にカレンダー一覧を再取得
+			await queryClient.invalidateQueries({ queryKey: ["calendars"] });
+			// 同期後は強制リフレッシュでイベントを再取得（バックエンドキャッシュをバイパス）
+			await queryClient.fetchQuery({
+				queryKey: ["events", "today"],
+				queryFn: async () => {
+					const data = await fetchTodayEvents(true);
+					if (!data) return { events: [], lastSync: null };
+					return {
+						events: data.events.map(toUIEvent),
+						lastSync: data.lastSync ? new Date(data.lastSync) : null,
+					};
+				},
+			});
+			await queryClient.fetchQuery({
+				queryKey: ["events", "week"],
+				queryFn: async () => {
+					const data = await fetchWeekEvents(true);
+					if (!data) return { events: [], lastSync: null };
+					return {
+						events: data.events.map(toUIEvent),
+						lastSync: data.lastSync ? new Date(data.lastSync) : null,
+					};
+				},
+			});
 		},
 	});
 }
