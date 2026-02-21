@@ -61,6 +61,7 @@ const config = {
 		"expo-background-fetch",
 		"expo-task-manager",
 		"@bacons/apple-targets",
+		"./plugins/fix-watch-embed",
 	],
 	experiments: {
 		typedRoutes: true,
