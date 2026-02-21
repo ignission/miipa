@@ -1,6 +1,6 @@
 import { View, Text } from "react-native";
 import Animated, { type SharedValue } from "react-native-reanimated";
-import { Calendar, Sparkles, Shield } from "lucide-react-native";
+import { Calendar, Sparkles, Shield, Zap } from "lucide-react-native";
 import { useEntranceAnimation } from "../animations/use-entrance-animation";
 import { SectionWrapper } from "../shared/section-wrapper";
 import { DotPattern } from "../illustrations/dot-pattern";
@@ -14,19 +14,25 @@ const features = [
 		icon: Calendar,
 		title: "カレンダー統合",
 		description:
-			"Google、iCal など複数のカレンダーをひとつにまとめて表示",
+			"Google、iCal など複数のカレンダーをひとつにまとめて表示。",
 	},
 	{
 		icon: Sparkles,
 		title: "AI質問応答",
 		description:
-			"「今日の予定は？」「来週の空き時間は？」AIに聞くだけ",
+			"「今日の予定は？」「来週の空き時間は？」AIに聴くだけ。",
 	},
 	{
 		icon: Shield,
 		title: "安心のセキュリティ",
 		description:
-			"データは暗号化して保存。カレンダーは読み取り専用",
+			"データは暗号化して保存。カレンダーは読み取り専用。",
+	},
+	{
+		icon: Zap,
+		title: "30秒で把握",
+		description:
+			"開いた瞬間に今日の全体像がわかる、ダッシュボード設計。",
 	},
 ] as const;
 
@@ -68,8 +74,14 @@ export function FeaturesSection({ scrollY: _scrollY }: FeaturesSectionProps) {
 					<DotPattern width={150} height={150} />
 				</View>
 
-				<Text className="text-2xl font-bold text-fg text-center mb-8">
+				<Text className="mb-1 text-center text-xs font-bold uppercase tracking-widest text-accent">
+					Features
+				</Text>
+				<Text className="mb-2 text-center text-2xl font-black text-fg">
 					miipaの特徴
+				</Text>
+				<Text className="mb-8 text-center text-sm text-fg-muted">
+					一人社長のための、シンプルで賢いカレンダー管理。
 				</Text>
 
 				<View className="gap-4">

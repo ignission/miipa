@@ -9,11 +9,18 @@ const badges = [
 	{ icon: Cloud, text: "Cloudflare Workers で安全に動作" },
 	{ icon: Key, text: "Google Calendar 公式API" },
 	{ icon: Lock, text: "データは暗号化して保存" },
+	{ icon: Lock, text: "読み取り専用・変更なし" },
 ] as const;
 
 export function SocialProofSection() {
 	return (
 		<SectionWrapper>
+			<Text className="mb-1 text-center text-xs font-bold uppercase tracking-widest text-accent">
+				Trust &amp; Security
+			</Text>
+			<Text className="mb-8 text-center text-2xl font-black text-fg">
+				安心して使える理由
+			</Text>
 			<View className="flex-row flex-wrap justify-center gap-6">
 				{badges.map((badge, index) => (
 					<Badge key={badge.text} badge={badge} index={index} />
