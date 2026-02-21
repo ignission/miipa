@@ -13,25 +13,25 @@ struct MiipaComplicationProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (WatchComplicationEntry) -> Void) {
-        let store = WatchDataStore.shared
+        let store = ComplicationDataStore.shared
         completion(WatchComplicationEntry(
             date: Date(),
-            nextEvent: store.nextEvent,
-            eventCount: store.todayEvents.count
+            nextEvent: store.getNextEvent(),
+            eventCount: store.getTodayEvents().count
         ))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WatchComplicationEntry>) -> Void) {
-        let store = WatchDataStore.shared
+        let store = ComplicationDataStore.shared
         let entry = WatchComplicationEntry(
             date: Date(),
-            nextEvent: store.nextEvent,
-            eventCount: store.todayEvents.count
+            nextEvent: store.getNextEvent(),
+            eventCount: store.getTodayEvents().count
         )
 
-        // endDateが過去の場合は15分後にフォールバック（SmallWidgetProviderと同様の保護）
+        // endDateが過去の場合は15分後にフォールバック
         let currentDate = Date()
-        let nextUpdate = store.nextEvent.map { event -> Date in
+        let nextUpdate = store.getNextEvent().map { event -> Date in
             let eventEnd = event.endDate
             return eventEnd > currentDate
                 ? eventEnd
@@ -42,29 +42,6 @@ struct MiipaComplicationProvider: TimelineProvider {
 
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
-    }
-}
-
-/// Complicationのエントリに応じたビューを切り替えるラッパー
-/// TimelineEntryにはcontextプロパティがないため、@Environment(\.widgetFamily)を使用する
-struct ComplicationEntryView: View {
-    let entry: WatchComplicationEntry
-
-    @Environment(\.widgetFamily) var family
-
-    var body: some View {
-        switch family {
-        case .accessoryCorner:
-            CornerComplicationView(nextEvent: entry.nextEvent)
-        case .accessoryCircular:
-            CircularComplicationView(eventCount: entry.eventCount)
-        case .accessoryRectangular:
-            RectangularComplicationView(nextEvent: entry.nextEvent)
-        case .accessoryInline:
-            InlineComplicationView(nextEvent: entry.nextEvent)
-        default:
-            RectangularComplicationView(nextEvent: entry.nextEvent)
-        }
     }
 }
 
@@ -83,11 +60,5 @@ struct MiipaWatchComplication: Widget {
             .accessoryRectangular,
             .accessoryInline,
         ])
-    }
-}
-
-struct MiipaComplicationBundle: WidgetBundle {
-    var body: some Widget {
-        MiipaWatchComplication()
     }
 }

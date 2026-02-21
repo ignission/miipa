@@ -10,10 +10,11 @@
  * 生成された project.pbxproj を修正する。
  *
  * 修正内容:
- * 1. MiipaWatch の自己埋め込みフェーズを削除
- * 2. メインアプリに "Embed Watch Content" フェーズを作成し MiipaWatch.app を追加
- * 3. メインアプリの依存関係に MiipaWatch を追加
- * 4. MiipaWatch の自己依存関係を削除
+ * 1. MiipaWatch の自己埋め込みフェーズを分析し、自己参照と拡張機能を分離
+ * 2. Watch拡張(.appex)はMiipaWatchの "Embed Foundation Extensions" フェーズに保持
+ * 3. MiipaWatch.app はメインアプリの "Embed Watch Content" フェーズに移動
+ * 4. メインアプリの依存関係に MiipaWatch を追加
+ * 5. MiipaWatch の自己依存関係を削除
  *
  * 実装メモ:
  * @bacons/apple-targets は独自の mod チェーン (xcodeProjectBeta2) を使用しており、
@@ -53,7 +54,7 @@ function fixWatchEmbed(project) {
     `[fix-watch-embed] Found main app: ${mainAppTarget.props.name}, watch: ${watchTarget.props.name}`
   );
 
-  // --- Step 1: MiipaWatch の自己埋め込みフェーズを見つけて削除 ---
+  // --- Step 1: MiipaWatch の自己埋め込みフェーズを見つけて分析 ---
   const watchSelfEmbedPhaseIndex = watchTarget.props.buildPhases.findIndex(
     (phase) =>
       PBXCopyFilesBuildPhase.is(phase) &&
@@ -61,7 +62,10 @@ function fixWatchEmbed(project) {
         phase.props.name === "Embed Watch Content")
   );
 
-  let watchAppBuildFiles = [];
+  let selfEmbedFiles = []; // Watch自身のプロダクト → メインアプリに移動
+  let extensionFiles = []; // Watch拡張(.appex) → Watchに残す
+  const watchProductRef = watchTarget.props.productReference;
+
   if (watchSelfEmbedPhaseIndex !== -1) {
     const selfEmbedPhase =
       watchTarget.props.buildPhases[watchSelfEmbedPhaseIndex];
@@ -69,17 +73,67 @@ function fixWatchEmbed(project) {
       `[fix-watch-embed] Found self-embed phase "${selfEmbedPhase.props.name}" on ${watchTarget.props.name} with ${selfEmbedPhase.props.files.length} file(s)`
     );
 
-    // 埋め込まれていたファイルを保存（メインアプリに移動するため）
-    watchAppBuildFiles = [...selfEmbedPhase.props.files];
+    // ビルドファイルを分類
+    for (const buildFile of selfEmbedPhase.props.files) {
+      const fileRef = buildFile.props.fileRef;
+      if (watchProductRef && fileRef && fileRef.uuid === watchProductRef.uuid) {
+        // Watch自身のプロダクト（自己埋め込み）→ メインアプリに移動
+        selfEmbedFiles.push(buildFile);
+        console.log(
+          `[fix-watch-embed] Classified as self-embed: ${watchTarget.props.name} product`
+        );
+      } else {
+        // Watch拡張（.appex等）→ Watchターゲットに残す
+        extensionFiles.push(buildFile);
+        console.log(
+          `[fix-watch-embed] Classified as extension: will keep in ${watchTarget.props.name}`
+        );
+      }
+    }
 
-    // MiipaWatch の buildPhases から自己埋め込みフェーズを削除
+    // 自己埋め込みフェーズを削除
     watchTarget.props.buildPhases.splice(watchSelfEmbedPhaseIndex, 1);
     console.log(
       `[fix-watch-embed] Removed self-embed phase from ${watchTarget.props.name}`
     );
   }
 
-  // --- Step 2: メインアプリに "Embed Watch Content" フェーズを作成/更新 ---
+  // --- Step 2: Watch拡張をMiipaWatchの "Embed Foundation Extensions" に再追加 ---
+  if (extensionFiles.length > 0) {
+    let watchExtensionPhase = watchTarget.props.buildPhases.find(
+      (phase) =>
+        PBXCopyFilesBuildPhase.is(phase) &&
+        phase.props.name === "Embed Foundation Extensions"
+    );
+
+    if (!watchExtensionPhase) {
+      watchExtensionPhase = watchTarget.createBuildPhase(
+        PBXCopyFilesBuildPhase,
+        {
+          name: "Embed Foundation Extensions",
+          dstSubfolderSpec: 13,
+          dstPath: "",
+          files: [],
+          buildActionMask: 2147483647,
+          runOnlyForDeploymentPostprocessing: 0,
+        }
+      );
+      console.log(
+        `[fix-watch-embed] Created "Embed Foundation Extensions" phase on ${watchTarget.props.name}`
+      );
+    }
+
+    for (const buildFile of extensionFiles) {
+      if (!watchExtensionPhase.getBuildFile(buildFile.props.fileRef)) {
+        watchExtensionPhase.props.files.push(buildFile);
+        console.log(
+          `[fix-watch-embed] Kept extension in ${watchTarget.props.name}'s "Embed Foundation Extensions"`
+        );
+      }
+    }
+  }
+
+  // --- Step 3: メインアプリに "Embed Watch Content" フェーズを作成/更新 ---
   let mainEmbedWatchPhase = mainAppTarget.props.buildPhases.find(
     (phase) =>
       PBXCopyFilesBuildPhase.is(phase) &&
@@ -87,9 +141,6 @@ function fixWatchEmbed(project) {
   );
 
   if (!mainEmbedWatchPhase) {
-    // "Embed Watch Content" フェーズを作成
-    // dstSubfolderSpec = 16 は Watch Content 用のサブフォルダ指定
-    // ($(CONTENTS_FOLDER_PATH)/Watch)
     mainEmbedWatchPhase = mainAppTarget.createBuildPhase(
       PBXCopyFilesBuildPhase,
       {
@@ -106,20 +157,19 @@ function fixWatchEmbed(project) {
     );
   }
 
-  // 保存しておいたビルドファイルを "Embed Watch Content" に追加
-  for (const buildFile of watchAppBuildFiles) {
+  // 自己埋め込みファイル（Watch.app）をメインアプリに移動
+  for (const buildFile of selfEmbedFiles) {
     if (!mainEmbedWatchPhase.getBuildFile(buildFile.props.fileRef)) {
       mainEmbedWatchPhase.props.files.push(buildFile);
       console.log(
-        `[fix-watch-embed] Moved build file to main app's "Embed Watch Content"`
+        `[fix-watch-embed] Moved Watch app to main app's "Embed Watch Content"`
       );
     }
   }
 
   // もし自己埋め込みフェーズが無かった場合でも、
   // MiipaWatch.app がメインアプリの埋め込みフェーズに無ければ追加する
-  if (watchAppBuildFiles.length === 0) {
-    const watchProductRef = watchTarget.props.productReference;
+  if (selfEmbedFiles.length === 0) {
     if (
       watchProductRef &&
       !mainEmbedWatchPhase.getBuildFile(watchProductRef)
@@ -134,7 +184,7 @@ function fixWatchEmbed(project) {
     }
   }
 
-  // --- Step 3: メインアプリの依存関係に MiipaWatch を追加 ---
+  // --- Step 4: メインアプリの依存関係に MiipaWatch を追加 ---
   const hasDependencyOnWatch = mainAppTarget.props.dependencies.some(
     (dep) => dep.props.target && dep.props.target.uuid === watchTarget.uuid
   );
@@ -145,7 +195,7 @@ function fixWatchEmbed(project) {
     );
   }
 
-  // --- Step 4: MiipaWatch の自己依存関係を削除 ---
+  // --- Step 5: MiipaWatch の自己依存関係を削除 ---
   const selfDepIndex = watchTarget.props.dependencies.findIndex(
     (dep) => dep.props.target && dep.props.target.uuid === watchTarget.uuid
   );
