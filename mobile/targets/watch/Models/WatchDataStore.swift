@@ -82,7 +82,9 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
 
     /// App Groupsから最新データを再読み込み（外部から呼び出し可能）
     func refresh() {
-        loadFromAppGroup()
+        DispatchQueue.main.async { [weak self] in
+            self?.loadFromAppGroup()
+        }
     }
 
     /// 今日のイベントを取得
