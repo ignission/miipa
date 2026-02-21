@@ -83,7 +83,7 @@ const config = {
 							},
 							{
 								bundleIdentifier: "app.miipa.watchkitapp",
-								targetName: "watch",
+								targetName: "MiipaWatch",
 								entitlements: {
 									"com.apple.security.application-groups": [
 										"group.app.miipa.shared",

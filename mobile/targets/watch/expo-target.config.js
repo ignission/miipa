@@ -1,7 +1,7 @@
 /** @type {import('@bacons/apple-targets/app.plugin').Config} */
 module.exports = {
 	type: "watch",
-	name: "miipa",
+	name: "MiipaWatch",
 	bundleIdentifier: "app.miipa.watchkitapp",
 	deploymentTarget: "10.0",
 	entitlements: {
