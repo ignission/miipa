@@ -1,18 +1,19 @@
 import Foundation
 import WatchConnectivity
 
-/// WCSession経由で受信したイベントデータを管理
+/// App Groups経由で親アプリのイベントデータを読み取り、WCSessionでも受信可能
 final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = WatchDataStore()
 
     @Published var events: [CalendarEvent] = []
     @Published var lastUpdated: Date?
 
-    private let storageKey = "watchEventData"
+    private let appGroupId = "group.app.miipa.shared"
+    private let dataKey = "widgetData"
 
     override private init() {
         super.init()
-        loadFromStorage()
+        loadFromAppGroup()
         setupWatchConnectivity()
     }
 
@@ -27,7 +28,10 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        // 接続完了
+        // 接続完了時にApp Groupsから最新データを再読み込み
+        DispatchQueue.main.async {
+            self.loadFromAppGroup()
+        }
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
@@ -47,11 +51,11 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
         }
 
         do {
-            let watchData = try JSONDecoder().decode(WatchEventData.self, from: data)
+            let widgetData = try JSONDecoder().decode(WatchEventData.self, from: data)
             DispatchQueue.main.async {
-                self.events = watchData.events.sorted { $0.startDate < $1.startDate }
-                self.lastUpdated = ISO8601DateFormatter().date(from: watchData.lastUpdated)
-                self.saveToStorage(dataString)
+                self.events = widgetData.events.sorted { $0.startDate < $1.startDate }
+                self.lastUpdated = ISO8601DateFormatter().date(from: widgetData.lastUpdated)
+                self.saveToAppGroup(dataString)
             }
             replyHandler(["status": "ok"])
         } catch {
@@ -59,20 +63,26 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    // MARK: - Storage
+    // MARK: - App Groups Storage
 
-    private func saveToStorage(_ jsonString: String) {
-        UserDefaults.standard.set(jsonString, forKey: storageKey)
+    private func saveToAppGroup(_ jsonString: String) {
+        UserDefaults(suiteName: appGroupId)?.set(jsonString, forKey: dataKey)
     }
 
-    private func loadFromStorage() {
-        guard let jsonString = UserDefaults.standard.string(forKey: storageKey),
+    private func loadFromAppGroup() {
+        guard let defaults = UserDefaults(suiteName: appGroupId),
+              let jsonString = defaults.string(forKey: dataKey),
               let data = jsonString.data(using: .utf8),
-              let watchData = try? JSONDecoder().decode(WatchEventData.self, from: data)
+              let widgetData = try? JSONDecoder().decode(WatchEventData.self, from: data)
         else { return }
 
-        events = watchData.events.sorted { $0.startDate < $1.startDate }
-        lastUpdated = ISO8601DateFormatter().date(from: watchData.lastUpdated)
+        events = widgetData.events.sorted { $0.startDate < $1.startDate }
+        lastUpdated = ISO8601DateFormatter().date(from: widgetData.lastUpdated)
+    }
+
+    /// App Groupsから最新データを再読み込み（外部から呼び出し可能）
+    func refresh() {
+        loadFromAppGroup()
     }
 
     /// 今日のイベントを取得
