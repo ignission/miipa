@@ -17,6 +17,7 @@ import {
 	REFRESH_TOKEN_COOKIE_NAME,
 } from "@/lib/auth/constants";
 import { getOAuthConfig } from "@/lib/auth/oauth-config";
+import { consumePkceSession, savePkceSession } from "@/lib/auth/pkce-session-store";
 import { isOk } from "@/lib/domain/shared/result";
 import {
 	exchangeCode,
@@ -34,12 +35,6 @@ const ACCESS_TOKEN_EXPIRES_IN = 24 * 60 * 60;
 
 /** リフレッシュトークンの有効期限（秒）: 30日 */
 const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60;
-
-/** Google OAuth code_verifier Cookie名 */
-const CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
-
-/** Google OAuth state Cookie名 */
-const OAUTH_STATE_COOKIE = "google_oauth_state";
 
 /** ワンタイム認可コードの有効期限（ミリ秒）: 30秒 */
 const AUTH_CODE_TTL_MS = 30 * 1000;
@@ -605,7 +600,7 @@ auth.post("/mobile/token", async (c) => {
  *
  * Google OAuth認証URLを生成（PKCE対応）
  * レスポンス: { authUrl: string }
- * code_verifier と state は httpOnly Cookie に保存
+ * code_verifier は state をキーとしてインメモリストアに保存（モバイル外部ブラウザ対応）
  */
 auth.post("/google", async (c) => {
 	try {
@@ -623,22 +618,8 @@ auth.post("/google", async (c) => {
 
 		const { url, codeVerifier, state } = result.value;
 
-		// code_verifier と state を httpOnly Cookie に保存
-		setCookie(c, CODE_VERIFIER_COOKIE, codeVerifier, {
-			httpOnly: true,
-			secure: c.env.ENVIRONMENT !== "development",
-			sameSite: "Lax",
-			maxAge: 600, // 10分
-			path: "/",
-		});
-
-		setCookie(c, OAUTH_STATE_COOKIE, state, {
-			httpOnly: true,
-			secure: c.env.ENVIRONMENT !== "development",
-			sameSite: "Lax",
-			maxAge: 600,
-			path: "/",
-		});
+		// PKCEセッションをインメモリストアに保存（Cookie不使用: モバイル外部ブラウザ対応）
+		savePkceSession(state, codeVerifier);
 
 		return c.json({ authUrl: url });
 	} catch (e) {
@@ -678,18 +659,15 @@ auth.get("/google/callback", async (c) => {
 			);
 		}
 
-		// Cookie から code_verifier と state を取得
-		const codeVerifier = getCookie(c, CODE_VERIFIER_COOKIE);
-		const savedState = getCookie(c, OAUTH_STATE_COOKIE);
-
-		if (!codeVerifier) {
+		// インメモリストアから code_verifier を取得（stateをキーとして使用）
+		if (!state) {
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("認証セッションが無効です。もう一度お試しください。")}`,
 			);
 		}
 
-		// state検証（CSRF対策: 未送信・不一致の両方を拒否）
-		if (!state || !savedState || state !== savedState) {
+		const codeVerifier = consumePkceSession(state);
+		if (!codeVerifier) {
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("認証セッションが無効です。もう一度お試しください。")}`,
 			);
@@ -760,10 +738,6 @@ auth.get("/google/callback", async (c) => {
 			userId: user.id,
 			expiresAt: Date.now() + AUTH_CODE_TTL_MS,
 		});
-
-		// code_verifier, state Cookie を削除
-		deleteCookie(c, CODE_VERIFIER_COOKIE, { path: "/" });
-		deleteCookie(c, OAUTH_STATE_COOKIE, { path: "/" });
 
 		// フロントエンドにワンタイムコードのみを渡してリダイレクト
 		return c.redirect(`${baseUrl}/auth-callback?code=${oneTimeCode}`);
