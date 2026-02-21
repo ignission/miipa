@@ -17,12 +17,22 @@ import {
 	REFRESH_TOKEN_COOKIE_NAME,
 } from "@/lib/auth/constants";
 import { getOAuthConfig } from "@/lib/auth/oauth-config";
-import { consumePkceSession, savePkceSession } from "@/lib/auth/pkce-session-store";
+import {
+	consumePkceSession,
+	savePkceSession,
+} from "@/lib/auth/pkce-session-store";
+import type { CalendarConfig } from "@/lib/config";
 import { isOk } from "@/lib/domain/shared/result";
+import { createCalendarId } from "@/lib/domain/shared/types";
+import { GoogleCalendarProvider } from "@/lib/infrastructure/calendar";
 import {
 	exchangeCode,
 	generateAuthUrl,
 } from "@/lib/infrastructure/calendar/oauth-service";
+import { D1ConfigRepository } from "@/lib/infrastructure/config/d1-config-repository";
+import { importEncryptionKey } from "@/lib/infrastructure/crypto/web-crypto-encryption";
+import { D1SecretRepository } from "@/lib/infrastructure/secret/d1-secret-repository";
+import { createGoogleOAuthKey } from "@/lib/infrastructure/secret/types";
 import { base64UrlDecode, base64UrlEncode } from "@/lib/utils/base64url";
 import { verifyJwt } from "@/middleware/auth";
 
@@ -515,6 +525,110 @@ function getStringField(
 }
 
 // ============================================================
+// Google Calendar トークン保存
+// ============================================================
+
+/**
+ * Google OAuth トークンを保存し、カレンダーを自動追加
+ *
+ * コールバック内で非同期に実行。失敗してもログイン自体は成功させる。
+ */
+async function saveGoogleCalendarTokens(
+	db: D1Database,
+	userId: string,
+	encryptionKeyBase64: string,
+	accountEmail: string,
+	tokens: { accessToken: string; refreshToken: string; expiresAt: Date },
+): Promise<void> {
+	try {
+		const cryptoKeyResult = await importEncryptionKey(encryptionKeyBase64);
+		if (!isOk(cryptoKeyResult)) {
+			console.error("[auth] 暗号化キーのインポートに失敗しました");
+			return;
+		}
+
+		const secretRepo = new D1SecretRepository(
+			db,
+			userId,
+			cryptoKeyResult.value,
+		);
+		const configRepo = new D1ConfigRepository(db, userId);
+
+		// トークンを暗号化して保存
+		const tokenData = JSON.stringify({
+			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken,
+			expiresAt: tokens.expiresAt.toISOString(),
+		});
+		const saveResult = await secretRepo.setSecret(
+			createGoogleOAuthKey(accountEmail),
+			tokenData,
+		);
+		if (!isOk(saveResult)) {
+			console.error("[auth] トークン保存に失敗しました:", saveResult.error);
+			return;
+		}
+		console.log(`[auth] Google OAuthトークンを保存しました: ${accountEmail}`);
+
+		// カレンダー一覧を取得して設定に追加
+		const provider = new GoogleCalendarProvider(accountEmail, tokens);
+		const calendarsResult = await provider.getCalendars();
+		if (!isOk(calendarsResult)) {
+			console.error(
+				"[auth] カレンダー一覧の取得に失敗しました:",
+				calendarsResult.error,
+			);
+			return;
+		}
+
+		const providerCalendars = calendarsResult.value;
+
+		// 既存のカレンダー設定を取得
+		const existingResult = await configRepo.getSetting("calendars");
+		const existingCalendars: CalendarConfig[] =
+			isOk(existingResult) && existingResult.value
+				? (JSON.parse(existingResult.value) as CalendarConfig[])
+				: [];
+		const existingIds = new Set(existingCalendars.map((c) => c.id as string));
+
+		// 新しいカレンダーを追加（重複回避）
+		const newCalendars: CalendarConfig[] = [];
+		for (const cal of providerCalendars) {
+			const configId = `google-${accountEmail.replace(/[@.]/g, "-")}-${cal.id.replace(/[@.]/g, "-")}`;
+			if (existingIds.has(configId)) {
+				continue;
+			}
+			newCalendars.push({
+				id: createCalendarId(configId),
+				type: "google",
+				name: cal.name,
+				enabled: cal.primary,
+				color: cal.color,
+				googleAccountEmail: accountEmail,
+				googleCalendarId: cal.id,
+			});
+		}
+
+		if (newCalendars.length > 0) {
+			const updatedCalendars = [...existingCalendars, ...newCalendars];
+			await configRepo.setSetting(
+				"calendars",
+				JSON.stringify(updatedCalendars),
+			);
+			console.log(
+				`[auth] ${newCalendars.length}件のカレンダーを追加しました: ${accountEmail}`,
+			);
+		} else {
+			console.log(
+				`[auth] 追加するカレンダーはありません（既に登録済み）: ${accountEmail}`,
+			);
+		}
+	} catch (error) {
+		console.error("[auth] カレンダートークン保存エラー:", error);
+	}
+}
+
+// ============================================================
 // ルート定義
 // ============================================================
 
@@ -729,6 +843,15 @@ auth.get("/google/callback", async (c) => {
 			userInfo.email,
 			userInfo.name ?? "",
 			userInfo.picture ?? "",
+		);
+
+		// Google Calendar OAuthトークンを保存し、カレンダーを自動追加
+		await saveGoogleCalendarTokens(
+			db,
+			user.id,
+			c.env.ENCRYPTION_KEY,
+			userInfo.email,
+			tokenResult.value,
 		);
 
 		// ワンタイム認可コードを生成（30秒TTL）
