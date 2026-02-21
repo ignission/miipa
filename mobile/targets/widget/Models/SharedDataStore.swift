@@ -38,10 +38,11 @@ final class SharedDataStore {
         guard let widgetData = getWidgetData() else { return [] }
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        guard let endDate = calendar.date(byAdding: .day, value: days, to: today) else { return [] }
+        guard let windowEnd = calendar.date(byAdding: .day, value: days, to: today) else { return [] }
 
         return widgetData.events.filter { event in
-            event.startDate >= today && event.startDate < endDate
+            // イベントがウィンドウ [today, windowEnd) と重なるか判定
+            event.endDate > today && event.startDate < windowEnd
         }.sorted { $0.startDate < $1.startDate }
     }
 

@@ -305,7 +305,15 @@ calendars.post("/google", async (c) => {
 		const { url, codeVerifier, state } = result.value;
 
 		// PKCEセッションをD1に保存
-		await savePkceSession(c.env.DB, state, codeVerifier);
+		try {
+			await savePkceSession(c.env.DB, state, codeVerifier);
+		} catch (e) {
+			console.error("[calendars] PKCEセッション保存エラー:", e);
+			return c.json(
+				{ error: { code: "SESSION_SAVE_FAILED", message: "認証セッションの保存に失敗しました" } },
+				500,
+			);
+		}
 
 		return c.json({ authUrl: url });
 	}
@@ -344,7 +352,15 @@ calendars.get("/google/reauth", async (c) => {
 		const { url, codeVerifier, state } = result.value;
 
 		// PKCEセッションをD1に保存
-		await savePkceSession(c.env.DB, state, codeVerifier);
+		try {
+			await savePkceSession(c.env.DB, state, codeVerifier);
+		} catch (e) {
+			console.error("[calendars] PKCEセッション保存エラー（再認証）:", e);
+			return c.json(
+				{ error: { code: "SESSION_SAVE_FAILED", message: "認証セッションの保存に失敗しました" } },
+				500,
+			);
+		}
 
 		// Google 認証画面にリダイレクト
 		return c.redirect(url);

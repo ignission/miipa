@@ -25,11 +25,12 @@ struct MediumWidgetProvider: TimelineProvider {
         let displayEvents = Array(upcoming.prefix(maxDisplayCount))
         let entry = MediumWidgetEntry(date: Date(), events: displayEvents, totalEventCount: upcoming.count)
 
-        // 次のイベント終了時に更新
+        // 次のイベント変更タイミングで更新（最も早い終了時刻）
         let now = Date()
         let nextUpdateDate = upcoming
-            .first { $0.endDate > now }
-            .map { $0.endDate }
+            .filter { $0.endDate > now }
+            .map(\.endDate)
+            .min()
             ?? Calendar.current.date(byAdding: .hour, value: 1, to: now)
             ?? now
 

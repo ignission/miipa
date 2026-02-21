@@ -751,7 +751,12 @@ auth.post("/google", async (c) => {
 		const { url, codeVerifier, state } = result.value;
 
 		// PKCEセッションをD1に保存（Cookie不使用: モバイル外部ブラウザ対応）
-		await savePkceSession(c.env.DB, state, codeVerifier);
+		try {
+			await savePkceSession(c.env.DB, state, codeVerifier);
+		} catch (e) {
+			console.error("[auth] PKCEセッション保存エラー:", e);
+			return c.json({ error: "認証セッションの保存に失敗しました" }, 500);
+		}
 
 		return c.json({ authUrl: url });
 	} catch (e) {

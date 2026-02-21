@@ -81,7 +81,7 @@ struct MediumWidgetView: View {
     /// 日付セパレータのテキストを返す（不要な場合はnil）
     private func dateSeparator(for event: CalendarEvent, at index: Int) -> String? {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        let today = calendar.startOfDay(for: entry.date)
         let eventDay = calendar.startOfDay(for: event.startDate)
 
         // 最初のイベントが今日なら省略

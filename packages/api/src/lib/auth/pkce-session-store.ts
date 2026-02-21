@@ -50,9 +50,10 @@ export async function consumePkceSession(
 	db: D1Database,
 	state: string,
 ): Promise<string | null> {
+	// アトミックに取得＋削除（リプレイ攻撃防止）
 	const row = await db
 		.prepare(
-			"SELECT code_verifier, expires_at FROM pkce_sessions WHERE state = ?",
+			"DELETE FROM pkce_sessions WHERE state = ? RETURNING code_verifier, expires_at",
 		)
 		.bind(state)
 		.first<{ code_verifier: string; expires_at: number }>();
@@ -60,12 +61,6 @@ export async function consumePkceSession(
 	if (!row) {
 		return null;
 	}
-
-	// 使用済みセッションを即座に削除（リプレイ攻撃防止）
-	await db
-		.prepare("DELETE FROM pkce_sessions WHERE state = ?")
-		.bind(state)
-		.run();
 
 	if (row.expires_at < Math.floor(Date.now() / 1000)) {
 		return null;
