@@ -10,26 +10,24 @@ import {
 import { EventCard } from "../../src/components/calendar/EventCard";
 import type { UICalendarEvent } from "../../src/hooks/useEvents";
 import { useEvents } from "../../src/hooks/useEvents";
+import { formatDateKey } from "../../src/lib/calendar-utils";
 
 const DAYS_TO_SHOW = 7;
 
-/**
- * 日付キー（YYYY-MM-DD）を生成
- */
-function formatDateKey(date: Date): string {
-	const y = date.getFullYear();
-	const m = (date.getMonth() + 1).toString().padStart(2, "0");
-	const d = date.getDate().toString().padStart(2, "0");
-	return `${y}-${m}-${d}`;
-}
+/** JSTオフセット（ミリ秒）: UTC+9 */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /**
- * 日付ヘッダーのフォーマット
+ * 日付ヘッダーのフォーマット（JST基準）
  */
 function formatSectionHeader(date: Date, isToday: boolean): string {
-	const weekday = date.toLocaleDateString("ja-JP", { weekday: "short" });
-	const month = date.getMonth() + 1;
-	const day = date.getDate();
+	const jst = new Date(date.getTime() + JST_OFFSET_MS);
+	const weekday = jst.toLocaleDateString("ja-JP", {
+		weekday: "short",
+		timeZone: "UTC",
+	});
+	const month = jst.getUTCMonth() + 1;
+	const day = jst.getUTCDate();
 	return isToday
 		? `今日 ${month}/${day}（${weekday}）`
 		: `${month}/${day}（${weekday}）`;
@@ -60,10 +58,10 @@ export default function WeekScreen() {
 		await refresh();
 	}, [refresh]);
 
-	// イベントを日付ごとにセクション化
+	// イベントを日付ごとにセクション化（JST基準）
 	const sections: Section[] = useMemo(() => {
-		const today = new Date();
-		const todayKey = formatDateKey(today);
+		const now = new Date();
+		const todayKey = formatDateKey(now);
 
 		// イベントを日付でグルーピング
 		const grouped = new Map<string, UICalendarEvent[]>();
@@ -74,10 +72,10 @@ export default function WeekScreen() {
 			grouped.set(key, list);
 		}
 
-		// 7日分のセクションを生成
+		// 7日分のセクションを生成（1日=86400000ms ずつ進める）
+		const DAY_MS = 24 * 60 * 60 * 1000;
 		return Array.from({ length: DAYS_TO_SHOW }, (_, i) => {
-			const date = new Date(today);
-			date.setDate(today.getDate() + i);
+			const date = new Date(now.getTime() + i * DAY_MS);
 			const key = formatDateKey(date);
 			const dayEvents = grouped.get(key) ?? [];
 			const isToday = key === todayKey;
