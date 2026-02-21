@@ -40,8 +40,20 @@ function Badge({
 
 	return (
 		<Animated.View
-			style={[animatedStyle, { flexDirection: "row", alignItems: "center", gap: 8 }]}
-			className="rounded-full bg-bg-subtle border border-border px-4 py-2.5"
+			style={[
+				animatedStyle,
+				{
+					flexDirection: "row",
+					alignItems: "center",
+					gap: 8,
+					borderRadius: 9999,
+					backgroundColor: "#f5f5f4",
+					borderWidth: 1,
+					borderColor: "#d6d3d1",
+					paddingHorizontal: 16,
+					paddingVertical: 10,
+				},
+			]}
 		>
 			<Text className="text-base">{badge.emoji}</Text>
 			<Text className="text-xs font-medium text-fg-muted">{badge.text}</Text>

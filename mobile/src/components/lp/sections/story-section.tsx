@@ -1,7 +1,7 @@
 import { View, Text } from "react-native";
 import Animated, { type SharedValue } from "react-native-reanimated";
 
-import { useScrollAnimation } from "../animations/use-scroll-animation";
+import { useEntranceAnimation } from "../animations/use-entrance-animation";
 import { SectionWrapper } from "../shared/section-wrapper";
 
 interface StorySectionProps {
@@ -28,31 +28,27 @@ const storyCards: StoryCard[] = [
 	},
 ];
 
-const BASE_OFFSET = 600;
-const STAGGER = 150;
-
 function StoryCardItem({
 	card,
-	scrollY,
 	index,
 }: {
 	card: StoryCard;
-	scrollY: SharedValue<number>;
 	index: number;
 }) {
-	const { animatedStyle } = useScrollAnimation(
-		scrollY,
-		BASE_OFFSET + index * STAGGER,
-	);
+	const { animatedStyle } = useEntranceAnimation(index * 150);
 
 	return (
 		<Animated.View
-			style={animatedStyle}
-			className={`rounded-2xl border p-6 ${
-				index === 2
-					? "border-accent-200 bg-accent-50"
-					: "border-border bg-white"
-			}`}
+			style={[
+				animatedStyle,
+				{
+					borderRadius: 16,
+					borderWidth: 1,
+					padding: 24,
+					borderColor: index === 2 ? "#FED7AA" : "#d6d3d1",
+					backgroundColor: index === 2 ? "#FFF7ED" : "#ffffff",
+				},
+			]}
 		>
 			<Text className="mb-2 text-lg font-bold text-fg">{card.title}</Text>
 			<Text className="text-sm leading-relaxed text-fg-muted">{card.body}</Text>
@@ -60,7 +56,7 @@ function StoryCardItem({
 	);
 }
 
-export function StorySection({ scrollY }: StorySectionProps) {
+export function StorySection({ scrollY: _scrollY }: StorySectionProps) {
 	return (
 		<SectionWrapper className="bg-bg-canvas">
 			<Text className="mb-1 text-center text-xs font-bold uppercase tracking-widest text-accent">
@@ -75,7 +71,6 @@ export function StorySection({ scrollY }: StorySectionProps) {
 					<StoryCardItem
 						key={card.title}
 						card={card}
-						scrollY={scrollY}
 						index={index}
 					/>
 				))}
