@@ -18,7 +18,12 @@ final class SharedDataStore {
             return nil
         }
 
-        return try? JSONDecoder().decode(WidgetData.self, from: data)
+        do {
+            return try JSONDecoder().decode(WidgetData.self, from: data)
+        } catch {
+            print("[Widget] WidgetData decode error: \(error)")
+            return nil
+        }
     }
 
     /// 今日のイベントを取得
