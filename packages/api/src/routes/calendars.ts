@@ -448,10 +448,12 @@ calendars.post("/ical", async (c) => {
 // ============================================================
 
 calendars.post("/sync", async (c) => {
+	const oauthConfig = getOAuthConfig(c.env);
 	const ctx = await buildCalendarContext(
 		c.get("db"),
 		c.get("userId"),
 		c.get("encryptionKey"),
+		oauthConfig,
 	);
 	if (!ctx) {
 		return c.json(

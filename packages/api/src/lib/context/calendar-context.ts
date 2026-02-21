@@ -7,6 +7,7 @@
  * @module lib/context/calendar-context
  */
 
+import type { OAuthConfig } from "@/lib/infrastructure/calendar/oauth-service";
 import { D1ConfigRepository } from "@/lib/infrastructure/config/d1-config-repository";
 import { D1EventRepository } from "@/lib/infrastructure/db/d1-event-repository";
 import { D1SecretRepository } from "@/lib/infrastructure/secret/d1-secret-repository";
@@ -26,6 +27,7 @@ export interface CalendarContext {
 	readonly configRepository: D1ConfigRepository;
 	readonly secretRepository: D1SecretRepository;
 	readonly userId: string;
+	readonly oauthConfig?: OAuthConfig;
 }
 
 // ============================================================
@@ -41,15 +43,18 @@ export interface CalendarContext {
  * @param db - Cloudflare D1データベース接続
  * @param userId - 現在のユーザーID（マルチテナント分離用）
  * @param encryptionKey - シークレット暗号化用のCryptoKey
+ * @param oauthConfig - OAuth設定（トークンリフレッシュ用、省略可）
  * @returns CalendarContext
  */
 export const createCalendarContext = (
 	db: D1Database,
 	userId: string,
 	encryptionKey: CryptoKey,
+	oauthConfig?: OAuthConfig,
 ): CalendarContext => ({
 	eventRepository: new D1EventRepository(db, userId),
 	configRepository: new D1ConfigRepository(db, userId),
 	secretRepository: new D1SecretRepository(db, userId, encryptionKey),
 	userId,
+	oauthConfig,
 });

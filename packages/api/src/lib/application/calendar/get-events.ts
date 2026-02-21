@@ -195,7 +195,12 @@ async function createProviderFromConfig(
 			expiresAt: new Date(stored.expiresAt),
 		};
 
-		return new GoogleCalendarProvider(config.googleAccountEmail, tokens);
+		return new GoogleCalendarProvider(
+			config.googleAccountEmail,
+			tokens,
+			ctx.secretRepository,
+			ctx.oauthConfig,
+		);
 	}
 
 	if (config.type === "ical") {
