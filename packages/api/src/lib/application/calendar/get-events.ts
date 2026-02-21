@@ -295,6 +295,7 @@ async function fetchAndCacheEvents(
 export async function getEventsForRange(
 	ctx: CalendarContext,
 	range: TimeRange,
+	forceRefresh = false,
 ): Promise<Result<CalendarEvent[], GetEventsError>> {
 	const repository = ctx.eventRepository;
 
@@ -331,7 +332,7 @@ export async function getEventsForRange(
 
 		const lastSyncTime = lastSyncResult.value;
 
-		if (isCacheStale(lastSyncTime)) {
+		if (forceRefresh || isCacheStale(lastSyncTime)) {
 			// キャッシュが古い場合はプロバイダから取得
 			const provider = await createProviderFromConfig(ctx, calendarConfig);
 
@@ -433,10 +434,11 @@ export async function getEventsForRange(
  */
 export async function getEventsForToday(
 	ctx: CalendarContext,
+	forceRefresh?: boolean,
 ): Promise<Result<CalendarEvent[], GetEventsError>> {
 	const todayRange = getTodayRange();
 	const range = createTimeRange(todayRange.startDate, todayRange.endDate);
-	return getEventsForRange(ctx, range);
+	return getEventsForRange(ctx, range, forceRefresh);
 }
 
 /**
@@ -462,10 +464,11 @@ export async function getEventsForToday(
  */
 export async function getEventsForWeek(
 	ctx: CalendarContext,
+	forceRefresh?: boolean,
 ): Promise<Result<CalendarEvent[], GetEventsError>> {
 	const weekRange = getWeekRange();
 	const range = createTimeRange(weekRange.startDate, weekRange.endDate);
-	return getEventsForRange(ctx, range);
+	return getEventsForRange(ctx, range, forceRefresh);
 }
 
 /**
@@ -480,8 +483,9 @@ export async function getEventsForMonth(
 	ctx: CalendarContext,
 	year: number,
 	month: number,
+	forceRefresh?: boolean,
 ): Promise<Result<CalendarEvent[], GetEventsError>> {
 	const monthRange = getMonthRange(year, month);
 	const range = createTimeRange(monthRange.startDate, monthRange.endDate);
-	return getEventsForRange(ctx, range);
+	return getEventsForRange(ctx, range, forceRefresh);
 }

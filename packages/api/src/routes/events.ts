@@ -108,8 +108,9 @@ events.get("/", async (c) => {
 	// コンテキスト作成
 	const ctx = createCalendarContext(db, userId, cryptoKeyResult.value);
 
-	// クエリパラメータから range を取得
+	// クエリパラメータから range と force を取得
 	const range = c.req.query("range") || "today";
+	const force = c.req.query("force") === "true";
 
 	// range に応じた関数を呼び出し
 	let result: Awaited<ReturnType<typeof getEventsForToday>>;
@@ -131,11 +132,11 @@ events.get("/", async (c) => {
 			parsedMonth <= 12
 				? parsedMonth
 				: jstNow.getUTCMonth() + 1;
-		result = await getEventsForMonth(ctx, year, month);
+		result = await getEventsForMonth(ctx, year, month, force);
 	} else if (range === "week") {
-		result = await getEventsForWeek(ctx);
+		result = await getEventsForWeek(ctx, force);
 	} else {
-		result = await getEventsForToday(ctx);
+		result = await getEventsForToday(ctx, force);
 	}
 
 	if (isOk(result)) {
