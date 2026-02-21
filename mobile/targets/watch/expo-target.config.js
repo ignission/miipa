@@ -9,5 +9,5 @@ module.exports = {
 	entitlements: {
 		"com.apple.security.application-groups": ["group.app.miipa.shared"],
 	},
-	frameworks: ["WatchKit", "SwiftUI", "WatchConnectivity"],
+	frameworks: ["WatchKit", "SwiftUI", "WatchConnectivity", "WidgetKit"],
 };

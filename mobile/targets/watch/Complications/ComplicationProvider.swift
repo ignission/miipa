@@ -85,3 +85,9 @@ struct MiipaWatchComplication: Widget {
         ])
     }
 }
+
+struct MiipaComplicationBundle: WidgetBundle {
+    var body: some Widget {
+        MiipaWatchComplication()
+    }
+}
