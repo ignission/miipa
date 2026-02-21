@@ -46,8 +46,8 @@ function FeatureCard({
 
 	return (
 		<Animated.View
-			style={animatedStyle}
-			className="bg-bg-canvas rounded-2xl p-5 border border-border flex-row items-start gap-4"
+			style={[animatedStyle, { flexDirection: "row", alignItems: "flex-start", gap: 16 }]}
+			className="bg-bg-canvas rounded-2xl p-5 border border-border"
 		>
 			<View className="w-12 h-12 rounded-xl bg-accent-50 items-center justify-center">
 				<Text className="text-xl">{emoji}</Text>
