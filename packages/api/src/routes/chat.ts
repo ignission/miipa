@@ -88,6 +88,34 @@ function validateAndSanitizeMessages(
 }
 
 // ============================================================
+// サニタイズ
+// ============================================================
+
+/**
+ * ツール結果のサニタイズ
+ *
+ * XMLタグ風の文字列をエスケープし、
+ * 間接プロンプトインジェクションを防止します。
+ */
+function sanitizeToolResult(result: string): string {
+	return result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * XML属性値のサニタイズ
+ *
+ * ツール名などの属性値に含まれる特殊文字をエスケープし、
+ * XML属性値インジェクションを防止します。
+ */
+function sanitizeAttributeValue(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/"/g, "&quot;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
+}
+
+// ============================================================
 // ツール呼び出しループ
 // ============================================================
 
@@ -107,9 +135,10 @@ async function executeToolCalls(
 	for (const toolCall of toolCalls) {
 		const result = await tools.execute(toolCall.name, toolCall.arguments);
 		// XMLタグで囲み LLM にツール結果であることを明示（通常のユーザーメッセージと区別）
+		// ツール結果内のXMLタグ風文字列をエスケープし間接プロンプトインジェクションを防止
 		results.push({
 			role: "user",
-			content: `<tool_result tool="${toolCall.name}">\n${result}\n</tool_result>`,
+			content: `<tool_result tool="${sanitizeAttributeValue(toolCall.name)}">\n${sanitizeToolResult(result)}\n</tool_result>`,
 		});
 	}
 
@@ -423,6 +452,36 @@ chat.get("/", async (c) => {
 		console.error("[chat] 会話履歴取得エラー:", error);
 		return c.json(
 			{ error: { code: "DB_ERROR", message: "会話履歴の取得に失敗しました" } },
+			500,
+		);
+	}
+});
+
+/**
+ * DELETE /chat - チャット履歴削除
+ *
+ * 認証済みユーザーの会話履歴を全件削除します。
+ */
+chat.delete("/", async (c) => {
+	const userId = c.get("userId");
+	const db = c.get("db");
+
+	try {
+		await db
+			.prepare("DELETE FROM chat_messages WHERE user_id = ?")
+			.bind(userId)
+			.run();
+
+		return c.json({ success: true });
+	} catch (error) {
+		console.error("[chat] チャット履歴削除エラー:", error);
+		return c.json(
+			{
+				error: {
+					code: "DB_ERROR",
+					message: "チャット履歴の削除に失敗しました",
+				},
+			},
 			500,
 		);
 	}

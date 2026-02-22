@@ -50,27 +50,63 @@ const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60;
 const AUTH_CODE_TTL_MS = 30 * 1000;
 
 // ============================================================
-// ワンタイム認可コードストア（インメモリ、Workers再起動で消失しても問題なし）
+// ワンタイム認可コードストア（D1永続化、Workers複数インスタンス対応）
 // ============================================================
 
-interface AuthCodeEntry {
-	readonly userId: string;
-	readonly expiresAt: number;
+/**
+ * ワンタイム認可コードをD1に保存
+ *
+ * 同時に期限切れエントリを削除してテーブル肥大化を防止。
+ */
+async function generateAndStoreAuthCode(
+	db: D1Database,
+	userId: string,
+): Promise<string> {
+	const code = crypto.randomUUID();
+	const expiresAt = Date.now() + AUTH_CODE_TTL_MS;
+
+	// 期限切れエントリを確率的に削除（10%の確率でクリーンアップ）
+	if (Math.random() < 0.1) {
+		await db
+			.prepare("DELETE FROM auth_codes WHERE expires_at < ?")
+			.bind(Date.now())
+			.run();
+	}
+
+	// 新しい認可コードを保存
+	await db
+		.prepare(
+			"INSERT INTO auth_codes (code, user_id, expires_at) VALUES (?, ?, ?)",
+		)
+		.bind(code, userId, expiresAt)
+		.run();
+
+	return code;
 }
 
-/** ワンタイム認可コードの一時保存用Map（30秒TTL） */
-const authCodeStore = new Map<string, AuthCodeEntry>();
-
 /**
- * 期限切れの認可コードを定期的にクリーンアップ
+ * ワンタイム認可コードをD1からアトミックに消費
+ *
+ * DELETE ... RETURNING で検索と削除を1クエリで実行し、
+ * レースコンディション（CWE-362）を防止。
  */
-function cleanupExpiredAuthCodes(): void {
-	const now = Date.now();
-	for (const [code, entry] of authCodeStore) {
-		if (entry.expiresAt < now) {
-			authCodeStore.delete(code);
-		}
-	}
+async function exchangeAuthCode(
+	db: D1Database,
+	code: string,
+): Promise<{ userId: string } | null> {
+	const row = await db
+		.prepare(
+			"DELETE FROM auth_codes WHERE code = ? RETURNING user_id, expires_at",
+		)
+		.bind(code)
+		.first<{ user_id: string; expires_at: number }>();
+
+	if (!row) return null;
+
+	// 有効期限チェック
+	if (row.expires_at < Date.now()) return null;
+
+	return { userId: row.user_id };
 }
 
 // ============================================================
@@ -96,6 +132,7 @@ const googleIdTokenPayloadSchema = z.object({
 	iss: z.string(),
 	aud: z.string(),
 	exp: z.number(),
+	iat: z.number(),
 	email: z.string().email("無効なメールアドレスです"),
 	name: z.string().optional(),
 	picture: z.string().url().optional(),
@@ -308,6 +345,13 @@ async function verifyWithKey(
 		return null;
 	}
 
+	// iatチェック: 発行から1時間以上経過していたら拒否
+	const maxIatAge = 60 * 60; // 1時間（秒）
+	if (payload.iat < nowInSeconds - maxIatAge) {
+		console.error("[auth] ID Tokenの発行時刻が古すぎます");
+		return null;
+	}
+
 	return {
 		email: payload.email,
 		name: payload.name ?? "",
@@ -491,7 +535,7 @@ function setAuthCookies(
 	setCookie(c, JWT_COOKIE_NAME, token, {
 		httpOnly: true,
 		secure: isSecure,
-		sameSite: "Lax",
+		sameSite: "Strict",
 		maxAge: ACCESS_TOKEN_EXPIRES_IN,
 		path: "/",
 	});
@@ -783,8 +827,15 @@ auth.get("/google/callback", async (c) => {
 		const error = c.req.query("error");
 
 		if (error) {
+			// 許可リスト方式のエラーメッセージ（XSS防止）
+			const ERROR_MESSAGES: Record<string, string> = {
+				access_denied: "アクセスが拒否されました",
+				invalid_scope: "無効なスコープです",
+				server_error: "サーバーエラーが発生しました",
+			};
+			const errorCode = c.req.query("error") ?? "";
 			const errorDescription =
-				c.req.query("error_description") || "認証がキャンセルされました";
+				ERROR_MESSAGES[errorCode] ?? "認証エラーが発生しました";
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent(errorDescription)}`,
 			);
@@ -877,13 +928,8 @@ auth.get("/google/callback", async (c) => {
 			tokenResult.value,
 		);
 
-		// ワンタイム認可コードを生成（30秒TTL）
-		cleanupExpiredAuthCodes();
-		const oneTimeCode = crypto.randomUUID();
-		authCodeStore.set(oneTimeCode, {
-			userId: user.id,
-			expiresAt: Date.now() + AUTH_CODE_TTL_MS,
-		});
+		// ワンタイム認可コードをD1に保存（30秒TTL）
+		const oneTimeCode = await generateAndStoreAuthCode(db, user.id);
 
 		// フロントエンドにワンタイムコードのみを渡してリダイレクト
 		return c.redirect(`${baseUrl}/auth-callback?code=${oneTimeCode}`);
@@ -914,27 +960,17 @@ auth.post("/exchange-code", async (c) => {
 			return c.json({ error: "認可コードが必要です" }, 400);
 		}
 
-		// 期限切れコードをクリーンアップ
-		cleanupExpiredAuthCodes();
-
-		// ワンタイムコードを検索・消費（即削除）
-		const entry = authCodeStore.get(codeValue);
-		authCodeStore.delete(codeValue);
-
-		if (!entry) {
-			return c.json({ error: "無効または期限切れの認可コードです" }, 401);
-		}
-
-		// 有効期限チェック
-		if (entry.expiresAt < Date.now()) {
-			return c.json({ error: "認可コードの有効期限が切れています" }, 401);
-		}
-
 		const db = c.env.DB;
 		const jwtSecret = c.env.MOBILE_JWT_SECRET;
 
 		if (!db || !jwtSecret) {
 			return c.json({ error: "サーバー設定エラー" }, 500);
+		}
+
+		// ワンタイムコードをD1からアトミックに消費（検索+削除を1クエリで実行）
+		const entry = await exchangeAuthCode(db, codeValue);
+		if (!entry) {
+			return c.json({ error: "無効または期限切れの認可コードです" }, 401);
 		}
 
 		// ユーザーを取得
