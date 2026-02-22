@@ -70,21 +70,14 @@ export function WeekTimelineView({
 							{section.title}
 						</Text>
 						<Text style={styles.sectionCount}>
-							{section.eventCount > 0
-								? `${section.eventCount}件`
-								: "予定なし"}
+							{section.eventCount > 0 ? `${section.eventCount}件` : "予定なし"}
 						</Text>
 					</View>
 					{section.events.length > 0 ? (
-						<TimelineView
-							events={section.events}
-							currentTime={currentTime}
-						/>
+						<TimelineView events={section.events} currentTime={currentTime} />
 					) : (
 						<View style={styles.emptyDay}>
-							<Text style={styles.emptyDayText}>
-								予定はありません
-							</Text>
+							<Text style={styles.emptyDayText}>予定はありません</Text>
 						</View>
 					)}
 				</View>

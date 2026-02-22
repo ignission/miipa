@@ -1,0 +1,34 @@
+{
+	"$schema": "https://unpkg.com/knip@5/schema.json",
+	"workspaces": {
+		".": {
+			"ignoreBinaries": ["turbo", "wrangler", "expo"],
+			"ignoreDependencies": ["@cloudflare/workers-types", "tsx"]
+		},
+		"packages/api": {
+			"project": ["src/**/*.ts"]
+		},
+		"mobile": {
+			"entry": [
+				"app/**/*.{ts,tsx}",
+				"src/**/*.{ts,tsx}",
+				"components/**/*.{ts,tsx}",
+				"modules/*/index.ts",
+				"babel.config.js",
+				"metro.config.js"
+			],
+			"project": [
+				"app/**/*.{ts,tsx}",
+				"src/**/*.{ts,tsx}",
+				"components/**/*.{ts,tsx}",
+				"modules/**/*.{ts,tsx}",
+				"*.config.{js,ts}",
+				"*.d.ts"
+			],
+			"ignoreDependencies": ["expo-updates", "expo-system-ui"]
+		},
+		"shared": {
+			"project": ["types/**/*.ts"]
+		}
+	}
+}

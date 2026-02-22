@@ -246,7 +246,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			setToken(jwt);
 			setUser(userData);
 		} catch (error) {
-			const message = error instanceof Error ? error.message : "ログインに失敗しました";
+			const message =
+				error instanceof Error ? error.message : "ログインに失敗しました";
 			setAuthError(message);
 			console.error("[auth] トークン交換エラー:", error);
 		} finally {

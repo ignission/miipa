@@ -1,4 +1,4 @@
-import { Image, Platform, View, Text, Pressable } from "react-native";
+import { Image, Platform, Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { useEntranceAnimation } from "../animations/use-entrance-animation";
@@ -17,8 +17,7 @@ export function CTASection({ onSignIn }: CTASectionProps) {
 			style={
 				Platform.OS === "web"
 					? ({
-							background:
-								"linear-gradient(135deg, #FF6B4A 0%, #FF9A3C 100%)",
+							background: "linear-gradient(135deg, #FF6B4A 0%, #FF9A3C 100%)",
 						} as any)
 					: { backgroundColor: "#FF6B4A" }
 			}

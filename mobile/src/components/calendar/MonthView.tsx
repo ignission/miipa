@@ -62,11 +62,7 @@ export function MonthView({
 
 	const selectedDate = useMemo(() => {
 		const parts = selectedDateKey.split("-");
-		return new Date(
-			Number(parts[0]),
-			Number(parts[1]) - 1,
-			Number(parts[2]),
-		);
+		return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
 	}, [selectedDateKey]);
 
 	const isSelectedDateToday = selectedDateKey === todayKey;

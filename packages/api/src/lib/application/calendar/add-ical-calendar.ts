@@ -49,14 +49,14 @@ import { type ICalMeta, validateICalUrl } from "@/lib/infrastructure/calendar";
  * addICalCalendar関数で発生する可能性のあるエラー型です。
  * CalendarErrorを拡張し、設定保存エラーも含みます。
  */
-export type AddICalCalendarError = CalendarError | ConfigSaveError;
+type AddICalCalendarError = CalendarError | ConfigSaveError;
 
 /**
  * 設定保存エラー
  *
  * 設定ファイルへの保存に失敗した場合のエラーです。
  */
-export interface ConfigSaveError {
+interface ConfigSaveError {
 	/** エラーコード */
 	readonly code: "CONFIG_SAVE_ERROR";
 	/** エラーメッセージ */

@@ -1,19 +1,12 @@
 /**
- * カレンダーリポジトリインターフェース
+ * イベントリポジトリインターフェース
  *
- * カレンダー設定とイベントキャッシュの永続化契約を定義します。
+ * イベントキャッシュの永続化契約を定義します。
  * 実装はインフラ層で行い、ドメイン層は抽象に依存します。
  *
  * @module lib/domain/calendar/repository
  * @example
  * ```typescript
- * // CalendarRepository の使用例
- * const calendarRepo: CalendarRepository = new ConfigCalendarRepository();
- * const result = await calendarRepo.findAll();
- * if (isOk(result)) {
- *   console.log(`${result.value.length} 件のカレンダー設定を取得`);
- * }
- *
  * // EventRepository の使用例
  * const eventRepo: EventRepository = new SQLiteEventRepository();
  * const eventsResult = await eventRepo.findByRange({
@@ -23,114 +16,11 @@
  * ```
  */
 
-import type { ConfigError, DbError } from "@/lib/domain/shared/errors";
+import type { DbError } from "@/lib/domain/shared/errors";
 import type { Option } from "@/lib/domain/shared/option";
 import type { Result } from "@/lib/domain/shared/result";
 import type { CalendarEvent } from "./event";
-import type { CalendarConfig, CalendarId, TimeRange } from "./types";
-
-// ============================================================
-// カレンダー設定リポジトリ
-// ============================================================
-
-/**
- * カレンダー設定リポジトリインターフェース
- *
- * カレンダー設定の永続化を担当します。
- * 設定は config.json の calendars 配列に保存されます。
- *
- * @example
- * ```typescript
- * class ConfigCalendarRepository implements CalendarRepository {
- *   async findAll(): Promise<Result<CalendarConfig[], ConfigError>> {
- *     // config.json から calendars を読み込む
- *   }
- * }
- * ```
- */
-export interface CalendarRepository {
-	/**
-	 * 全カレンダー設定を取得
-	 *
-	 * 登録されているすべてのカレンダー設定を返します。
-	 * 設定ファイルが存在しない場合は空配列を返します。
-	 *
-	 * @returns カレンダー設定の配列、または設定エラー
-	 *
-	 * @example
-	 * ```typescript
-	 * const result = await repo.findAll();
-	 * if (isOk(result)) {
-	 *   const enabledCalendars = result.value.filter(c => c.enabled);
-	 * }
-	 * ```
-	 */
-	findAll(): Promise<Result<CalendarConfig[], ConfigError>>;
-
-	/**
-	 * カレンダー設定を保存
-	 *
-	 * 新規作成または既存設定の更新を行います。
-	 * IDが一致する設定が存在する場合は上書きします。
-	 *
-	 * @param calendar - 保存するカレンダー設定
-	 * @returns 成功時はvoid、失敗時は設定エラー
-	 *
-	 * @example
-	 * ```typescript
-	 * const newCalendar: CalendarConfig = {
-	 *   id: createCalendarId(),
-	 *   type: 'google',
-	 *   name: '仕事用',
-	 *   enabled: true,
-	 *   googleAccountEmail: 'user@example.com',
-	 * };
-	 * await repo.save(newCalendar);
-	 * ```
-	 */
-	save(calendar: CalendarConfig): Promise<Result<void, ConfigError>>;
-
-	/**
-	 * カレンダー設定を削除
-	 *
-	 * 指定したIDのカレンダー設定を削除します。
-	 * 存在しないIDを指定した場合もエラーにはなりません。
-	 *
-	 * @param id - 削除するカレンダーのID
-	 * @returns 成功時はvoid、失敗時は設定エラー
-	 *
-	 * @example
-	 * ```typescript
-	 * const result = await repo.delete(calendarId);
-	 * if (isErr(result)) {
-	 *   console.error('削除に失敗:', result.error.message);
-	 * }
-	 * ```
-	 */
-	delete(id: CalendarId): Promise<Result<void, ConfigError>>;
-
-	/**
-	 * IDでカレンダー設定を取得
-	 *
-	 * 指定したIDのカレンダー設定を検索します。
-	 * 存在しない場合は None を返します。
-	 *
-	 * @param id - 検索するカレンダーのID
-	 * @returns カレンダー設定のOption、または設定エラー
-	 *
-	 * @example
-	 * ```typescript
-	 * const result = await repo.findById(calendarId);
-	 * if (isOk(result) && isSome(result.value)) {
-	 *   const calendar = result.value.value;
-	 *   console.log(`カレンダー名: ${calendar.name}`);
-	 * }
-	 * ```
-	 */
-	findById(
-		id: CalendarId,
-	): Promise<Result<Option<CalendarConfig>, ConfigError>>;
-}
+import type { CalendarId, TimeRange } from "./types";
 
 // ============================================================
 // イベントリポジトリ

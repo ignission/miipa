@@ -1,5 +1,13 @@
 import { useCallback, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import {
+	Keyboard,
+	KeyboardAvoidingView,
+	Platform,
+	Pressable,
+	ScrollView,
+	Text,
+	View,
+} from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { SendKeyType } from "../../api/settings";
 import { ChatInput } from "./chat-input";

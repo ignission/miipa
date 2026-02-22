@@ -53,7 +53,7 @@ import {
  *
  * Google OAuth 2.0 で取得したトークン情報を保持します。
  */
-export interface OAuthTokens {
+interface OAuthTokens {
 	/** アクセストークン（API呼び出し用） */
 	readonly accessToken: string;
 	/** リフレッシュトークン（アクセストークン更新用） */
@@ -138,7 +138,7 @@ export async function saveTokens(
  * }
  * ```
  */
-export async function getTokens(
+async function _getTokens(
 	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<Option<OAuthTokens>, SecretError>> {
@@ -191,7 +191,7 @@ export async function getTokens(
  * }
  * ```
  */
-export async function deleteTokens(
+async function _deleteTokens(
 	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<void, SecretError>> {
@@ -218,7 +218,7 @@ export async function deleteTokens(
  * }
  * ```
  */
-export async function hasTokens(
+async function _hasTokens(
 	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<boolean, SecretError>> {

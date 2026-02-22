@@ -12,7 +12,8 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useAuth } from "../src/auth";
 
 export default function SignInScreen() {
-	const { isAuthenticated, isLoading, isSigningIn, signIn, authError } = useAuth();
+	const { isAuthenticated, isLoading, isSigningIn, signIn, authError } =
+		useAuth();
 
 	// 初期化中はローディング表示
 	if (isLoading) {

@@ -68,11 +68,8 @@
 // イベント取得ユースケース
 // ============================================================
 
-export type { GetEventsError, GetEventsErrorCode } from "./get-events";
-
 export {
 	getEventsForMonth,
-	getEventsForRange,
 	getEventsForToday,
 	getEventsForWeek,
 } from "./get-events";
@@ -81,35 +78,17 @@ export {
 // iCalカレンダー追加
 // ============================================================
 
-export {
-	type AddICalCalendarError,
-	addICalCalendar,
-	type ConfigSaveError,
-} from "./add-ical-calendar";
+export { addICalCalendar } from "./add-ical-calendar";
 
 // ============================================================
 // Googleカレンダー追加
 // ============================================================
 
 // AuthUrlInfo はインフラ層から再エクスポート（startGoogleAuth の戻り値型として使用）
-export type { AuthUrlInfo } from "@/lib/infrastructure/calendar";
-export type {
-	AddGoogleCalendarError,
-	AddGoogleCalendarErrorCode,
-	AddGoogleCalendarResult,
-} from "./add-google-calendar";
-export { completeGoogleAuth, startGoogleAuth } from "./add-google-calendar";
+export { startGoogleAuth } from "./add-google-calendar";
 
 // ============================================================
 // カレンダー同期
 // ============================================================
 
-export type {
-	ErrorCalendarInfo,
-	SyncAllResult,
-	SyncError,
-	SyncErrorCode,
-	SyncResult,
-} from "./sync-calendars";
-
-export { syncAllCalendars, syncCalendar } from "./sync-calendars";
+export { syncAllCalendars } from "./sync-calendars";

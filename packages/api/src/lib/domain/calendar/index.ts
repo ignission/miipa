@@ -25,58 +25,29 @@
 // ============================================================
 
 export type {
-	Brand,
-	CalendarConfig,
-	CalendarConfigParams,
 	CalendarId,
-	CalendarSource,
-	CalendarType,
-	DateRangeResult,
-	EventId,
 	TimeRange,
 } from "./types";
 
 export {
-	CALENDAR_TYPES,
-	createCalendarConfig,
 	createCalendarId,
-	createCalendarSource,
 	createEventId,
 	createTimeRange,
 	getMonthRange,
 	getTodayRange,
 	getWeekRange,
-	isValidCalendarConfig,
-	isValidCalendarId,
-	isValidCalendarType,
-	isValidEventId,
-	isValidTimeRange,
 } from "./types";
 
 // ============================================================
 // entities/event.ts - イベントエンティティ
 // ============================================================
 
-export type {
-	CalendarEvent,
-	CalendarSource as EventCalendarSource,
-	CreateCalendarEventParams,
-} from "./entities/event";
+export type { CalendarEvent } from "./entities/event";
 
 export {
 	createCalendarEvent,
-	getEventDuration,
-	getEventDurationInMinutes,
-	isAllDayEvent,
-	isEventOnDate,
 	sortEventsByStartTime,
 } from "./entities/event";
-
-// ============================================================
-// repository.ts - リポジトリインターフェース
-// ============================================================
-
-export type { CalendarRepository, EventRepository } from "./repository";
 
 // ============================================================
 // provider.ts - プロバイダインターフェースとエラー
@@ -84,7 +55,6 @@ export type { CalendarRepository, EventRepository } from "./repository";
 
 export type {
 	CalendarError,
-	CalendarErrorCode,
 	CalendarProvider,
 	ProviderCalendar,
 } from "./provider";
@@ -95,6 +65,5 @@ export {
 	authRequired,
 	invalidUrl,
 	networkError,
-	notFound,
 	parseError,
 } from "./provider";

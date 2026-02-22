@@ -79,7 +79,7 @@ export interface CalendarEvent {
  * イベント作成時に必要な情報を定義します。
  * オプショナルなフィールドにはデフォルト値が適用されます。
  */
-export interface CreateCalendarEventParams {
+interface CreateCalendarEventParams {
 	/** イベントの一意識別子 */
 	id: EventId;
 	/** 所属するカレンダーの識別子 */
@@ -185,7 +185,7 @@ export function sortEventsByStartTime(
  * }
  * ```
  */
-export function isAllDayEvent(event: CalendarEvent): boolean {
+function _isAllDayEvent(event: CalendarEvent): boolean {
 	return event.isAllDay;
 }
 
@@ -202,7 +202,7 @@ export function isAllDayEvent(event: CalendarEvent): boolean {
  * const todayEvents = events.filter(e => isEventOnDate(e, today));
  * ```
  */
-export function isEventOnDate(event: CalendarEvent, date: Date): boolean {
+function _isEventOnDate(event: CalendarEvent, date: Date): boolean {
 	const dayStart = new Date(date);
 	dayStart.setHours(0, 0, 0, 0);
 
@@ -225,7 +225,7 @@ export function isEventOnDate(event: CalendarEvent, date: Date): boolean {
  * console.log(`${durationMinutes}分の予定です`);
  * ```
  */
-export function getEventDuration(event: CalendarEvent): number {
+function getEventDuration(event: CalendarEvent): number {
 	return event.endTime.getTime() - event.startTime.getTime();
 }
 
@@ -241,6 +241,6 @@ export function getEventDuration(event: CalendarEvent): number {
  * console.log(`${minutes}分の予定です`);
  * ```
  */
-export function getEventDurationInMinutes(event: CalendarEvent): number {
+function _getEventDurationInMinutes(event: CalendarEvent): number {
 	return getEventDuration(event) / (1000 * 60);
 }

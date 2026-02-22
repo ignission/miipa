@@ -103,7 +103,5 @@ async function refreshTokensOnMobile(): Promise<boolean> {
  * @returns リフレッシュ成功なら true、失敗なら false
  */
 export async function refreshTokens(): Promise<boolean> {
-	return Platform.OS === "web"
-		? refreshTokensOnWeb()
-		: refreshTokensOnMobile();
+	return Platform.OS === "web" ? refreshTokensOnWeb() : refreshTokensOnMobile();
 }

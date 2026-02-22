@@ -15,11 +15,6 @@ export interface ToolCall {
 	arguments: Record<string, unknown>;
 }
 
-export interface ToolResult {
-	toolCallId: string;
-	content: string;
-}
-
 export type StreamEventType = "text" | "tool_call" | "done" | "error";
 
 export interface StreamEvent {

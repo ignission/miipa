@@ -35,7 +35,6 @@ import { err, isErr, ok, type Result } from "@/lib/domain/shared";
 import type { ApiKeyValidationError, OllamaConnectionResult } from "./types";
 
 // 型を再エクスポート（利便性のため）
-export type { ApiKeyValidationError, OllamaConnectionResult } from "./types";
 
 // ============================================================
 // 定数
@@ -107,7 +106,7 @@ const GEMINI_API_KEY_PATTERN = /^AIza/;
  * // invalidResult: Err<ApiKeyValidationError> (code: 'INVALID_FORMAT')
  * ```
  */
-export function validateApiKeyFormat(
+function validateApiKeyFormat(
 	provider: LLMProvider,
 	key: string,
 ): Result<void, ApiKeyValidationError> {
@@ -220,7 +219,7 @@ async function fetchWithTimeout(
  * }
  * ```
  */
-export async function validateClaudeKey(
+async function validateClaudeKey(
 	apiKey: string,
 ): Promise<Result<void, ApiKeyValidationError>> {
 	// まず形式チェック
@@ -309,7 +308,7 @@ export async function validateClaudeKey(
  * }
  * ```
  */
-export async function validateOpenAIKey(
+async function validateOpenAIKey(
 	apiKey: string,
 ): Promise<Result<void, ApiKeyValidationError>> {
 	// まず形式チェック
@@ -398,7 +397,7 @@ export async function validateOpenAIKey(
  * }
  * ```
  */
-export async function validateGeminiKey(
+async function validateGeminiKey(
 	apiKey: string,
 ): Promise<Result<void, ApiKeyValidationError>> {
 	// まず形式チェック
@@ -484,7 +483,7 @@ export async function validateGeminiKey(
  * }
  * ```
  */
-export async function validateOllamaConnection(
+async function validateOllamaConnection(
 	baseUrl: string = DEFAULT_OLLAMA_BASE_URL,
 ): Promise<Result<OllamaConnectionResult, ApiKeyValidationError>> {
 	const tagsUrl = `${baseUrl}/api/tags`;

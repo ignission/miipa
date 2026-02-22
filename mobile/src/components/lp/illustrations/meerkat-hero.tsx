@@ -1,11 +1,4 @@
-import Svg, {
-	Circle,
-	Ellipse,
-	G,
-	Line,
-	Path,
-	Rect,
-} from "react-native-svg";
+import Svg, { Circle, Ellipse, G, Line, Path, Rect } from "react-native-svg";
 
 interface MeerkatHeroProps {
 	/** スケーリング用サイズ（デフォルト 200） */

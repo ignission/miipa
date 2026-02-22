@@ -14,14 +14,14 @@ import { sortEventsByStartTime } from "@/lib/domain/calendar/entities/event";
 // ============================================================
 
 /** 空き時間スロット */
-export interface FreeSlot {
+interface FreeSlot {
 	readonly start: Date;
 	readonly end: Date;
 	readonly durationMinutes: number;
 }
 
 /** 空き時間計算オプション */
-export interface FreeSlotsOptions {
+interface FreeSlotsOptions {
 	readonly date: Date;
 	readonly workingHoursStart: number;
 	readonly workingHoursEnd: number;

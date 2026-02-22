@@ -44,9 +44,7 @@ export default function TokushohoScreen() {
 							<Text className="w-28 shrink-0 text-sm font-semibold text-fg">
 								{row.label}
 							</Text>
-							<Text className="flex-1 text-sm text-fg-muted">
-								{row.value}
-							</Text>
+							<Text className="flex-1 text-sm text-fg-muted">{row.value}</Text>
 						</View>
 					))}
 				</View>

@@ -240,7 +240,7 @@ export async function refreshToken(
 /**
  * トークンが有効期限切れかどうかを判定
  */
-export function isTokenExpired(expiresAt: Date): boolean {
+function _isTokenExpired(expiresAt: Date): boolean {
 	const bufferMs = 5 * 60 * 1000; // 5分のバッファ
 	return new Date(Date.now() + bufferMs) >= expiresAt;
 }

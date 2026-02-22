@@ -11,28 +11,16 @@
  */
 
 import {
-	type Brand,
 	type CalendarId,
 	createCalendarId,
 	createEventId,
 	createTimeRange,
-	type EventId,
-	isValidCalendarId,
-	isValidEventId,
-	isValidTimeRange,
 	type TimeRange,
 } from "@/lib/domain/shared/types";
 
 // 共通型を再エクスポート（カレンダードメインで使用する型）
-export type { Brand, CalendarId, EventId, TimeRange };
-export {
-	createCalendarId,
-	createEventId,
-	createTimeRange,
-	isValidCalendarId,
-	isValidEventId,
-	isValidTimeRange,
-};
+export type { CalendarId, TimeRange };
+export { createCalendarId, createEventId, createTimeRange };
 
 // ============================================================
 // カレンダーソース
@@ -58,10 +46,7 @@ export type CalendarType = "google" | "ical";
  *
  * ランタイムでの検証に使用します。
  */
-export const CALENDAR_TYPES: readonly CalendarType[] = [
-	"google",
-	"ical",
-] as const;
+const CALENDAR_TYPES: readonly CalendarType[] = ["google", "ical"] as const;
 
 /**
  * 値が有効なCalendarTypeかどうかを判定します
@@ -76,7 +61,7 @@ export const CALENDAR_TYPES: readonly CalendarType[] = [
  * }
  * ```
  */
-export function isValidCalendarType(value: unknown): value is CalendarType {
+function isValidCalendarType(value: unknown): value is CalendarType {
 	return (
 		typeof value === "string" && CALENDAR_TYPES.includes(value as CalendarType)
 	);
@@ -106,7 +91,7 @@ export function isValidCalendarType(value: unknown): value is CalendarType {
  * };
  * ```
  */
-export interface CalendarSource {
+interface CalendarSource {
 	/** カレンダーの種類 */
 	readonly type: CalendarType;
 	/** カレンダーの表示名 */
@@ -130,7 +115,7 @@ export interface CalendarSource {
  * });
  * ```
  */
-export function createCalendarSource(params: CalendarSource): CalendarSource {
+function _createCalendarSource(params: CalendarSource): CalendarSource {
 	return Object.freeze({ ...params });
 }
 
@@ -143,7 +128,7 @@ export function createCalendarSource(params: CalendarSource): CalendarSource {
  *
  * getTodayRange、getWeekRangeで使用する日付範囲を表します。
  */
-export interface DateRangeResult {
+interface DateRangeResult {
 	readonly startDate: Date;
 	readonly endDate: Date;
 }
@@ -296,7 +281,7 @@ export function getMonthRange(year: number, month: number): DateRangeResult {
  * };
  * ```
  */
-export interface CalendarConfig {
+interface CalendarConfig {
 	/** カレンダーを一意に識別するID */
 	readonly id: CalendarId;
 	/** カレンダーの種類 */
@@ -325,7 +310,7 @@ export interface CalendarConfig {
  * CalendarConfigを作成する際のパラメータです。
  * idは省略可能で、省略時は自動生成されます。
  */
-export type CalendarConfigParams = Omit<CalendarConfig, "id"> & {
+type CalendarConfigParams = Omit<CalendarConfig, "id"> & {
 	readonly id?: CalendarId;
 };
 
@@ -346,9 +331,7 @@ export type CalendarConfigParams = Omit<CalendarConfig, "id"> & {
  * });
  * ```
  */
-export function createCalendarConfig(
-	params: CalendarConfigParams,
-): CalendarConfig {
+function _createCalendarConfig(params: CalendarConfigParams): CalendarConfig {
 	const id = params.id ?? createCalendarId(crypto.randomUUID());
 	return Object.freeze({ ...params, id });
 }
@@ -372,7 +355,7 @@ export function createCalendarConfig(
  * }
  * ```
  */
-export function isValidCalendarConfig(config: CalendarConfig): boolean {
+function _isValidCalendarConfig(config: CalendarConfig): boolean {
 	if (!config.name || config.name.trim().length === 0) {
 		return false;
 	}

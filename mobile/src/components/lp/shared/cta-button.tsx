@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text } from "react-native";
 import Animated, {
 	useAnimatedStyle,
 	useReducedMotion,
@@ -50,7 +50,13 @@ export function CTAButton({
 					? "items-center justify-center overflow-hidden rounded-full bg-accent px-8 py-4 active:opacity-70"
 					: "items-center justify-center rounded-full border border-border bg-transparent px-8 py-4 active:opacity-70"
 			}
-			style={isPrimary ? (Platform.OS === "web" ? { boxShadow: "0 8px 24px rgba(255,107,74,0.35)" } as any : {}) : {}}
+			style={
+				isPrimary
+					? Platform.OS === "web"
+						? ({ boxShadow: "0 8px 24px rgba(255,107,74,0.35)" } as any)
+						: {}
+					: {}
+			}
 		>
 			<Text
 				className={

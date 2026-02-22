@@ -1,6 +1,6 @@
 {
-  "platforms": ["ios"],
-  "ios": {
-    "modules": ["SharedUserDefaultsModule"]
-  }
+	"platforms": ["ios"],
+	"ios": {
+		"modules": ["SharedUserDefaultsModule"]
+	}
 }

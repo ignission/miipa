@@ -79,10 +79,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
  * - CONFIG_ERROR: 設定ファイル読み込みエラー
  * - PROVIDER_ERROR: カレンダープロバイダからの取得エラー
  */
-export type GetEventsErrorCode =
-	| "DATABASE_ERROR"
-	| "CONFIG_ERROR"
-	| "PROVIDER_ERROR";
+type GetEventsErrorCode = "DATABASE_ERROR" | "CONFIG_ERROR" | "PROVIDER_ERROR";
 
 /**
  * イベント取得エラー
@@ -93,7 +90,7 @@ export type GetEventsErrorCode =
  * @property message - ユーザー向けエラーメッセージ
  * @property cause - エラーの原因（オプション）
  */
-export interface GetEventsError {
+interface GetEventsError {
 	/** エラーコード */
 	readonly code: GetEventsErrorCode;
 	/** ユーザー向けエラーメッセージ */

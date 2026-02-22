@@ -67,23 +67,6 @@ export function createCalendarId(value: string): CalendarId {
 	return value as CalendarId;
 }
 
-/**
- * 値がCalendarIdとして有効かどうかを検証します
- *
- * @param value - 検証対象の値
- * @returns 値が空でない文字列の場合true
- *
- * @example
- * ```typescript
- * if (isValidCalendarId(userInput)) {
- *   const id = createCalendarId(userInput);
- * }
- * ```
- */
-export function isValidCalendarId(value: unknown): value is string {
-	return typeof value === "string" && value.length > 0;
-}
-
 // ============================================================
 // EventId - イベントを一意に識別するID
 // ============================================================
@@ -114,23 +97,6 @@ export type EventId = Brand<string, "EventId">;
  */
 export function createEventId(value: string): EventId {
 	return value as EventId;
-}
-
-/**
- * 値がEventIdとして有効かどうかを検証します
- *
- * @param value - 検証対象の値
- * @returns 値が空でない文字列の場合true
- *
- * @example
- * ```typescript
- * if (isValidEventId(userInput)) {
- *   const id = createEventId(userInput);
- * }
- * ```
- */
-export function isValidEventId(value: unknown): value is string {
-	return typeof value === "string" && value.length > 0;
 }
 
 // ============================================================
@@ -179,34 +145,6 @@ export function createTimeRange(start: Date, end: Date): TimeRange {
 	return Object.freeze({ start, end });
 }
 
-/**
- * TimeRangeが有効かどうかを検証します
- *
- * 有効な条件:
- * - startとendが有効なDate
- * - startがend以前である
- *
- * @param range - 検証対象のTimeRange
- * @returns 有効な場合true
- *
- * @example
- * ```typescript
- * const range = createTimeRange(start, end);
- * if (isValidTimeRange(range)) {
- *   // 安全に使用できる
- * }
- * ```
- */
-export function isValidTimeRange(range: TimeRange): boolean {
-	return (
-		range.start instanceof Date &&
-		range.end instanceof Date &&
-		!Number.isNaN(range.start.getTime()) &&
-		!Number.isNaN(range.end.getTime()) &&
-		range.start.getTime() <= range.end.getTime()
-	);
-}
-
 // ============================================================
 // DateRange - 日付範囲のユニオン型
 // ============================================================
@@ -233,7 +171,7 @@ export function isValidTimeRange(range: TimeRange): boolean {
  * };
  * ```
  */
-export type DateRange = "today" | "thisWeek" | "thisMonth" | TimeRange;
+type DateRange = "today" | "thisWeek" | "thisMonth" | TimeRange;
 
 /**
  * DateRangeがプリセット値かどうかを判定します
@@ -250,7 +188,7 @@ export type DateRange = "today" | "thisWeek" | "thisMonth" | TimeRange;
  * }
  * ```
  */
-export function isPresetDateRange(
+function _isPresetDateRange(
 	range: DateRange,
 ): range is "today" | "thisWeek" | "thisMonth" {
 	return range === "today" || range === "thisWeek" || range === "thisMonth";
@@ -270,7 +208,7 @@ export function isPresetDateRange(
  * }
  * ```
  */
-export function isTimeRangeDateRange(range: DateRange): range is TimeRange {
+function _isTimeRangeDateRange(range: DateRange): range is TimeRange {
 	return typeof range === "object" && "start" in range && "end" in range;
 }
 
@@ -294,7 +232,7 @@ export function isTimeRangeDateRange(range: DateRange): range is TimeRange {
  * const invalid: NonEmptyArray<number> = []; // Error!
  * ```
  */
-export type NonEmptyArray<T> = [T, ...T[]];
+type NonEmptyArray<T> = [T, ...T[]];
 
 /**
  * 配列がNonEmptyArrayかどうかを判定する型ガード
@@ -312,7 +250,7 @@ export type NonEmptyArray<T> = [T, ...T[]];
  * }
  * ```
  */
-export function isNonEmptyArray<T>(array: T[]): array is NonEmptyArray<T> {
+function _isNonEmptyArray<T>(array: T[]): array is NonEmptyArray<T> {
 	return array.length > 0;
 }
 
@@ -332,7 +270,7 @@ export function isNonEmptyArray<T>(array: T[]): array is NonEmptyArray<T> {
  * const first = head(items); // 'a' (string型、undefinedにならない)
  * ```
  */
-export function head<T>(array: NonEmptyArray<T>): T {
+function _head<T>(array: NonEmptyArray<T>): T {
 	return array[0];
 }
 
@@ -349,6 +287,6 @@ export function head<T>(array: NonEmptyArray<T>): T {
  * const lastItem = last(items); // 'c'
  * ```
  */
-export function last<T>(array: NonEmptyArray<T>): T {
+function _last<T>(array: NonEmptyArray<T>): T {
 	return array[array.length - 1];
 }
