@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { writeWidgetData } from "../store/app-group";
 import { DEFAULT_CALENDAR_COLOR } from "../theme";
 import type { UICalendarEvent } from "./useEvents";
@@ -6,8 +6,20 @@ import type { UICalendarEvent } from "./useEvents";
 /**
  * イベントデータが更新されたらApp GroupsにWidget用データを書き込むフック
  */
-export function useWidgetData(events: UICalendarEvent[]) {
+export function useWidgetData(events: UICalendarEvent[], isLoading = false) {
+	const lastKeyRef = useRef<string>("");
+
 	useEffect(() => {
+		// ローディング中はスキップ
+		if (isLoading) return;
+
+		// イベントのキーを生成して重複書き込みを防止
+		const key = events
+			.map((e) => `${e.id}:${e.startTime.getTime()}`)
+			.join(",");
+		if (key === lastKeyRef.current) return;
+		lastKeyRef.current = key;
+
 		// eventsが空の場合もApp Groupストレージに空データを書き込み、
 		// Widgetに古いデータが残存しないようにする
 		const widgetData = {
@@ -24,5 +36,5 @@ export function useWidgetData(events: UICalendarEvent[]) {
 		};
 
 		writeWidgetData(widgetData);
-	}, [events]);
+	}, [events, isLoading]);
 }

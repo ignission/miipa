@@ -30,10 +30,10 @@ export default function TodayScreen() {
 	const [activeView, setActiveView] = useState<ViewType>("today");
 	const { events, isLoading, isRefreshing, error, lastSync, refresh } =
 		useEvents(activeView === "today" ? "today" : "week");
-	const { events: weekEventsForWidget, refresh: refreshWeek } = useEvents("week");
+	const { events: weekEventsForWidget, isLoading: isWidgetDataLoading, refresh: refreshWeek } = useEvents("week");
 
 	// Widget & Watch データ同期（Mobileのみ）- 3日間表示のため常にweekデータを使用
-	useWidgetData(weekEventsForWidget);
+	useWidgetData(weekEventsForWidget, isWidgetDataLoading);
 
 	const [currentTime, setCurrentTime] = useState(new Date());
 

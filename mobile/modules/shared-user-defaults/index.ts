@@ -12,6 +12,12 @@ const NativeModule =
 		"SharedUserDefaults",
 	);
 
+if (!NativeModule) {
+	console.warn(
+		"[SharedUserDefaults] NativeModule is null - not running on iOS or module not linked",
+	);
+}
+
 export async function setItem(
 	key: string,
 	value: string,

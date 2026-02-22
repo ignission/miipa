@@ -11,15 +11,27 @@ final class SharedDataStore {
 
     /// Widgetデータを取得
     func getWidgetData() -> WidgetData? {
-        guard let defaults = UserDefaults(suiteName: appGroupId),
-              let jsonString = defaults.string(forKey: dataKey),
-              let data = jsonString.data(using: .utf8)
-        else {
+        print("[Widget] getWidgetData called")
+
+        guard let defaults = UserDefaults(suiteName: appGroupId) else {
+            print("[Widget] UserDefaults(suiteName: \(appGroupId)) returned nil")
+            return nil
+        }
+
+        guard let jsonString = defaults.string(forKey: dataKey) else {
+            print("[Widget] No data found for key: \(dataKey)")
+            return nil
+        }
+
+        guard let data = jsonString.data(using: .utf8) else {
+            print("[Widget] Failed to convert jsonString to UTF-8 data")
             return nil
         }
 
         do {
-            return try JSONDecoder().decode(WidgetData.self, from: data)
+            let decoded = try JSONDecoder().decode(WidgetData.self, from: data)
+            print("[Widget] Decoded \(decoded.events.count) events, lastUpdated: \(decoded.lastUpdated)")
+            return decoded
         } catch {
             print("[Widget] WidgetData decode error: \(error)")
             return nil
@@ -33,9 +45,13 @@ final class SharedDataStore {
         let calendar = Calendar.current
         let today = Date()
 
-        return widgetData.events.filter { event in
+        print("[Widget] getTodayEvents: フィルタ前 \(widgetData.events.count) 件")
+        let filtered = widgetData.events.filter { event in
             calendar.isDate(event.startDate, inSameDayAs: today)
         }.sorted { $0.startDate < $1.startDate }
+        print("[Widget] getTodayEvents: フィルタ後 \(filtered.count) 件")
+
+        return filtered
     }
 
     /// 今後N日間のイベントを時系列順で取得
@@ -45,10 +61,14 @@ final class SharedDataStore {
         let today = calendar.startOfDay(for: Date())
         guard let windowEnd = calendar.date(byAdding: .day, value: days, to: today) else { return [] }
 
-        return widgetData.events.filter { event in
+        print("[Widget] getUpcomingEvents(days: \(days)): フィルタ前 \(widgetData.events.count) 件")
+        let filtered = widgetData.events.filter { event in
             // イベントがウィンドウ [today, windowEnd) と重なるか判定
             event.endDate > today && event.startDate < windowEnd
         }.sorted { $0.startDate < $1.startDate }
+        print("[Widget] getUpcomingEvents(days: \(days)): フィルタ後 \(filtered.count) 件")
+
+        return filtered
     }
 
     /// 次のイベントを取得
@@ -57,6 +77,12 @@ final class SharedDataStore {
         let todayEvents = getTodayEvents()
 
         // まだ終わっていないイベントの中で最も早いもの
-        return todayEvents.first { $0.endDate > now }
+        let next = todayEvents.first { $0.endDate > now }
+        if let next = next {
+            print("[Widget] getNextEvent: \(next.title) (\(next.startDate) - \(next.endDate))")
+        } else {
+            print("[Widget] getNextEvent: 次のイベントなし")
+        }
+        return next
     }
 }
