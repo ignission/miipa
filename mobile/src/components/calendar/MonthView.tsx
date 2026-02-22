@@ -8,7 +8,7 @@ import {
 	groupEventsByDate,
 } from "../../lib/calendar-utils";
 import { CalendarGrid } from "./CalendarGrid";
-import { DayEventList } from "./DayEventList";
+import { DayGroup } from "./DayGroup";
 import { MonthHeader } from "./MonthHeader";
 import { WeekdayHeader } from "./WeekdayHeader";
 
@@ -26,13 +26,7 @@ interface MonthViewProps {
 	onNextMonth: () => void;
 }
 
-/**
- * 月表示コンポーネント
- *
- * 月ヘッダー、曜日ヘッダー、カレンダーグリッド、
- * 選択日のイベントリストを統合した月カレンダービューです。
- * 日付選択状態を内部で管理します。
- */
+/** 月カレンダービュー（グリッド + 選択日のイベントリスト） */
 export function MonthView({
 	year,
 	month,
@@ -66,21 +60,16 @@ export function MonthView({
 		return eventsByDate.get(selectedDateKey) ?? [];
 	}, [eventsByDate, selectedDateKey]);
 
-	const selectedDateLabel = useMemo(() => {
+	const selectedDate = useMemo(() => {
 		const parts = selectedDateKey.split("-");
-		const date = new Date(
+		return new Date(
 			Number(parts[0]),
 			Number(parts[1]) - 1,
 			Number(parts[2]),
 		);
-		const weekday = date.toLocaleDateString("ja-JP", { weekday: "short" });
-		const m = date.getMonth() + 1;
-		const d = date.getDate();
-		const isToday = selectedDateKey === todayKey;
-		return isToday
-			? `今日 ${m}/${d}（${weekday}）`
-			: `${m}/${d}（${weekday}）`;
-	}, [selectedDateKey, todayKey]);
+	}, [selectedDateKey]);
+
+	const isSelectedDateToday = selectedDateKey === todayKey;
 
 	const handleDayPress = useCallback((day: CalendarDay) => {
 		setSelectedDateKey(day.dateKey);
@@ -101,7 +90,12 @@ export function MonthView({
 				eventDateKeys={eventDateKeys}
 				onDayPress={handleDayPress}
 			/>
-			<DayEventList events={selectedEvents} dateLabel={selectedDateLabel} />
+			<DayGroup
+				date={selectedDate}
+				events={selectedEvents}
+				isToday={isSelectedDateToday}
+				variant="monthDetail"
+			/>
 		</View>
 	);
 }

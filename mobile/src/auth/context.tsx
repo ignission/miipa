@@ -11,20 +11,13 @@ import { Platform } from "react-native";
 import { AUTH_CONFIG } from "./config";
 import type { StoredUser } from "./storage";
 import {
-	deleteRefreshToken,
-	deleteToken,
-	deleteUser,
-	getRefreshToken,
 	getToken,
 	getUser,
 	saveRefreshToken,
 	saveToken,
 	saveUser,
 } from "./storage";
-
-// ============================================================
-// Mobile 専用モジュール: Web では読み込まない
-// ============================================================
+import { clearAllTokens, refreshTokens } from "./token";
 
 type GoogleAuthHook = [
 	unknown,
@@ -60,10 +53,6 @@ function useWebGoogleAuth(): GoogleAuthHook {
  */
 const useMobileGoogleAuth =
 	Platform.OS === "web" ? useWebGoogleAuth : useNativeGoogleAuth;
-
-// ============================================================
-// 型定義
-// ============================================================
 
 interface AuthState {
 	/** 認証済みかどうか */
@@ -103,10 +92,6 @@ export function useAuth(): AuthState {
 	return context;
 }
 
-// ============================================================
-// ユーティリティ関数
-// ============================================================
-
 /** バッファ秒数（期限切れ判定を早めに行う） */
 const TOKEN_EXPIRY_BUFFER_SECONDS = 30;
 
@@ -142,81 +127,6 @@ function isTokenExpired(token: string): boolean {
 }
 
 /**
- * Web用: Cookie ベースでリフレッシュトークンを送信
- */
-async function refreshOnWeb(): Promise<boolean> {
-	try {
-		const res = await fetch(
-			`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.refreshEndpoint}`,
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				credentials: "include",
-				body: JSON.stringify({}),
-			},
-		);
-
-		if (!res.ok) return false;
-
-		const data = (await res.json()) as {
-			token: string;
-			user: StoredUser;
-		};
-
-		await Promise.all([saveToken(data.token), saveUser(data.user)]);
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-/**
- * Mobile用: SecureStore のリフレッシュトークンで新しいアクセストークンを取得
- */
-async function refreshOnMobile(): Promise<boolean> {
-	const refreshToken = await getRefreshToken();
-	if (!refreshToken) return false;
-
-	try {
-		const res = await fetch(
-			`${AUTH_CONFIG.apiBaseUrl}${AUTH_CONFIG.tokenEndpoint}`,
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					grantType: "refresh_token",
-					refreshToken,
-				}),
-			},
-		);
-
-		if (!res.ok) return false;
-
-		const data = (await res.json()) as {
-			token: string;
-			refreshToken: string;
-			user: StoredUser;
-		};
-
-		await Promise.all([
-			saveToken(data.token),
-			saveRefreshToken(data.refreshToken),
-			saveUser(data.user),
-		]);
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-/**
- * プラットフォームに応じたリフレッシュ処理を実行
- */
-async function refreshWithStoredToken(): Promise<boolean> {
-	return Platform.OS === "web" ? refreshOnWeb() : refreshOnMobile();
-}
-
-/**
  * ストレージからトークンとユーザー情報を読み込む
  *
  * @returns トークンとユーザーのペア。いずれかが欠けている場合は null
@@ -229,10 +139,6 @@ async function loadStoredAuth(): Promise<{
 	if (!token || !user) return null;
 	return { token, user };
 }
-
-// ============================================================
-// AuthProvider
-// ============================================================
 
 interface AuthProviderProps {
 	children: ReactNode;
@@ -276,7 +182,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				// トークン未保存: Web のみ Cookie ベースでリフレッシュを試行
 				if (!stored) {
 					if (Platform.OS === "web") {
-						const refreshed = await refreshWithStoredToken();
+						const refreshed = await refreshTokens();
 						if (refreshed) await applyRefreshedAuth();
 					}
 					return;
@@ -290,16 +196,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				}
 
 				// トークン期限切れ: リフレッシュを試行
-				const refreshed = await refreshWithStoredToken();
+				const refreshed = await refreshTokens();
 				if (refreshed) {
 					await applyRefreshedAuth();
 				} else {
 					// リフレッシュ失敗: ログアウト状態にする
-					await Promise.all([
-						deleteToken(),
-						deleteRefreshToken(),
-						deleteUser(),
-					]);
+					await clearAllTokens();
 				}
 			} finally {
 				setIsLoading(false);
@@ -467,7 +369,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			}
 		}
 
-		await Promise.all([deleteToken(), deleteRefreshToken(), deleteUser()]);
+		await clearAllTokens();
 		setToken(null);
 		setUser(null);
 	}, []);

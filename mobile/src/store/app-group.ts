@@ -1,23 +1,10 @@
 import { Platform } from "react-native";
 import { setItem } from "../../modules/shared-user-defaults";
+import type { WidgetData } from "./types";
+
+export type { WidgetData };
 
 const APP_GROUP_ID = "group.app.miipa.shared";
-
-/**
- * Widget用データ構造
- */
-export interface WidgetData {
-	events: Array<{
-		id: string;
-		title: string;
-		startTime: string;
-		endTime: string;
-		isAllDay: boolean;
-		calendarColor: string;
-		location?: string;
-	}>;
-	lastUpdated: string;
-}
 
 /**
  * App Groups (UserDefaults) にWidgetデータを書き込む

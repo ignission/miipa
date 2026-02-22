@@ -1,14 +1,7 @@
 import { Platform } from "react-native";
 import { AUTH_CONFIG } from "../auth/config";
-import {
-	deleteRefreshToken,
-	deleteToken,
-	deleteUser,
-	getRefreshToken,
-	getToken,
-	saveRefreshToken,
-	saveToken,
-} from "../auth/storage";
+import { getToken } from "../auth/storage";
+import { clearAllTokens, refreshTokens } from "../auth/token";
 
 /**
  * APIベースURL
@@ -66,90 +59,6 @@ async function handleResponse<T>(response: Response): Promise<T | null> {
 
 /** リフレッシュ処理の重複実行を防ぐためのロック */
 let refreshPromise: Promise<boolean> | null = null;
-
-/**
- * リフレッシュトークンで新しいアクセストークンを取得
- *
- * Web: Cookie ベースのリフレッシュ（/auth/refresh）
- * Mobile: Body にリフレッシュトークンを含めて送信（/auth/mobile/token）
- *
- * @returns リフレッシュ成功ならtrue、失敗ならfalse
- */
-async function refreshAccessToken(): Promise<boolean> {
-	if (Platform.OS === "web") {
-		// Web: httpOnly Cookie を自動送信してリフレッシュ
-		try {
-			const response = await fetch(
-				`${API_BASE_URL}${AUTH_CONFIG.refreshEndpoint}`,
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					credentials: "include",
-					body: JSON.stringify({}),
-				},
-			);
-
-			if (!response.ok) {
-				return false;
-			}
-
-			const data = (await response.json()) as {
-				token: string;
-				user: {
-					id: string;
-					name: string | null;
-					email: string;
-					image: string | null;
-				};
-			};
-
-			// メモリにアクセストークンを保存（Cookie は Hono が管理）
-			await saveToken(data.token);
-
-			return true;
-		} catch {
-			return false;
-		}
-	}
-
-	// Mobile: SecureStore のリフレッシュトークンを使用
-	const refreshToken = await getRefreshToken();
-	if (!refreshToken) {
-		return false;
-	}
-
-	try {
-		const response = await fetch(
-			`${API_BASE_URL}${AUTH_CONFIG.tokenEndpoint}`,
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					grantType: "refresh_token",
-					refreshToken,
-				}),
-			},
-		);
-
-		if (!response.ok) {
-			return false;
-		}
-
-		const data = (await response.json()) as {
-			token: string;
-			refreshToken: string;
-		};
-
-		await Promise.all([
-			saveToken(data.token),
-			saveRefreshToken(data.refreshToken),
-		]);
-
-		return true;
-	} catch {
-		return false;
-	}
-}
 
 /**
  * プラットフォームに応じた fetch オプションを構築
@@ -211,7 +120,7 @@ export async function apiFetch<T>(
 
 	// 401エラー時はリフレッシュトークンで自動リトライ（重複防止）
 	if (!refreshPromise) {
-		refreshPromise = refreshAccessToken().finally(() => {
+		refreshPromise = refreshTokens().finally(() => {
 			refreshPromise = null;
 		});
 	}
@@ -220,7 +129,7 @@ export async function apiFetch<T>(
 
 	if (!refreshed) {
 		// リフレッシュ失敗: ログアウト
-		await Promise.all([deleteToken(), deleteRefreshToken(), deleteUser()]);
+		await clearAllTokens();
 		throw new ApiError("認証エラー", 401);
 	}
 

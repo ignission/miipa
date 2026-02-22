@@ -1,12 +1,3 @@
-/**
- * ChatInputコンポーネント
- *
- * チャットメッセージの入力と送信を行うコンポーネントです。
- * Web: Enter送信対応、Mobile: 送信ボタンのみ。
- *
- * @module components/chat/chat-input
- */
-
 import { useCallback } from "react";
 import {
 	type NativeSyntheticEvent,
@@ -17,17 +8,8 @@ import {
 	View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import type { SendKeyType } from "../../api/settings";
 
-// ============================================================
-// 型定義
-// ============================================================
-
-/** 送信キー設定 */
-export type SendKeyType = "enter" | "cmd-enter";
-
-/**
- * ChatInputコンポーネントのProps
- */
 interface ChatInputProps {
 	/** 入力テキスト */
 	value: string;
@@ -43,13 +25,7 @@ interface ChatInputProps {
 	onToggleSendKey?: () => void;
 }
 
-// ============================================================
-// サブコンポーネント
-// ============================================================
-
-/**
- * 送信アイコン（矢印のSVG）
- */
+/** 送信アイコン */
 function SendIcon() {
 	return (
 		<Svg width={20} height={20} viewBox="0 0 24 24" fill="currentColor">
@@ -58,19 +34,10 @@ function SendIcon() {
 	);
 }
 
-// ============================================================
-// メインコンポーネント
-// ============================================================
-
 /**
  * チャット入力コンポーネント
  *
- * テキスト入力と送信ボタンを含む入力フォームです。
- * Web: Enter/Cmd+Enter送信対応
- * Mobile: 送信ボタンのみ
- *
- * @param props - コンポーネントのProps
- * @returns 入力フォーム要素
+ * Web: Enter/Cmd+Enter送信対応、Mobile: 送信ボタンのみ
  */
 export function ChatInput({
 	value,
@@ -82,9 +49,7 @@ export function ChatInput({
 }: ChatInputProps) {
 	const canSend = !isLoading && value.trim().length > 0;
 
-	/**
-	 * Web向けキーボードイベントハンドラ
-	 */
+	/** Web向けキーボードイベントハンドラ */
 	const handleKeyPress = useCallback(
 		(e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
 			if (Platform.OS !== "web") return;
@@ -105,7 +70,6 @@ export function ChatInput({
 
 	return (
 		<View className="flex-row items-end gap-2 border-t border-border bg-bg px-3 py-2">
-			{/* テキスト入力 */}
 			<TextInput
 				value={value}
 				onChangeText={onChange}
@@ -118,7 +82,6 @@ export function ChatInput({
 				className="min-h-[44px] max-h-[160px] flex-1 rounded-xl border border-border bg-bg-subtle px-3 py-2.5 text-sm text-fg"
 			/>
 
-			{/* 送信キー切替ボタン（Webのみ） */}
 			{Platform.OS === "web" && onToggleSendKey && (
 				<Pressable
 					onPress={onToggleSendKey}
@@ -131,7 +94,6 @@ export function ChatInput({
 				</Pressable>
 			)}
 
-			{/* 送信ボタン */}
 			<Pressable
 				onPress={onSend}
 				disabled={!canSend}
