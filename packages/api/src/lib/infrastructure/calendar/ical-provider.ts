@@ -22,9 +22,16 @@ import {
 	type TimeRange,
 } from "@/lib/domain/calendar";
 import { err, ok, type Result } from "@/lib/domain/shared";
+import {
+	isInternalHost,
+	readResponseWithSizeLimit,
+} from "@/lib/infrastructure/network";
 
 /** フェッチタイムアウト（ミリ秒） */
 const FETCH_TIMEOUT = 10000;
+
+/** iCalイベント数の上限 */
+const MAX_ICAL_EVENT_COUNT = 10000;
 
 // ============================================================
 // 型定義
@@ -48,35 +55,20 @@ export interface ICalMeta {
 // ============================================================
 
 /**
- * ホスト名が内部ネットワーク（プライベートIP、ループバック等）かを判定
+ * リダイレクトレスポンスを検出してエラーを返す
  *
- * SSRF（CWE-918）対策として、外部向けURLのみ許可します。
+ * SSRF対策として、リダイレクト先が内部ネットワークに向かうことを防止します。
  *
- * @param hostname - 検証対象のホスト名
- * @returns 内部ネットワークの場合 true
+ * @param response - fetchレスポンス
+ * @returns リダイレクト検出時はCalendarError、それ以外はnull
  */
-function isInternalHost(hostname: string): boolean {
-	const lower = hostname.toLowerCase();
-
-	// ループバックアドレス
-	if (lower === "localhost" || lower === "[::1]") return true;
-
-	// IPv4 プライベート/ループバック/特殊アドレス
-	const ipv4Patterns = [
-		/^127\./, // ループバック
-		/^10\./, // クラスA プライベート
-		/^172\.(1[6-9]|2\d|3[01])\./, // クラスB プライベート
-		/^192\.168\./, // クラスC プライベート
-		/^169\.254\./, // リンクローカル
-		/^0\./, // カレントネットワーク
-		/^100\.(6[4-9]|[7-9]\d|1[0-2]\d)\./, // CGNAT (RFC 6598)
-	];
-	if (ipv4Patterns.some((p) => p.test(lower))) return true;
-
-	// クラウドメタデータサービス
-	if (lower === "metadata.google.internal") return true;
-
-	return false;
+function checkRedirectResponse(response: Response): CalendarError | null {
+	if (response.status >= 300 && response.status < 400) {
+		return networkError(
+			"リダイレクトが検出されました。直接アクセス可能なURLを指定してください",
+		);
+	}
+	return null;
 }
 
 /**
@@ -124,14 +116,30 @@ export async function validateICalUrl(
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-		const response = await fetch(url, { signal: controller.signal });
+		const response = await fetch(url, {
+			signal: controller.signal,
+			redirect: "manual",
+		});
 		clearTimeout(timeout);
+
+		// リダイレクト検出
+		const redirectError = checkRedirectResponse(response);
+		if (redirectError) {
+			return err(redirectError);
+		}
 
 		if (!response.ok) {
 			return err(networkError(`URL取得に失敗しました: ${response.status}`));
 		}
 
-		const text = await response.text();
+		// サイズ制限付き読み込み
+		const text = await readResponseWithSizeLimit(response);
+		if (text === null) {
+			return err(
+				networkError("レスポンスサイズが上限（5MB）を超えています"),
+			);
+		}
+
 		const jcal = ICAL.parse(text);
 		const comp = new ICAL.Component(jcal);
 
@@ -139,6 +147,15 @@ export async function validateICalUrl(
 			(comp.getFirstPropertyValue("x-wr-calname") as string) ||
 			"iCal カレンダー";
 		const events = comp.getAllSubcomponents("vevent");
+
+		// イベント数制限
+		if (events.length > MAX_ICAL_EVENT_COUNT) {
+			return err(
+				parseError(
+					`イベント数が上限（${MAX_ICAL_EVENT_COUNT}件）を超えています`,
+				),
+			);
+		}
 
 		return ok({ name, eventCount: events.length });
 	} catch (error) {
@@ -226,14 +243,30 @@ export class ICalProvider implements CalendarProvider {
 			const controller = new AbortController();
 			const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-			const response = await fetch(this.url, { signal: controller.signal });
+			const response = await fetch(this.url, {
+				signal: controller.signal,
+				redirect: "manual",
+			});
 			clearTimeout(timeout);
+
+			// リダイレクト検出
+			const redirectError = checkRedirectResponse(response);
+			if (redirectError) {
+				return err(redirectError);
+			}
 
 			if (!response.ok) {
 				return err(networkError(`iCal取得に失敗しました: ${response.status}`));
 			}
 
-			const text = await response.text();
+			// サイズ制限付き読み込み
+			const text = await readResponseWithSizeLimit(response);
+			if (text === null) {
+				return err(
+					networkError("レスポンスサイズが上限（5MB）を超えています"),
+				);
+			}
+
 			const events = this.parseEvents(text, this.calendarId, range);
 
 			return ok(events);
@@ -266,6 +299,11 @@ export class ICalProvider implements CalendarProvider {
 		const events: CalendarEvent[] = [];
 
 		for (const vevent of vevents) {
+			// イベント数制限
+			if (events.length >= MAX_ICAL_EVENT_COUNT) {
+				break;
+			}
+
 			const event = new ICAL.Event(vevent);
 			const startTime = event.startDate.toJSDate();
 			const endTime = event.endDate.toJSDate();

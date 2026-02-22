@@ -91,10 +91,16 @@ setup.get("/status", async (c) => {
 
 	// カレンダー数の確認
 	const calendarsResult = await ctx.configRepository.getSetting("calendars");
-	const calendarCount =
-		isOk(calendarsResult) && calendarsResult.value
-			? (JSON.parse(calendarsResult.value) as unknown[]).length
-			: 0;
+	const parsedCalendars = (() => {
+		if (!isOk(calendarsResult) || !calendarsResult.value) return [];
+		try {
+			const v = JSON.parse(calendarsResult.value);
+			return Array.isArray(v) ? v : [];
+		} catch {
+			return [];
+		}
+	})();
+	const calendarCount = parsedCalendars.length;
 
 	const isComplete = !!currentProvider && hasApiKey;
 

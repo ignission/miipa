@@ -67,7 +67,35 @@ account.delete("/", async (c) => {
 			console.warn("[account] Google OAuthトークン失効失敗:", e);
 		}
 
-		// 関連データを順次削除
+		// 関連データを順次削除（CASCADEに頼らず明示的に全テーブルを削除）
+		await db
+			.prepare("DELETE FROM chat_messages WHERE user_id = ?")
+			.bind(userId)
+			.run();
+		await db
+			.prepare("DELETE FROM calendar_events WHERE user_id = ?")
+			.bind(userId)
+			.run();
+		await db
+			.prepare("DELETE FROM calendar_sync_state WHERE user_id = ?")
+			.bind(userId)
+			.run();
+		await db
+			.prepare("DELETE FROM calendars WHERE user_id = ?")
+			.bind(userId)
+			.run();
+		await db
+			.prepare("DELETE FROM user_settings WHERE user_id = ?")
+			.bind(userId)
+			.run();
+		await db
+			.prepare("DELETE FROM credentials WHERE user_id = ?")
+			.bind(userId)
+			.run();
+		await db
+			.prepare("DELETE FROM auth_codes WHERE user_id = ?")
+			.bind(userId)
+			.run();
 		await db
 			.prepare("DELETE FROM refresh_tokens WHERE user_id = ?")
 			.bind(userId)
@@ -80,7 +108,7 @@ account.delete("/", async (c) => {
 			.prepare("DELETE FROM accounts WHERE userId = ?")
 			.bind(userId)
 			.run();
-		// users テーブル削除（CASCADE で user_settings, calendars, calendar_events, calendar_sync_state, credentials も削除）
+		// users テーブル削除（最後に実行）
 		await db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
 
 		return c.json({ success: true });
