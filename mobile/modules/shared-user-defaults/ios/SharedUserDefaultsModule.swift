@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import WidgetKit
 
 public class SharedUserDefaultsModule: Module {
     public func definition() -> ModuleDefinition {
@@ -11,6 +12,10 @@ public class SharedUserDefaultsModule: Module {
                 ])
             }
             defaults.set(value, forKey: key)
+            defaults.synchronize()
+
+            // Widget にタイムライン更新を通知
+            WidgetCenter.shared.reloadAllTimelines()
         }
 
         AsyncFunction("getItem") { (key: String, suiteName: String) -> String? in
