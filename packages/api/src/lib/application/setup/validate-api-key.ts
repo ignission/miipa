@@ -501,7 +501,7 @@ export async function validateOllamaConnection(
 		}
 		// localhostは許可（Ollamaは通常ローカルで動作するため）
 		const hostname = parsed.hostname.toLowerCase();
-		if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+		if (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1") {
 			if (isInternalHost(parsed.hostname)) {
 				return err({
 					code: "INVALID_FORMAT",

@@ -92,7 +92,11 @@ setup.get("/status", async (c) => {
 	// カレンダー数の確認
 	const calendarsResult = await ctx.configRepository.getSetting("calendars");
 	const parsedCalendars = (() => {
-		if (!isOk(calendarsResult) || !calendarsResult.value) return [];
+		if (!isOk(calendarsResult)) {
+			console.warn("[setup] カレンダー設定の取得に失敗:", calendarsResult.error);
+			return [];
+		}
+		if (!calendarsResult.value) return [];
 		try {
 			const v = JSON.parse(calendarsResult.value);
 			return Array.isArray(v) ? v : [];

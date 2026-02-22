@@ -7,6 +7,7 @@
  * @module packages/api/src/index
  */
 
+import type { Context } from "hono";
 import { Hono } from "hono";
 import type { AppType } from "@/context/app-context";
 import { authMiddleware } from "@/middleware/auth";
@@ -22,6 +23,16 @@ import { events } from "@/routes/events";
 import { settings } from "@/routes/settings";
 import { setup } from "@/routes/setup";
 
+/** クライアントIPの取得（フォールバックチェーン） */
+function getClientIp(c: Context): string {
+	return (
+		c.req.header("cf-connecting-ip") ||
+		c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+		c.req.header("x-real-ip") ||
+		"unknown"
+	);
+}
+
 const app = new Hono<AppType>();
 
 // グローバルミドルウェア
@@ -35,8 +46,7 @@ app.use(
 	rateLimiter({
 		windowMs: 60 * 1000,
 		limit: 10,
-		keyGenerator: (c) =>
-			`auth-mobile:${c.req.header("cf-connecting-ip") || "unknown"}`,
+		keyGenerator: (c) => `auth-mobile:${getClientIp(c)}`,
 	}),
 );
 app.use(
@@ -44,8 +54,7 @@ app.use(
 	rateLimiter({
 		windowMs: 60 * 1000,
 		limit: 30,
-		keyGenerator: (c) =>
-			`auth-refresh:${c.req.header("cf-connecting-ip") || "unknown"}`,
+		keyGenerator: (c) => `auth-refresh:${getClientIp(c)}`,
 	}),
 );
 

@@ -65,16 +65,18 @@ async function generateAndStoreAuthCode(
 	const code = crypto.randomUUID();
 	const expiresAt = Date.now() + AUTH_CODE_TTL_MS;
 
-	// 期限切れエントリを削除（定期クリーンアップ）
-	await db
-		.prepare("DELETE FROM auth_codes WHERE expires_at < ?")
-		.bind(Date.now())
-		.run();
+	// 期限切れエントリを確率的に削除（10%の確率でクリーンアップ）
+	if (Math.random() < 0.1) {
+		await db
+			.prepare("DELETE FROM auth_codes WHERE expires_at < ?")
+			.bind(Date.now())
+			.run();
+	}
 
 	// 新しい認可コードを保存
 	await db
 		.prepare(
-			"INSERT INTO auth_codes (code, user_id, email, name, picture, expires_at) VALUES (?, ?, '', NULL, NULL, ?)",
+			"INSERT INTO auth_codes (code, user_id, expires_at) VALUES (?, ?, ?)",
 		)
 		.bind(code, userId, expiresAt)
 		.run();

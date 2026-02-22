@@ -101,6 +101,20 @@ function sanitizeToolResult(result: string): string {
 	return result.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/**
+ * XML属性値のサニタイズ
+ *
+ * ツール名などの属性値に含まれる特殊文字をエスケープし、
+ * XML属性値インジェクションを防止します。
+ */
+function sanitizeAttributeValue(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/"/g, "&quot;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
+}
+
 // ============================================================
 // ツール呼び出しループ
 // ============================================================
@@ -124,7 +138,7 @@ async function executeToolCalls(
 		// ツール結果内のXMLタグ風文字列をエスケープし間接プロンプトインジェクションを防止
 		results.push({
 			role: "user",
-			content: `<tool_result tool="${toolCall.name}">\n${sanitizeToolResult(result)}\n</tool_result>`,
+			content: `<tool_result tool="${sanitizeAttributeValue(toolCall.name)}">\n${sanitizeToolResult(result)}\n</tool_result>`,
 		});
 	}
 

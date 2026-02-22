@@ -70,6 +70,9 @@ export function isInternalHost(hostname: string): boolean {
 	const v4mappedMatch = cleaned.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
 	if (v4mappedMatch) return isInternalIPv4(v4mappedMatch[1]);
 
+	// ::ffff: プレフィックスを持つIPv6は全て内部とみなす（hex形式のバイパス防止）
+	if (/^::ffff:/i.test(cleaned)) return true;
+
 	// IPv6 ULA (fc00::/7) とリンクローカル (fe80::/10)
 	if (/^f[cd]/i.test(cleaned) || /^fe[89ab]/i.test(cleaned)) return true;
 
