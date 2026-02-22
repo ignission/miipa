@@ -17,40 +17,60 @@ struct SmallWidgetView: View {
 
             Spacer()
 
-            if let event = entry.nextEvent {
-                // カレンダー色ドット + 時刻
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color(hex: event.calendarColor))
-                        .frame(width: 6, height: 6)
-                    Text(event.isAllDay ? "終日" : event.formattedStartTime)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                // タイトル
-                Text(event.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .lineLimit(2)
-
-                // 場所
-                if let location = event.location {
-                    Text(location)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-            } else {
+            if entry.events.isEmpty {
                 Text("予定なし")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+            } else {
+                ForEach(entry.events, id: \.id) { event in
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(hex: event.calendarColor))
+                            .frame(width: 5, height: 5)
+                        Text(event.isAllDay ? "終日" : event.formattedStartTime)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Text(event.title)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .lineLimit(1)
+                    }
+                }
             }
 
             Spacer()
+
+            // デバッグフッター
+            HStack {
+                Spacer()
+                Text(debugLabel)
+                    .font(.system(size: 8))
+                    .foregroundColor(.gray.opacity(0.4))
+            }
         }
         .padding()
         .containerBackground(.fill.tertiary, for: .widget)
+    }
+
+    /// デバッグ用ラベル
+    private var debugLabel: String {
+        guard let lastUpdated = entry.lastUpdated else {
+            return "データなし"
+        }
+        let timeStr = formatTime(from: lastUpdated)
+        return "更新: \(timeStr) | 全\(entry.totalEventCount)件"
+    }
+
+    /// ISO8601文字列からHH:mm部分を抽出
+    private func formatTime(from iso: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let date = formatter.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
+        guard let date = date else { return "??" }
+        let df = DateFormatter()
+        df.dateFormat = "HH:mm"
+        df.locale = Locale(identifier: "ja_JP")
+        return df.string(from: date)
     }
 }
 

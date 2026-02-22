@@ -97,9 +97,38 @@ struct LargeWidgetView: View {
                     }
                 }
             }
+
+            // デバッグフッター
+            HStack {
+                Spacer()
+                Text(debugLabel)
+                    .font(.system(size: 8))
+                    .foregroundColor(.gray.opacity(0.4))
+            }
         }
         .padding()
         .containerBackground(.fill.tertiary, for: .widget)
+    }
+
+    /// デバッグ用ラベル
+    private var debugLabel: String {
+        guard let lastUpdated = entry.lastUpdated else {
+            return "データなし"
+        }
+        let timeStr = formatTime(from: lastUpdated)
+        return "更新: \(timeStr) | 全\(entry.totalEventCount)件"
+    }
+
+    /// ISO8601文字列からHH:mm部分を抽出
+    private func formatTime(from iso: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let date = formatter.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
+        guard let date = date else { return "??" }
+        let df = DateFormatter()
+        df.dateFormat = "HH:mm"
+        df.locale = Locale(identifier: "ja_JP")
+        return df.string(from: date)
     }
 
     private var formattedDate: String {
