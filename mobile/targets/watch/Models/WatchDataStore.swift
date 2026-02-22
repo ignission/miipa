@@ -1,5 +1,6 @@
 import Foundation
 import WatchConnectivity
+import WidgetKit
 
 /// App Groups経由で親アプリのイベントデータを読み取り、WCSessionでも受信可能
 final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
@@ -41,6 +42,16 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
         DispatchQueue.main.async {
             self.loadFromAppGroup()
         }
+
+        // 未処理のapplicationContextがあればデータを読み込む
+        let context = session.receivedApplicationContext
+        if !context.isEmpty {
+            handleApplicationContext(context)
+        }
+    }
+
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        handleApplicationContext(applicationContext)
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
@@ -65,10 +76,34 @@ final class WatchDataStore: NSObject, ObservableObject, WCSessionDelegate {
                 self.events = widgetData.events.sorted { $0.startDate < $1.startDate }
                 self.lastUpdated = WatchDataStore.parseISO8601(widgetData.lastUpdated)
                 self.saveToAppGroup(dataString)
+                WidgetCenter.shared.reloadAllTimelines()
             }
             replyHandler(["status": "ok"])
         } catch {
             replyHandler(["status": "error", "message": error.localizedDescription])
+        }
+    }
+
+    // MARK: - ApplicationContext Handler
+
+    /// applicationContextからイベントデータを抽出して更新する
+    private func handleApplicationContext(_ context: [String: Any]) {
+        // iPhone側はキーを "suiteName:key" 形式で送信する
+        let contextKey = appGroupId + ":" + dataKey
+        guard let jsonString = context[contextKey] as? String,
+              let data = jsonString.data(using: .utf8) else { return }
+
+        do {
+            let widgetData = try JSONDecoder().decode(WatchEventData.self, from: data)
+            DispatchQueue.main.async {
+                self.events = widgetData.events.sorted { $0.startDate < $1.startDate }
+                self.lastUpdated = WatchDataStore.parseISO8601(widgetData.lastUpdated)
+                self.saveToAppGroup(jsonString)
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+        } catch {
+            // デコード失敗時はログ出力のみ（UIへの影響なし）
+            print("[WatchDataStore] applicationContextのデコードに失敗: \(error.localizedDescription)")
         }
     }
 
