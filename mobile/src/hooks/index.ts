@@ -17,7 +17,8 @@ export type { SendKeyType, UseSendKeySettingReturn } from "./useSendKeySetting";
 export { useSendKeySetting } from "./useSendKeySetting";
 
 // セットアップ
-export type { LLMProvider, SetupStep, UseSetupReturn } from "./useSetup";
+export type { LLMProvider, SetupStep } from "../components/setup/types";
+export type { UseSetupReturn } from "./useSetup";
 export { useSetup } from "./useSetup";
 
 // 同期状態

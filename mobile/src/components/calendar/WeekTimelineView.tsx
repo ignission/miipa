@@ -1,17 +1,16 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { UICalendarEvent } from "../../hooks/useEvents";
-import { formatDateKey } from "../../lib/calendar-utils";
+import {
+	DAY_MS,
+	formatDateKey,
+	formatSectionHeader,
+	groupEventsByDate,
+} from "../../lib/calendar-utils";
 import { TimelineView } from "./TimelineView";
 
 /** 表示日数 */
 const DAYS_TO_SHOW = 7;
-
-/** 1日のミリ秒 */
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** JSTオフセット（ミリ秒）: UTC+9 */
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /** セクションデータ */
 interface DaySection {
@@ -27,52 +26,19 @@ interface WeekTimelineViewProps {
 	currentTime: Date;
 }
 
-/**
- * 日付ヘッダーのフォーマット（JST基準）
- *
- * 今日の場合は「今日 2/23（月）」、それ以外は「2/23（月）」形式で返す。
- */
-function formatSectionHeader(date: Date, isToday: boolean): string {
-	const jst = new Date(date.getTime() + JST_OFFSET_MS);
-	const weekday = jst.toLocaleDateString("ja-JP", {
-		weekday: "short",
-		timeZone: "UTC",
-	});
-	const month = jst.getUTCMonth() + 1;
-	const day = jst.getUTCDate();
-	return isToday
-		? `今日 ${month}/${day}（${weekday}）`
-		: `${month}/${day}（${weekday}）`;
-}
-
-/**
- * 週間タイムラインビューコンポーネント
- *
- * 週間イベントを日付ごとにグルーピングし、
- * 各日をセクションヘッダー + TimelineView で描画します。
- * ScrollView 内部に配置されることを想定しています。
- */
+/** 週間タイムラインビュー（日付ごとのセクションヘッダー + TimelineView） */
 export function WeekTimelineView({
 	events,
 	currentTime,
 }: WeekTimelineViewProps) {
 	const sections: DaySection[] = useMemo(() => {
 		const todayKey = formatDateKey(currentTime);
+		const grouped = groupEventsByDate(events);
 
-		// イベントを日付キーでグルーピング（イミュータブル）
-		const grouped = events.reduce<Record<string, UICalendarEvent[]>>(
-			(acc, event) => {
-				const key = formatDateKey(event.startTime);
-				return { ...acc, [key]: [...(acc[key] ?? []), event] };
-			},
-			{},
-		);
-
-		// 7日分のセクションを生成
 		return Array.from({ length: DAYS_TO_SHOW }, (_, i) => {
 			const date = new Date(currentTime.getTime() + i * DAY_MS);
 			const key = formatDateKey(date);
-			const dayEvents = grouped[key] ?? [];
+			const dayEvents = grouped.get(key) ?? [];
 			const isToday = key === todayKey;
 
 			return {
@@ -89,7 +55,6 @@ export function WeekTimelineView({
 		<View>
 			{sections.map((section) => (
 				<View key={section.dateKey}>
-					{/* セクションヘッダー */}
 					<View
 						style={[
 							styles.sectionHeader,
@@ -110,7 +75,6 @@ export function WeekTimelineView({
 								: "予定なし"}
 						</Text>
 					</View>
-					{/* 日のコンテンツ */}
 					{section.events.length > 0 ? (
 						<TimelineView
 							events={section.events}

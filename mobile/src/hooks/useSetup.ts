@@ -9,16 +9,7 @@ import {
 	saveSetupSettings,
 	validateApiKey,
 } from "../api/setup";
-
-// ============================================================
-// 型定義
-// ============================================================
-
-/** セットアップステップ */
-export type SetupStep = "calendar" | "ai" | "complete";
-
-/** LLMプロバイダ */
-export type LLMProvider = "claude" | "openai" | "ollama";
+import type { SetupStep } from "../components/setup/types";
 
 /** useSetup フックの戻り値型 */
 export interface UseSetupReturn {
@@ -45,10 +36,6 @@ export interface UseSetupReturn {
 	/** エラーをクリアする */
 	clearError: () => void;
 }
-
-// ============================================================
-// メインフック
-// ============================================================
 
 /**
  * セットアップフック

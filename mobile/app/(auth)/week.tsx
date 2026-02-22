@@ -10,28 +10,14 @@ import {
 import { EventCard } from "../../src/components/calendar/EventCard";
 import type { UICalendarEvent } from "../../src/hooks/useEvents";
 import { useEvents } from "../../src/hooks/useEvents";
-import { formatDateKey } from "../../src/lib/calendar-utils";
+import {
+	DAY_MS,
+	formatDateKey,
+	formatSectionHeader,
+	groupEventsByDate,
+} from "../../src/lib/calendar-utils";
 
 const DAYS_TO_SHOW = 7;
-
-/** JSTオフセット（ミリ秒）: UTC+9 */
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
-
-/**
- * 日付ヘッダーのフォーマット（JST基準）
- */
-function formatSectionHeader(date: Date, isToday: boolean): string {
-	const jst = new Date(date.getTime() + JST_OFFSET_MS);
-	const weekday = jst.toLocaleDateString("ja-JP", {
-		weekday: "short",
-		timeZone: "UTC",
-	});
-	const month = jst.getUTCMonth() + 1;
-	const day = jst.getUTCDate();
-	return isToday
-		? `今日 ${month}/${day}（${weekday}）`
-		: `${month}/${day}（${weekday}）`;
-}
 
 /** 予定なしのプレースホルダー型 */
 interface EmptyPlaceholder {
@@ -58,22 +44,11 @@ export default function WeekScreen() {
 		await refresh();
 	}, [refresh]);
 
-	// イベントを日付ごとにセクション化（JST基準）
 	const sections: Section[] = useMemo(() => {
 		const now = new Date();
 		const todayKey = formatDateKey(now);
+		const grouped = groupEventsByDate(events);
 
-		// イベントを日付でグルーピング
-		const grouped = new Map<string, UICalendarEvent[]>();
-		for (const event of events) {
-			const key = formatDateKey(event.startTime);
-			const list = grouped.get(key) ?? [];
-			list.push(event);
-			grouped.set(key, list);
-		}
-
-		// 7日分のセクションを生成（1日=86400000ms ずつ進める）
-		const DAY_MS = 24 * 60 * 60 * 1000;
 		return Array.from({ length: DAYS_TO_SHOW }, (_, i) => {
 			const date = new Date(now.getTime() + i * DAY_MS);
 			const key = formatDateKey(date);

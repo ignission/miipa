@@ -1,25 +1,11 @@
-/**
- * ChatPanelコンポーネント
- *
- * メインチャットパネルです。
- * - Web: フローティングパネル方式で画面下部に表示
- * - Mobile: フルスクリーン（FlatListでメッセージ表示）
- *
- * @module components/chat/chat-panel
- */
-
 import { useCallback, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { ChatInput, type SendKeyType } from "./chat-input";
+import type { SendKeyType } from "../../api/settings";
+import { ChatInput } from "./chat-input";
 import { ChatMessage } from "./chat-message";
 import { ChatSuggestions } from "./chat-suggestions";
 
-// ============================================================
-// 型定義
-// ============================================================
-
-/** チャットメッセージの型 */
 interface Message {
 	/** メッセージID */
 	id: string;
@@ -29,9 +15,6 @@ interface Message {
 	content: string;
 }
 
-/**
- * ChatPanelコンポーネントのProps
- */
 interface ChatPanelProps {
 	/** メッセージ一覧 */
 	messages: Message[];
@@ -47,13 +30,6 @@ interface ChatPanelProps {
 	error: string | null;
 }
 
-// ============================================================
-// サブコンポーネント
-// ============================================================
-
-/**
- * 展開アイコン（上矢印のSVG）
- */
 function ExpandIcon() {
 	return (
 		<Svg width={20} height={20} viewBox="0 0 20 20" fill="currentColor">
@@ -66,9 +42,6 @@ function ExpandIcon() {
 	);
 }
 
-/**
- * 閉じるアイコン（下矢印のSVG）
- */
 function CollapseIcon() {
 	return (
 		<Svg width={20} height={20} viewBox="0 0 20 20" fill="currentColor">
@@ -81,11 +54,7 @@ function CollapseIcon() {
 	);
 }
 
-/**
- * バウンスドットローディングインジケーター
- *
- * AIが応答を生成中であることを示すアニメーションです。
- */
+/** AI応答中のローディングインジケーター */
 function LoadingDots() {
 	return (
 		<View
@@ -104,18 +73,10 @@ function LoadingDots() {
 	);
 }
 
-// ============================================================
-// メインコンポーネント
-// ============================================================
-
 /**
  * チャットパネル
  *
- * Web: 画面下部にフローティング表示されるチャットUI
- * Mobile: フルスクリーンでメッセージ表示
- *
- * @param props - コンポーネントのProps
- * @returns チャットパネル要素
+ * Web: 画面下部にフローティング表示、Mobile: フルスクリーン
  */
 export function ChatPanel({
 	messages,
@@ -128,9 +89,6 @@ export function ChatPanel({
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [sendKey, setSendKey] = useState<SendKeyType>("enter");
 
-	/**
-	 * 質問候補選択時のハンドラ
-	 */
 	const handleSuggestionSelect = useCallback(
 		(suggestion: string) => {
 			setIsExpanded(true);
@@ -139,9 +97,6 @@ export function ChatPanel({
 		[sendMessage],
 	);
 
-	/**
-	 * 送信時にパネルを展開する
-	 */
 	const handleSend = useCallback(() => {
 		if (!isExpanded) {
 			setIsExpanded(true);
@@ -150,18 +105,12 @@ export function ChatPanel({
 		sendMessage();
 	}, [isExpanded, sendMessage]);
 
-	/**
-	 * パネルの展開/折りたたみ切り替え
-	 */
 	const toggleExpanded = useCallback(() => {
 		setIsExpanded((prev) => !prev);
 	}, []);
 
-	/**
-	 * 送信キー切替
-	 */
 	const toggleSendKey = useCallback(() => {
-		setSendKey((prev) => (prev === "enter" ? "cmd-enter" : "enter"));
+		setSendKey((prev) => (prev === "enter" ? "cmd+enter" : "enter"));
 	}, []);
 
 	const hasMessages = messages.length > 0;

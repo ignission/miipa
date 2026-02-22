@@ -1,24 +1,8 @@
-/**
- * アカウント削除確認ダイアログコンポーネント
- *
- * アカウントを削除する前に確認を求めるモーダルダイアログを提供します。
- * 削除処理はAPIを呼び出し、成功時にログアウト処理を行います。
- *
- * @module components/settings/delete-account-dialog
- */
-
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ApiError, apiFetch } from "../../api/client";
 import { Dialog } from "../ui/dialog";
 
-// ============================================================
-// 型定義
-// ============================================================
-
-/**
- * DeleteAccountDialogコンポーネントのProps
- */
 interface DeleteAccountDialogProps {
 	/** ダイアログの開閉状態 */
 	isOpen: boolean;
@@ -28,19 +12,7 @@ interface DeleteAccountDialogProps {
 	onLogout: () => void;
 }
 
-// ============================================================
-// メインコンポーネント
-// ============================================================
-
-/**
- * アカウント削除確認ダイアログ
- *
- * アカウントを削除する前に確認を求めます。
- * - すべてのデータが削除される旨を警告
- * - キャンセル/削除ボタン
- * - 削除中はローディング状態を表示
- * - 成功時にログアウト処理を呼び出し
- */
+/** アカウント削除確認ダイアログ */
 export function DeleteAccountDialog({
 	isOpen,
 	onClose,
@@ -54,7 +26,7 @@ export function DeleteAccountDialog({
 		setIsDeleting(true);
 		setError(null);
 		try {
-			await apiFetch("/api/account", { method: "DELETE" });
+			await apiFetch("/account", { method: "DELETE" });
 			onLogout();
 		} catch (e) {
 			setError(
@@ -82,14 +54,12 @@ export function DeleteAccountDialog({
 			description="すべてのカレンダー設定、同期データ、認証情報が完全に削除されます。この操作は取り消せません。"
 		>
 			<View className="gap-4">
-				{/* エラーメッセージ */}
 				{error && (
 					<View className="rounded-md bg-red-50 p-3">
 						<Text className="text-sm text-red-600">{error}</Text>
 					</View>
 				)}
 
-				{/* ボタン */}
 				<View className="flex-row justify-end gap-3">
 					<Pressable
 						onPress={handleClose}

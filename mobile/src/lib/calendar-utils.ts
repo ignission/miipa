@@ -15,17 +15,29 @@ export interface CalendarDay {
 }
 
 /** JSTオフセット（ミリ秒）: UTC+9 */
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+export const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
-/**
- * 日付キーを生成（YYYY-MM-DD、JST基準）
- *
- * APIサーバー側のJST基準と一致させるため、
- * UTC時刻をJSTに変換してから日付部分を抽出します。
- *
- * @param date - 対象の日付
- * @returns YYYY-MM-DD 形式の文字列（JST基準）
- */
+/** 1日のミリ秒 */
+export const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 曜日フォーマッタ（モジュールスコープでキャッシュしレンダー毎の再生成を防止） */
+const weekdayFormatter = new Intl.DateTimeFormat("ja-JP", {
+	weekday: "short",
+	timeZone: "UTC",
+});
+
+/** 日付ヘッダーのフォーマット（JST基準、「今日 2/23（月）」or「2/23（月）」） */
+export function formatSectionHeader(date: Date, isToday: boolean): string {
+	const jst = new Date(date.getTime() + JST_OFFSET_MS);
+	const weekday = weekdayFormatter.format(jst);
+	const month = jst.getUTCMonth() + 1;
+	const day = jst.getUTCDate();
+	return isToday
+		? `今日 ${month}/${day}（${weekday}）`
+		: `${month}/${day}（${weekday}）`;
+}
+
+/** 日付キーを生成（YYYY-MM-DD、JST基準） */
 export function formatDateKey(date: Date): string {
 	const jst = new Date(date.getTime() + JST_OFFSET_MS);
 	const y = jst.getUTCFullYear();
@@ -34,15 +46,7 @@ export function formatDateKey(date: Date): string {
 	return `${y}-${m}-${d}`;
 }
 
-/**
- * カレンダーグリッド（6行×7列 = 42セル）を生成
- *
- * 月曜始まりで前月末・次月初の日付も含みます。
- *
- * @param year - 年
- * @param month - 月（1〜12）
- * @returns 42個のCalendarDay配列
- */
+/** カレンダーグリッド（6行x7列 = 42セル）を生成（月曜始まり） */
 export function generateCalendarGrid(
 	year: number,
 	month: number,
@@ -79,12 +83,7 @@ export function generateCalendarGrid(
 	return grid;
 }
 
-/**
- * イベントを日付キーでグルーピング
- *
- * @param events - イベント配列
- * @returns 日付キー → イベント配列のMap
- */
+/** イベントを日付キーでグルーピング */
 export function groupEventsByDate(
 	events: UICalendarEvent[],
 ): Map<string, UICalendarEvent[]> {
