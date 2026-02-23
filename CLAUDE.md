@@ -24,7 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # 開発サーバー起動
-npm run dev
+pnpm dev
 
 # Lint & Format（修正適用）
 npx biome check --write .
@@ -33,17 +33,18 @@ npx biome check --write .
 npx biome check .
 
 # ビルド（ローカル確認用）
-npm run build
+pnpm build
 
 # Cloudflare Workers用ビルド＆デプロイ
-npm run build:worker && npx wrangler deploy
+pnpm build:worker && npx wrangler deploy
 ```
 
 ## 検証ルール
 
-- `node_modules` が存在しない場合は `npm install` を先に実行すること
-- `npx biome check .` と `npm run build` が両方通るまで検証完了としないこと
+- `node_modules` が存在しない場合は `pnpm install` を先に実行すること
+- `npx biome check .` と `pnpm build` が両方通るまで検証完了としないこと
 - ビルド失敗を「環境の問題」として片付けない
+- PRにpush後は必ず `gh run watch` でCIを監視し、グリーンになるまで確認すること。失敗した場合は即座にログを確認して修正する
 
 ## 既知の問題
 
