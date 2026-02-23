@@ -7,11 +7,14 @@
  * @module packages/api/src/index
  */
 
+import type { Context } from "hono";
 import { Hono } from "hono";
 import type { AppType } from "@/context/app-context";
 import { authMiddleware } from "@/middleware/auth";
 import { corsMiddleware } from "@/middleware/cors";
 import { errorHandler } from "@/middleware/error-handler";
+import { rateLimiter } from "@/middleware/rate-limit";
+import { securityHeaders } from "@/middleware/security-headers";
 import { account } from "@/routes/account";
 import { auth } from "@/routes/auth";
 import { calendars } from "@/routes/calendars";
@@ -20,11 +23,40 @@ import { events } from "@/routes/events";
 import { settings } from "@/routes/settings";
 import { setup } from "@/routes/setup";
 
+/** クライアントIPの取得（フォールバックチェーン） */
+function getClientIp(c: Context): string {
+	return (
+		c.req.header("cf-connecting-ip") ||
+		c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+		c.req.header("x-real-ip") ||
+		"unknown"
+	);
+}
+
 const app = new Hono<AppType>();
 
 // グローバルミドルウェア
 app.use("/*", corsMiddleware);
+app.use("/*", securityHeaders);
 app.onError(errorHandler);
+
+// レートリミット: 認証ルート（IPベース）
+app.use(
+	"/auth/mobile/token",
+	rateLimiter({
+		windowMs: 60 * 1000,
+		limit: 10,
+		keyGenerator: (c) => `auth-mobile:${getClientIp(c)}`,
+	}),
+);
+app.use(
+	"/auth/refresh",
+	rateLimiter({
+		windowMs: 60 * 1000,
+		limit: 30,
+		keyGenerator: (c) => `auth-refresh:${getClientIp(c)}`,
+	}),
+);
 
 // ヘルスチェック（認証不要）
 app.get("/health", (c) => c.json({ status: "ok" }));
@@ -35,6 +67,33 @@ app.route("/auth", auth);
 // 認証が必要なルートグループ
 const protectedApp = new Hono<AppType>();
 protectedApp.use("/*", authMiddleware);
+
+// レートリミット: 認証済みルート（userIdベース）
+protectedApp.use(
+	"/chat",
+	rateLimiter({
+		windowMs: 60 * 1000,
+		limit: 20,
+		keyGenerator: (c) => `chat:${c.get("userId")}`,
+	}),
+);
+protectedApp.use(
+	"/calendars/ical",
+	rateLimiter({
+		windowMs: 60 * 1000,
+		limit: 10,
+		keyGenerator: (c) => `calendars-ical:${c.get("userId")}`,
+	}),
+);
+protectedApp.use(
+	"/setup/validate-key",
+	rateLimiter({
+		windowMs: 60 * 1000,
+		limit: 10,
+		keyGenerator: (c) => `setup-validate:${c.get("userId")}`,
+	}),
+);
+
 protectedApp.route("/calendars", calendars);
 protectedApp.route("/events", events);
 protectedApp.route("/chat", chat);

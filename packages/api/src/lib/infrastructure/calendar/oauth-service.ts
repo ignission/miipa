@@ -151,8 +151,16 @@ export async function exchangeCode(
 
 		if (!response.ok) {
 			const errorBody = await response.text();
+			console.error(
+				"Google token exchange failed:",
+				response.status,
+				errorBody,
+			);
 			return err(
-				apiError(`トークンの取得に失敗しました: ${errorBody}`, response.status),
+				apiError(
+					`トークンの取得に失敗しました（ステータス: ${response.status}）`,
+					response.status,
+				),
 			);
 		}
 
@@ -205,9 +213,14 @@ export async function refreshToken(
 
 		if (!response.ok) {
 			const errorBody = await response.text();
+			console.error(
+				"Google token refresh failed:",
+				response.status,
+				errorBody,
+			);
 			return err(
 				apiError(
-					`アクセストークンの更新に失敗しました: ${errorBody}`,
+					`アクセストークンの更新に失敗しました（ステータス: ${response.status}）`,
 					response.status,
 				),
 			);

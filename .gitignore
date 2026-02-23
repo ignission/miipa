@@ -43,6 +43,10 @@ Thumbs.db
 *.sqlite3
 *.db
 
+# Database backups
+backup_before_merge.sql
+*.dump
+
 # TypeScript
 *.tsbuildinfo
 

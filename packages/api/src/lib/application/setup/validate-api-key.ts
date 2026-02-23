@@ -31,6 +31,7 @@
 
 import type { LLMProvider } from "@/lib/config/types";
 import { err, isErr, ok, type Result } from "@/lib/domain/shared";
+import { isInternalHost } from "@/lib/infrastructure/network";
 
 import type { ApiKeyValidationError, OllamaConnectionResult } from "./types";
 
@@ -486,6 +487,35 @@ async function validateGeminiKey(
 async function validateOllamaConnection(
 	baseUrl: string = DEFAULT_OLLAMA_BASE_URL,
 ): Promise<Result<OllamaConnectionResult, ApiKeyValidationError>> {
+	// SSRF対策: baseUrlのホスト名を検証（CWE-918）
+	// デフォルトのlocalhost以外が指定された場合、内部ネットワークを拒否
+	try {
+		const parsed = new URL(baseUrl);
+		if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+			return err({
+				code: "INVALID_FORMAT",
+				message:
+					"OllamaのURLはhttp://またはhttps://で始まる必要があります。",
+			});
+		}
+		// localhostは許可（Ollamaは通常ローカルで動作するため）
+		const hostname = parsed.hostname.toLowerCase();
+		if (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1") {
+			if (isInternalHost(parsed.hostname)) {
+				return err({
+					code: "INVALID_FORMAT",
+					message:
+						"指定されたURLは内部ネットワークを参照しています。Ollamaサーバーのアドレスを確認してください。",
+				});
+			}
+		}
+	} catch {
+		return err({
+			code: "INVALID_FORMAT",
+			message: "OllamaのベースURLが無効な形式です。",
+		});
+	}
+
 	const tagsUrl = `${baseUrl}/api/tags`;
 
 	const fetchResult = await fetchWithTimeout(
