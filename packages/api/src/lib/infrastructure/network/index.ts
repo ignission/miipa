@@ -9,6 +9,5 @@
 
 export {
 	isInternalHost,
-	MAX_RESPONSE_SIZE_BYTES,
 	readResponseWithSizeLimit,
 } from "./ssrf-guard";

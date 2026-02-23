@@ -213,11 +213,7 @@ export async function refreshToken(
 
 		if (!response.ok) {
 			const errorBody = await response.text();
-			console.error(
-				"Google token refresh failed:",
-				response.status,
-				errorBody,
-			);
+			console.error("Google token refresh failed:", response.status, errorBody);
 			return err(
 				apiError(
 					`アクセストークンの更新に失敗しました（ステータス: ${response.status}）`,
