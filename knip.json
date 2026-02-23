@@ -2,7 +2,7 @@
 	"$schema": "https://unpkg.com/knip@5/schema.json",
 	"workspaces": {
 		".": {
-			"ignoreBinaries": ["turbo", "wrangler", "expo"],
+			"ignoreBinaries": ["wrangler", "expo"],
 			"ignoreDependencies": ["@cloudflare/workers-types", "tsx"]
 		},
 		"packages/api": {
