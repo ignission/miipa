@@ -12,7 +12,7 @@
 	},
 	"dependencies": {
 		"@bacons/apple-targets": "^4.0.3",
-		"@miipa/shared": "*",
+		"@miipa/shared": "workspace:*",
 		"@expo/vector-icons": "^15.0.3",
 		"@gluestack-ui/nativewind-utils": "^1.0.28",
 		"@gluestack-ui/overlay": "^0.1.22",

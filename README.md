@@ -67,24 +67,25 @@
 
 ```bash
 # 開発サーバー起動
-npm run dev
+pnpm dev
 
 # ビルド（ローカル確認用）
-npm run build
+pnpm build
 
 # Lint & Formatチェック
-npm run lint
+pnpm lint
 
 # Lint & Format修正適用
-npm run lint:fix
+pnpm lint:fix
 
 # Cloudflare Workersへデプロイ
-npm run deploy
+pnpm deploy
 ```
 
 ### 必要条件
 
-- Node.js 20+（ローカル開発はこれだけでOK）
+- Node.js 20+
+- pnpm 10+（`mise install` で自動インストール）
 - Cloudflare アカウント（本番デプロイ時のみ）
 
 ---
