@@ -44,6 +44,7 @@ pnpm build:worker && npx wrangler deploy
 - `node_modules` が存在しない場合は `pnpm install` を先に実行すること
 - `npx biome check .` と `pnpm build` が両方通るまで検証完了としないこと
 - ビルド失敗を「環境の問題」として片付けない
+- PRにpush後は必ず `gh run watch` でCIを監視し、グリーンになるまで確認すること。失敗した場合は即座にログを確認して修正する
 
 ## 既知の問題
 
