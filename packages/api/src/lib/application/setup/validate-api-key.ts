@@ -35,8 +35,6 @@ import { isInternalHost } from "@/lib/infrastructure/network";
 
 import type { ApiKeyValidationError, OllamaConnectionResult } from "./types";
 
-// 型を再エクスポート（利便性のため）
-
 // ============================================================
 // 定数
 // ============================================================

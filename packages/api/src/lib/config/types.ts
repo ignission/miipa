@@ -23,18 +23,24 @@
  * @example
  * ```typescript
  * import {
- *   type AppConfig,
+ *   type LLMProvider,
  *   type LLMConfig,
  *   type CalendarConfig,
- *   type UIConfig,
- *   AppConfigSchema,
- *   DEFAULT_CONFIG,
+ *   LLMConfigSchema,
+ *   CalendarConfigSchema,
+ *   isLLMProvider,
  * } from '@/lib/config/types';
  *
+ * // LLMプロバイダの型ガード
+ * const provider: unknown = 'claude';
+ * if (isLLMProvider(provider)) {
+ *   console.log(provider); // 'claude'
+ * }
+ *
  * // スキーマによるバリデーション
- * const result = AppConfigSchema.safeParse(unknownData);
+ * const result = LLMConfigSchema.safeParse(unknownData);
  * if (result.success) {
- *   const config: AppConfig = result.data;
+ *   const config: LLMConfig = result.data;
  * }
  * ```
  */

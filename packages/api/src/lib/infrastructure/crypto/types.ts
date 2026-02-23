@@ -8,18 +8,11 @@
  * @module lib/infrastructure/crypto/types
  * @example
  * ```typescript
- * import type { CryptoError, EncryptedData } from '@/lib/infrastructure/crypto/types';
+ * import type { CryptoError } from '@/lib/infrastructure/crypto/types';
  * import { encryptionFailed } from '@/lib/infrastructure/crypto/types';
  *
  * // エラーファクトリの使用
- * const error = encryptionFailed('暗号化処理でエラーが発生しました');
- *
- * // 暗号化データの構造
- * const data: EncryptedData = {
- *   iv: Buffer.alloc(12),       // 12 bytes
- *   authTag: Buffer.alloc(16),  // 16 bytes
- *   ciphertext: Buffer.from('...'),
- * };
+ * const error: CryptoError = encryptionFailed('暗号化処理でエラーが発生しました');
  * ```
  */
 

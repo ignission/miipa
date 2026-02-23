@@ -8,20 +8,17 @@
  * @module lib/infrastructure/secret/types
  * @example
  * ```typescript
- * import type { SecretKey, SecretError } from '@/lib/infrastructure/secret/types';
- * import { secretNotFound, isGoogleOAuthKey } from '@/lib/infrastructure/secret/types';
+ * import type { LLMSecretKey, SecretError } from '@/lib/infrastructure/secret/types';
+ * import { secretWriteFailed, createGoogleOAuthKey } from '@/lib/infrastructure/secret/types';
  *
  * // LLMシークレットキーの使用
- * const key: SecretKey = 'anthropic-api-key';
+ * const key: LLMSecretKey = 'anthropic-api-key';
  *
- * // Google OAuthキー（動的生成）
- * const oauthKey: SecretKey = 'google-oauth-user@example.com';
- * if (isGoogleOAuthKey(oauthKey)) {
- *   // oauthKey は GoogleOAuthSecretKey 型に絞り込まれる
- * }
+ * // Google OAuthキーの生成
+ * const oauthKey = createGoogleOAuthKey('user@example.com');
  *
  * // エラーファクトリの使用
- * const error = secretNotFound('anthropic-api-key', 'APIキーが見つかりません');
+ * const error: SecretError = secretWriteFailed('anthropic-api-key', '保存に失敗しました');
  * ```
  */
 

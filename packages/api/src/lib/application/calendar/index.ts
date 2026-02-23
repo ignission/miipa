@@ -2,7 +2,7 @@
  * カレンダーアプリケーション層モジュール
  *
  * カレンダー機能に関するユースケースを提供します。
- * - イベント取得（今日・今週・任意期間）
+ * - イベント取得（今日・今週・月間）
  * - iCalカレンダーの追加
  * - Googleカレンダーの追加
  * - カレンダー同期
@@ -15,24 +15,16 @@
  *   // イベント取得
  *   getEventsForToday,
  *   getEventsForWeek,
- *   getEventsForRange,
- *   type GetEventsError,
+ *   getEventsForMonth,
  *
  *   // iCalカレンダー追加
  *   addICalCalendar,
- *   type AddICalCalendarError,
  *
  *   // Googleカレンダー追加
  *   startGoogleAuth,
- *   completeGoogleAuth,
- *   type AuthUrlInfo,
- *   type AddGoogleCalendarResult,
  *
  *   // カレンダー同期
  *   syncAllCalendars,
- *   syncCalendar,
- *   type SyncAllResult,
- *   type SyncResult,
  * } from '@/lib/application/calendar';
  * import { isOk } from '@/lib/domain/shared';
  *

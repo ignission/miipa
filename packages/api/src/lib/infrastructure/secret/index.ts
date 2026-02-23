@@ -8,18 +8,10 @@
  * @example
  * ```typescript
  * import {
- *   D1SecretRepository,
- *   type SecretKey,
- *   type SecretError,
+ *   type LLMSecretKey,
  * } from '@/lib/infrastructure/secret';
  *
- * const repo = new D1SecretRepository(env.DB, userId, encryptionKey);
- *
- * // シークレットの保存
- * const result = await repo.setSecret('anthropic-api-key', 'sk-xxx');
- *
- * // シークレットの取得
- * const getResult = await repo.getSecret('anthropic-api-key');
+ * const key: LLMSecretKey = 'anthropic-api-key';
  * ```
  */
 

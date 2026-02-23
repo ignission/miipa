@@ -9,9 +9,6 @@
  * ```typescript
  * import {
  *   saveTokens,
- *   getTokens,
- *   deleteTokens,
- *   hasTokens,
  *   isTokenExpired,
  *   type OAuthTokens,
  * } from '@/lib/infrastructure/calendar/token-store';
@@ -26,13 +23,10 @@
  *   expiresAt: new Date(Date.now() + 3600 * 1000),
  * });
  *
- * // トークンを取得
- * const result = await getTokens(secretRepo, 'user@gmail.com');
- * if (result._tag === 'Ok' && result.value._tag === 'Some') {
- *   const tokens = result.value.value;
- *   if (isTokenExpired(tokens)) {
- *     // リフレッシュ処理
- *   }
+ * // トークンの期限切れ確認
+ * const tokens: OAuthTokens = { ... };
+ * if (isTokenExpired(tokens)) {
+ *   // リフレッシュ処理
  * }
  * ```
  */

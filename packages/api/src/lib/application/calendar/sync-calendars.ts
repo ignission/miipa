@@ -7,7 +7,6 @@
  * ## 機能
  *
  * - **syncAllCalendars**: 全有効カレンダーの並列同期
- * - **syncCalendar**: 単一カレンダーの同期
  *
  * ## 特徴
  *
@@ -20,7 +19,7 @@
  *
  * @example
  * ```typescript
- * import { syncAllCalendars, syncCalendar } from '@/lib/application/calendar/sync-calendars';
+ * import { syncAllCalendars } from '@/lib/application/calendar/sync-calendars';
  * import { isOk } from '@/lib/domain/shared';
  *
  * // 全カレンダーを同期
@@ -31,9 +30,6 @@
  *     console.warn('失敗したカレンダー:', result.value.errorCalendars);
  *   }
  * }
- *
- * // 単一カレンダーを同期
- * const singleResult = await syncCalendar(ctx, createCalendarId('google-work'));
  * ```
  */
 
