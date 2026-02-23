@@ -213,11 +213,7 @@ export async function refreshToken(
 
 		if (!response.ok) {
 			const errorBody = await response.text();
-			console.error(
-				"Google token refresh failed:",
-				response.status,
-				errorBody,
-			);
+			console.error("Google token refresh failed:", response.status, errorBody);
 			return err(
 				apiError(
 					`アクセストークンの更新に失敗しました（ステータス: ${response.status}）`,
@@ -253,7 +249,7 @@ export async function refreshToken(
 /**
  * トークンが有効期限切れかどうかを判定
  */
-export function isTokenExpired(expiresAt: Date): boolean {
+function _isTokenExpired(expiresAt: Date): boolean {
 	const bufferMs = 5 * 60 * 1000; // 5分のバッファ
 	return new Date(Date.now() + bufferMs) >= expiresAt;
 }

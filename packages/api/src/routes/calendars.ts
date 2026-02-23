@@ -310,7 +310,12 @@ calendars.post("/google", async (c) => {
 		} catch (e) {
 			console.error("[calendars] PKCEセッション保存エラー:", e);
 			return c.json(
-				{ error: { code: "SESSION_SAVE_FAILED", message: "認証セッションの保存に失敗しました" } },
+				{
+					error: {
+						code: "SESSION_SAVE_FAILED",
+						message: "認証セッションの保存に失敗しました",
+					},
+				},
 				500,
 			);
 		}
@@ -357,7 +362,12 @@ calendars.get("/google/reauth", async (c) => {
 		} catch (e) {
 			console.error("[calendars] PKCEセッション保存エラー（再認証）:", e);
 			return c.json(
-				{ error: { code: "SESSION_SAVE_FAILED", message: "認証セッションの保存に失敗しました" } },
+				{
+					error: {
+						code: "SESSION_SAVE_FAILED",
+						message: "認証セッションの保存に失敗しました",
+					},
+				},
 				500,
 			);
 		}

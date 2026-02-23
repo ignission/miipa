@@ -14,9 +14,7 @@ export function useWidgetData(events: UICalendarEvent[], isLoading = false) {
 		if (isLoading) return;
 
 		// イベントのキーを生成して重複書き込みを防止
-		const key = events
-			.map((e) => `${e.id}:${e.startTime.getTime()}`)
-			.join(",");
+		const key = events.map((e) => `${e.id}:${e.startTime.getTime()}`).join(",");
 		if (key === lastKeyRef.current) return;
 		lastKeyRef.current = key;
 

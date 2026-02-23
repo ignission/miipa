@@ -1,5 +1,3 @@
-import type { Context } from "hono";
-
 /** Cloudflare Workers バインディング */
 export type Bindings = {
 	DB: D1Database;
@@ -23,6 +21,3 @@ export type AppType = {
 	Bindings: Bindings;
 	Variables: Variables;
 };
-
-/** 認証済みコンテキスト型 */
-export type AuthenticatedContext = Context<AppType>;

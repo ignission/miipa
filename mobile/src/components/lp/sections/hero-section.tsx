@@ -1,16 +1,15 @@
-import { Image, View, Text, Platform } from "react-native";
+import { Image, Platform, Text, View } from "react-native";
 import Animated, {
-	useAnimatedStyle,
 	interpolate,
 	type SharedValue,
+	useAnimatedStyle,
 } from "react-native-reanimated";
 
 import { useEntranceAnimation } from "../animations/use-entrance-animation";
 import { useFloatingAnimation } from "../animations/use-floating-animation";
+import { SunRays } from "../illustrations/sun-rays";
 import { CTAButton } from "../shared/cta-button";
 import { GradientText } from "../shared/gradient-text";
-
-import { SunRays } from "../illustrations/sun-rays";
 
 interface HeroSectionProps {
 	onSignIn: () => void;
@@ -24,7 +23,9 @@ export function HeroSection({ onSignIn, scrollY }: HeroSectionProps) {
 	const ctaAnimation = useEntranceAnimation(400);
 
 	const parallaxStyle = useAnimatedStyle(() => ({
-		transform: [{ translateY: interpolate(scrollY.value, [0, 500], [0, -250]) }],
+		transform: [
+			{ translateY: interpolate(scrollY.value, [0, 500], [0, -250]) },
+		],
 	}));
 
 	return (
@@ -49,7 +50,9 @@ export function HeroSection({ onSignIn, scrollY }: HeroSectionProps) {
 								height: 160,
 								borderRadius: 40,
 								...(Platform.OS === "web"
-									? ({ boxShadow: "0 12px 40px rgba(255,107,74,0.25)" } as object)
+									? ({
+											boxShadow: "0 12px 40px rgba(255,107,74,0.25)",
+										} as object)
 									: {}),
 							}}
 						/>
@@ -69,19 +72,20 @@ export function HeroSection({ onSignIn, scrollY }: HeroSectionProps) {
 			</Animated.View>
 
 			{/* タグライン */}
-			<Animated.View style={subtitleAnimation.animatedStyle} className="mt-4 px-6">
+			<Animated.View
+				style={subtitleAnimation.animatedStyle}
+				className="mt-4 px-6"
+			>
 				<GradientText className="text-center text-4xl font-black">
 					今日のあなたを、30秒で把握。
 				</GradientText>
 			</Animated.View>
 
 			{/* サブタイトル */}
-			<Animated.View
-				style={ctaAnimation.animatedStyle}
-				className="mt-3 px-8"
-			>
+			<Animated.View style={ctaAnimation.animatedStyle} className="mt-3 px-8">
 				<Text className="text-center text-base text-fg-muted leading-relaxed">
-					複数のGoogleカレンダーを統合して、{"\n"}AIがあなたの一日をブリーフィング。
+					複数のGoogleカレンダーを統合して、{"\n"}
+					AIがあなたの一日をブリーフィング。
 				</Text>
 			</Animated.View>
 

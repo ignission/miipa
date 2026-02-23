@@ -61,7 +61,7 @@ import { createGoogleOAuthKey } from "@/lib/infrastructure/secret/types";
  *
  * Googleカレンダー追加処理で発生しうるエラーを表現します。
  */
-export interface AddGoogleCalendarError {
+interface AddGoogleCalendarError {
 	/** エラーコード */
 	readonly code: AddGoogleCalendarErrorCode;
 	/** エラーメッセージ（ユーザー向け） */
@@ -80,7 +80,7 @@ export interface AddGoogleCalendarError {
  * - CALENDAR_LIST_FAILED: カレンダー一覧取得に失敗
  * - CONFIG_SAVE_FAILED: 設定保存に失敗
  */
-export type AddGoogleCalendarErrorCode =
+type AddGoogleCalendarErrorCode =
 	| "AUTH_URL_GENERATION_FAILED"
 	| "TOKEN_EXCHANGE_FAILED"
 	| "TOKEN_SAVE_FAILED"
@@ -93,7 +93,7 @@ export type AddGoogleCalendarErrorCode =
  *
  * 認証完了後に返される結果情報です。
  */
-export interface AddGoogleCalendarResult {
+interface AddGoogleCalendarResult {
 	/** 追加されたGoogleアカウントのメールアドレス */
 	readonly accountEmail: string;
 	/** 追加されたカレンダー設定の配列 */
@@ -308,7 +308,7 @@ export async function startGoogleAuth(
  * }
  * ```
  */
-export async function completeGoogleAuth(
+async function _completeGoogleAuth(
 	ctx: CalendarContext,
 	oauthConfig: OAuthConfig,
 	code: string,

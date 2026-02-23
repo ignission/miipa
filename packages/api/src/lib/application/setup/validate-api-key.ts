@@ -35,9 +35,6 @@ import { isInternalHost } from "@/lib/infrastructure/network";
 
 import type { ApiKeyValidationError, OllamaConnectionResult } from "./types";
 
-// 型を再エクスポート（利便性のため）
-export type { ApiKeyValidationError, OllamaConnectionResult } from "./types";
-
 // ============================================================
 // 定数
 // ============================================================
@@ -108,7 +105,7 @@ const GEMINI_API_KEY_PATTERN = /^AIza/;
  * // invalidResult: Err<ApiKeyValidationError> (code: 'INVALID_FORMAT')
  * ```
  */
-export function validateApiKeyFormat(
+function validateApiKeyFormat(
 	provider: LLMProvider,
 	key: string,
 ): Result<void, ApiKeyValidationError> {
@@ -221,7 +218,7 @@ async function fetchWithTimeout(
  * }
  * ```
  */
-export async function validateClaudeKey(
+async function validateClaudeKey(
 	apiKey: string,
 ): Promise<Result<void, ApiKeyValidationError>> {
 	// まず形式チェック
@@ -310,7 +307,7 @@ export async function validateClaudeKey(
  * }
  * ```
  */
-export async function validateOpenAIKey(
+async function validateOpenAIKey(
 	apiKey: string,
 ): Promise<Result<void, ApiKeyValidationError>> {
 	// まず形式チェック
@@ -399,7 +396,7 @@ export async function validateOpenAIKey(
  * }
  * ```
  */
-export async function validateGeminiKey(
+async function validateGeminiKey(
 	apiKey: string,
 ): Promise<Result<void, ApiKeyValidationError>> {
 	// まず形式チェック
@@ -485,7 +482,7 @@ export async function validateGeminiKey(
  * }
  * ```
  */
-export async function validateOllamaConnection(
+async function validateOllamaConnection(
 	baseUrl: string = DEFAULT_OLLAMA_BASE_URL,
 ): Promise<Result<OllamaConnectionResult, ApiKeyValidationError>> {
 	// SSRF対策: baseUrlのホスト名を検証（CWE-918）
@@ -495,13 +492,16 @@ export async function validateOllamaConnection(
 		if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
 			return err({
 				code: "INVALID_FORMAT",
-				message:
-					"OllamaのURLはhttp://またはhttps://で始まる必要があります。",
+				message: "OllamaのURLはhttp://またはhttps://で始まる必要があります。",
 			});
 		}
 		// localhostは許可（Ollamaは通常ローカルで動作するため）
 		const hostname = parsed.hostname.toLowerCase();
-		if (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1") {
+		if (
+			hostname !== "localhost" &&
+			hostname !== "127.0.0.1" &&
+			hostname !== "::1"
+		) {
 			if (isInternalHost(parsed.hostname)) {
 				return err({
 					code: "INVALID_FORMAT",

@@ -93,7 +93,10 @@ setup.get("/status", async (c) => {
 	const calendarsResult = await ctx.configRepository.getSetting("calendars");
 	const parsedCalendars = (() => {
 		if (!isOk(calendarsResult)) {
-			console.warn("[setup] カレンダー設定の取得に失敗:", calendarsResult.error);
+			console.warn(
+				"[setup] カレンダー設定の取得に失敗:",
+				calendarsResult.error,
+			);
 			return [];
 		}
 		if (!calendarsResult.value) return [];

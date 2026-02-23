@@ -18,11 +18,11 @@ import {
 	View,
 } from "react-native";
 import { TimelineView } from "../../src/components/calendar/TimelineView";
-import { WeekTimelineView } from "../../src/components/calendar/WeekTimelineView";
 import {
 	ViewTabs,
 	type ViewType,
 } from "../../src/components/calendar/view-tabs";
+import { WeekTimelineView } from "../../src/components/calendar/WeekTimelineView";
 import { useEvents } from "../../src/hooks/useEvents";
 import { useWidgetData } from "../../src/hooks/useWidgetData";
 
@@ -30,7 +30,11 @@ export default function TodayScreen() {
 	const [activeView, setActiveView] = useState<ViewType>("today");
 	const { events, isLoading, isRefreshing, error, lastSync, refresh } =
 		useEvents(activeView === "today" ? "today" : "week");
-	const { events: weekEventsForWidget, isLoading: isWidgetDataLoading, refresh: refreshWeek } = useEvents("week");
+	const {
+		events: weekEventsForWidget,
+		isLoading: isWidgetDataLoading,
+		refresh: refreshWeek,
+	} = useEvents("week");
 
 	// Widget & Watch データ同期（Mobileのみ）- 3日間表示のため常にweekデータを使用
 	useWidgetData(weekEventsForWidget, isWidgetDataLoading);

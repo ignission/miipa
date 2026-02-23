@@ -7,7 +7,6 @@
  * ## 機能
  *
  * - **syncAllCalendars**: 全有効カレンダーの並列同期
- * - **syncCalendar**: 単一カレンダーの同期
  *
  * ## 特徴
  *
@@ -20,7 +19,7 @@
  *
  * @example
  * ```typescript
- * import { syncAllCalendars, syncCalendar } from '@/lib/application/calendar/sync-calendars';
+ * import { syncAllCalendars } from '@/lib/application/calendar/sync-calendars';
  * import { isOk } from '@/lib/domain/shared';
  *
  * // 全カレンダーを同期
@@ -31,9 +30,6 @@
  *     console.warn('失敗したカレンダー:', result.value.errorCalendars);
  *   }
  * }
- *
- * // 単一カレンダーを同期
- * const singleResult = await syncCalendar(ctx, createCalendarId('google-work'));
  * ```
  */
 
@@ -72,7 +68,7 @@ import {
 /**
  * 同期エラーコード
  */
-export type SyncErrorCode =
+type SyncErrorCode =
 	| "SYNC_CONFIG_ERROR"
 	| "SYNC_DB_ERROR"
 	| "SYNC_PROVIDER_ERROR"
@@ -84,7 +80,7 @@ export type SyncErrorCode =
  *
  * カレンダー同期処理で発生するエラーを表現します。
  */
-export interface SyncError {
+interface SyncError {
 	/** エラーコード */
 	readonly code: SyncErrorCode;
 	/** エラーメッセージ */
@@ -98,7 +94,7 @@ export interface SyncError {
 /**
  * 同期失敗したカレンダーの情報
  */
-export interface ErrorCalendarInfo {
+interface ErrorCalendarInfo {
 	/** カレンダーID */
 	readonly calendarId: CalendarId;
 	/** カレンダー名 */
@@ -110,7 +106,7 @@ export interface ErrorCalendarInfo {
 /**
  * 全カレンダー同期の結果
  */
-export interface SyncAllResult {
+interface SyncAllResult {
 	/** 同期成功したカレンダー数 */
 	readonly successCount: number;
 	/** 同期失敗したカレンダー情報 */
@@ -124,7 +120,7 @@ export interface SyncAllResult {
 /**
  * 単一カレンダー同期の結果
  */
-export interface SyncResult {
+interface SyncResult {
 	/** カレンダーID */
 	readonly calendarId: CalendarId;
 	/** 同期されたイベント数 */
@@ -243,7 +239,7 @@ function getSyncTimeRange(): TimeRange {
  * }
  * ```
  */
-export async function syncCalendar(
+async function _syncCalendar(
 	ctx: CalendarContext,
 	calendarId: CalendarId,
 ): Promise<Result<SyncResult, SyncError>> {

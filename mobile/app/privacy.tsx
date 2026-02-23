@@ -30,9 +30,7 @@ export default function PrivacyScreen() {
 	return (
 		<ScrollView className="flex-1 bg-bg-canvas p-6">
 			<View className="mx-auto max-w-2xl pb-12">
-				<Text className="text-2xl font-bold text-fg">
-					プライバシーポリシー
-				</Text>
+				<Text className="text-2xl font-bold text-fg">プライバシーポリシー</Text>
 				<Text className="mt-2 text-sm text-fg-muted">
 					最終更新日: 2026年2月8日
 				</Text>
@@ -71,9 +69,7 @@ export default function PrivacyScreen() {
 					3.
 					本サービスの利用に伴い、アクセスログ、利用履歴等の履歴情報を自動的に収集します。
 				</ListItem>
-				<Paragraph>
-					収集した情報の保持期間は以下のとおりとします。
-				</Paragraph>
+				<Paragraph>収集した情報の保持期間は以下のとおりとします。</Paragraph>
 				<BulletItem>
 					アカウント情報：退会後最大1年間保持した後、削除します。
 				</BulletItem>
@@ -88,29 +84,18 @@ export default function PrivacyScreen() {
 				<Paragraph>
 					当社がプライバシー情報を収集・利用する目的は、以下のとおりです。
 				</Paragraph>
+				<ListItem>1. ユーザーの認証およびアカウント管理のため</ListItem>
 				<ListItem>
-					1. ユーザーの認証およびアカウント管理のため
+					2. カレンダーイベントの表示および複数カレンダーの統合のため
 				</ListItem>
 				<ListItem>
-					2.
-					カレンダーイベントの表示および複数カレンダーの統合のため
+					3. AIアシスタントによるユーザーの予定分析および提案のため
 				</ListItem>
+				<ListItem>4. 本サービスの品質改善および機能向上のため</ListItem>
+				<ListItem>5. 本サービスの不正利用の防止および対応のため</ListItem>
+				<ListItem>6. ユーザーからのお問い合わせへの対応のため</ListItem>
 				<ListItem>
-					3.
-					AIアシスタントによるユーザーの予定分析および提案のため
-				</ListItem>
-				<ListItem>
-					4. 本サービスの品質改善および機能向上のため
-				</ListItem>
-				<ListItem>
-					5. 本サービスの不正利用の防止および対応のため
-				</ListItem>
-				<ListItem>
-					6. ユーザーからのお問い合わせへの対応のため
-				</ListItem>
-				<ListItem>
-					7.
-					利用規約に違反したユーザーの特定および利用停止措置のため
+					7. 利用規約に違反したユーザーの特定および利用停止措置のため
 				</ListItem>
 				<ListItem>8. 上記に付随する業務の遂行のため</ListItem>
 
@@ -144,9 +129,7 @@ export default function PrivacyScreen() {
 					2.
 					影響を受けるユーザー本人に対し、速やかに当該事態の内容を通知します。
 				</ListItem>
-				<ListItem>
-					3. 再発防止策を策定し、必要な措置を講じます。
-				</ListItem>
+				<ListItem>3. 再発防止策を策定し、必要な措置を講じます。</ListItem>
 
 				<SectionTitle>第5条（第三者提供）</SectionTitle>
 				<Paragraph>
@@ -167,9 +150,7 @@ export default function PrivacyScreen() {
 					国の機関もしくは地方公共団体またはその委託を受けた者が法令の定める事務を遂行することに対して協力する必要がある場合
 				</ListItem>
 
-				<SectionTitle>
-					第6条（Googleカレンダーデータの取扱い）
-				</SectionTitle>
+				<SectionTitle>第6条（Googleカレンダーデータの取扱い）</SectionTitle>
 				<Paragraph>
 					当社は、ユーザーのGoogleカレンダーデータについて、以下のとおり取り扱います。
 				</Paragraph>
@@ -178,8 +159,7 @@ export default function PrivacyScreen() {
 					カレンダーデータへのアクセスは読み取り専用（read-only）とし、ユーザーのカレンダーに対する変更、追加または削除は一切行いません。
 				</ListItem>
 				<ListItem>
-					2.
-					取得したカレンダーデータは、Cloudflare
+					2. 取得したカレンダーデータは、Cloudflare
 					D1データベースにキャッシュとして暗号化保存し、サービス提供に必要な期間のみ保持します。
 				</ListItem>
 				<ListItem>
@@ -196,15 +176,9 @@ export default function PrivacyScreen() {
 					ユーザーは、当社に対し、個人情報保護法の定めに基づき、以下の請求を行うことができます。
 				</Paragraph>
 				<ListItem>1. 保有個人データの開示の請求</ListItem>
-				<ListItem>
-					2. 保有個人データの内容の訂正、追加または削除の請求
-				</ListItem>
-				<ListItem>
-					3. 保有個人データの利用の停止または消去の請求
-				</ListItem>
-				<ListItem>
-					4. 保有個人データの第三者への提供の停止の請求
-				</ListItem>
+				<ListItem>2. 保有個人データの内容の訂正、追加または削除の請求</ListItem>
+				<ListItem>3. 保有個人データの利用の停止または消去の請求</ListItem>
+				<ListItem>4. 保有個人データの第三者への提供の停止の請求</ListItem>
 				<Paragraph>
 					上記の請求を行う場合は、第9条に定めるお問い合わせ窓口にご連絡ください。ご本人確認のうえ、合理的な期間内に対応いたします。
 				</Paragraph>
@@ -230,7 +204,9 @@ export default function PrivacyScreen() {
 				<BulletItem>運営: 合同会社Ignission</BulletItem>
 				<BulletItem>個人情報保護管理者: 西立野 翔磨</BulletItem>
 				<View className="mt-1 flex-row pl-4">
-					<Text className="text-sm leading-6 text-fg-muted">・メールアドレス: </Text>
+					<Text className="text-sm leading-6 text-fg-muted">
+						・メールアドレス:{" "}
+					</Text>
 					<Text
 						className="text-sm leading-6 text-blue-500"
 						onPress={() => Linking.openURL("mailto:miipa@ignission.tech")}

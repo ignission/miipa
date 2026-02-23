@@ -23,28 +23,30 @@
  * @example
  * ```typescript
  * import {
- *   type AppConfig,
+ *   type LLMProvider,
  *   type LLMConfig,
  *   type CalendarConfig,
- *   type UIConfig,
- *   AppConfigSchema,
- *   DEFAULT_CONFIG,
+ *   LLMConfigSchema,
+ *   CalendarConfigSchema,
+ *   isLLMProvider,
  * } from '@/lib/config/types';
  *
+ * // LLMプロバイダの型ガード
+ * const provider: unknown = 'claude';
+ * if (isLLMProvider(provider)) {
+ *   console.log(provider); // 'claude'
+ * }
+ *
  * // スキーマによるバリデーション
- * const result = AppConfigSchema.safeParse(unknownData);
+ * const result = LLMConfigSchema.safeParse(unknownData);
  * if (result.success) {
- *   const config: AppConfig = result.data;
+ *   const config: LLMConfig = result.data;
  * }
  * ```
  */
 
 import { z } from "zod";
-import { type CalendarId, createCalendarId } from "@/lib/domain/shared/types";
-
-// ドメイン型の再エクスポート（カレンダー設定で使用）
-export type { CalendarId };
-export { createCalendarId };
+import { createCalendarId } from "@/lib/domain/shared/types";
 
 // ============================================================
 // LLMプロバイダ設定
@@ -125,7 +127,7 @@ export type LLMConfig = z.infer<typeof LLMConfigSchema>;
  * - `google`: Google Calendar API
  * - `ical`: iCal形式のURL（読み取り専用）
  */
-export type CalendarType = "google" | "ical";
+type CalendarType = "google" | "ical";
 
 /**
  * カレンダー設定のZodスキーマ
@@ -240,7 +242,7 @@ export type CalendarConfig = z.infer<typeof CalendarConfigSchema>;
  * - `dark`: ダークモード
  * - `system`: システム設定に追従
  */
-export type ThemeMode = "light" | "dark" | "system";
+type ThemeMode = "light" | "dark" | "system";
 
 /**
  * 言語設定
@@ -249,7 +251,7 @@ export type ThemeMode = "light" | "dark" | "system";
  * - `ja`: 日本語
  * - `en`: 英語
  */
-export type Locale = "ja" | "en";
+type Locale = "ja" | "en";
 
 /**
  * UI設定のZodスキーマ
@@ -258,7 +260,7 @@ export type Locale = "ja" | "en";
  * - `theme`: 外観テーマ（light/dark/system）
  * - `language`: 表示言語（ja/en）
  */
-export const UIConfigSchema = z.object({
+const UIConfigSchema = z.object({
 	/** 外観テーマ */
 	theme: z
 		.enum(["light", "dark", "system"])
@@ -271,22 +273,6 @@ export const UIConfigSchema = z.object({
 		.default("ja")
 		.describe("アプリケーションの表示言語"),
 });
-
-/**
- * UI設定
- *
- * ユーザーインターフェースの表示設定を定義します。
- * テーマと言語の設定を含みます。
- *
- * @example
- * ```typescript
- * const uiConfig: UIConfig = {
- *   theme: 'system',
- *   language: 'ja',
- * };
- * ```
- */
-export type UIConfig = z.infer<typeof UIConfigSchema>;
 
 // ============================================================
 // アプリケーション設定（ルート型）
@@ -304,7 +290,7 @@ export type UIConfig = z.infer<typeof UIConfigSchema>;
  * - `calendars`: カレンダー設定の配列
  * - `ui`: UI設定
  */
-export const AppConfigSchema = z.object({
+const AppConfigSchema = z.object({
 	/** 設定ファイルのバージョン */
 	version: z
 		.string()
@@ -355,7 +341,7 @@ export const AppConfigSchema = z.object({
  * }
  * ```
  */
-export type AppConfig = z.infer<typeof AppConfigSchema>;
+type AppConfig = z.infer<typeof AppConfigSchema>;
 
 // ============================================================
 // デフォルト設定
@@ -385,7 +371,7 @@ export type AppConfig = z.infer<typeof AppConfigSchema>;
  * };
  * ```
  */
-export const DEFAULT_CONFIG: Readonly<AppConfig> = Object.freeze(
+const _DEFAULT_CONFIG: Readonly<AppConfig> = Object.freeze(
 	AppConfigSchema.parse({}),
 );
 
@@ -430,7 +416,7 @@ export function isLLMProvider(value: unknown): value is LLMProvider {
  * }
  * ```
  */
-export function isCalendarType(value: unknown): value is CalendarType {
+function _isCalendarType(value: unknown): value is CalendarType {
 	return value === "google" || value === "ical";
 }
 
@@ -440,7 +426,7 @@ export function isCalendarType(value: unknown): value is CalendarType {
  * @param value - 検証する値
  * @returns 値がThemeModeの場合はtrue
  */
-export function isThemeMode(value: unknown): value is ThemeMode {
+function _isThemeMode(value: unknown): value is ThemeMode {
 	return value === "light" || value === "dark" || value === "system";
 }
 
@@ -450,6 +436,6 @@ export function isThemeMode(value: unknown): value is ThemeMode {
  * @param value - 検証する値
  * @returns 値がLocaleの場合はtrue
  */
-export function isLocale(value: unknown): value is Locale {
+function _isLocale(value: unknown): value is Locale {
 	return value === "ja" || value === "en";
 }

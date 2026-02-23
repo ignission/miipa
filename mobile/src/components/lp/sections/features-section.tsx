@@ -1,8 +1,8 @@
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
 import Animated, { type SharedValue } from "react-native-reanimated";
 import { useEntranceAnimation } from "../animations/use-entrance-animation";
-import { SectionWrapper } from "../shared/section-wrapper";
 import { DotPattern } from "../illustrations/dot-pattern";
+import { SectionWrapper } from "../shared/section-wrapper";
 
 interface FeaturesSectionProps {
 	scrollY: SharedValue<number>;

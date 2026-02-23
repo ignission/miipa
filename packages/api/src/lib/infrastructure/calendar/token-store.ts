@@ -9,9 +9,6 @@
  * ```typescript
  * import {
  *   saveTokens,
- *   getTokens,
- *   deleteTokens,
- *   hasTokens,
  *   isTokenExpired,
  *   type OAuthTokens,
  * } from '@/lib/infrastructure/calendar/token-store';
@@ -26,13 +23,10 @@
  *   expiresAt: new Date(Date.now() + 3600 * 1000),
  * });
  *
- * // トークンを取得
- * const result = await getTokens(secretRepo, 'user@gmail.com');
- * if (result._tag === 'Ok' && result.value._tag === 'Some') {
- *   const tokens = result.value.value;
- *   if (isTokenExpired(tokens)) {
- *     // リフレッシュ処理
- *   }
+ * // トークンの期限切れ確認
+ * const tokens: OAuthTokens = { ... };
+ * if (isTokenExpired(tokens)) {
+ *   // リフレッシュ処理
  * }
  * ```
  */
@@ -53,7 +47,7 @@ import {
  *
  * Google OAuth 2.0 で取得したトークン情報を保持します。
  */
-export interface OAuthTokens {
+interface OAuthTokens {
 	/** アクセストークン（API呼び出し用） */
 	readonly accessToken: string;
 	/** リフレッシュトークン（アクセストークン更新用） */
@@ -138,7 +132,7 @@ export async function saveTokens(
  * }
  * ```
  */
-export async function getTokens(
+async function _getTokens(
 	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<Option<OAuthTokens>, SecretError>> {
@@ -191,7 +185,7 @@ export async function getTokens(
  * }
  * ```
  */
-export async function deleteTokens(
+async function _deleteTokens(
 	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<void, SecretError>> {
@@ -218,7 +212,7 @@ export async function deleteTokens(
  * }
  * ```
  */
-export async function hasTokens(
+async function _hasTokens(
 	secretRepo: D1SecretRepository,
 	accountEmail: string,
 ): Promise<Result<boolean, SecretError>> {

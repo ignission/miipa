@@ -8,18 +8,11 @@
  * @module lib/infrastructure/crypto/types
  * @example
  * ```typescript
- * import type { CryptoError, EncryptedData } from '@/lib/infrastructure/crypto/types';
+ * import type { CryptoError } from '@/lib/infrastructure/crypto/types';
  * import { encryptionFailed } from '@/lib/infrastructure/crypto/types';
  *
  * // エラーファクトリの使用
- * const error = encryptionFailed('暗号化処理でエラーが発生しました');
- *
- * // 暗号化データの構造
- * const data: EncryptedData = {
- *   iv: Buffer.alloc(12),       // 12 bytes
- *   authTag: Buffer.alloc(16),  // 16 bytes
- *   ciphertext: Buffer.from('...'),
- * };
+ * const error: CryptoError = encryptionFailed('暗号化処理でエラーが発生しました');
  * ```
  */
 
@@ -92,44 +85,6 @@ export interface CryptoError extends AppError {
 }
 
 // ============================================================
-// 暗号化データ型定義
-// ============================================================
-
-/**
- * AES-256-GCM暗号化データ
- *
- * 暗号化処理の出力として使用される構造体。
- * すべてのフィールドはimmutableであり、復号化に必要な情報をすべて含みます。
- *
- * - iv: 初期化ベクトル（12バイト）- 暗号化ごとにランダム生成
- * - authTag: 認証タグ（16バイト）- データ改ざん検出用
- * - ciphertext: 暗号文 - 暗号化されたデータ本体
- *
- * @example
- * ```typescript
- * import crypto from 'node:crypto';
- *
- * // 暗号化時のデータ構造
- * const encrypted: EncryptedData = {
- *   iv: crypto.randomBytes(12),      // 12 bytes
- *   authTag: cipher.getAuthTag(),    // 16 bytes
- *   ciphertext: Buffer.concat([...]),
- * };
- *
- * // シリアライズ（Base64形式で保存）
- * const serialized = `${encrypted.iv.toString('base64')}:${encrypted.authTag.toString('base64')}:${encrypted.ciphertext.toString('base64')}`;
- * ```
- */
-export interface EncryptedData {
-	/** 初期化ベクトル（12バイト） */
-	readonly iv: Uint8Array;
-	/** 認証タグ（16バイト） */
-	readonly authTag: Uint8Array;
-	/** 暗号文 */
-	readonly ciphertext: Uint8Array;
-}
-
-// ============================================================
 // エラーファクトリ関数
 // ============================================================
 
@@ -149,10 +104,7 @@ export interface EncryptedData {
  * }
  * ```
  */
-export function encryptionKeyMissing(
-	message?: string,
-	cause?: unknown,
-): CryptoError {
+function _encryptionKeyMissing(message?: string, cause?: unknown): CryptoError {
 	return {
 		code: "ENCRYPTION_KEY_MISSING",
 		message:
@@ -279,7 +231,7 @@ export function decryptionFailed(
  * }
  * ```
  */
-export function isCryptoError(error: AppError): error is CryptoError {
+function _isCryptoError(error: AppError): error is CryptoError {
 	return (
 		error.code === "ENCRYPTION_KEY_MISSING" ||
 		error.code === "ENCRYPTION_KEY_INVALID" ||

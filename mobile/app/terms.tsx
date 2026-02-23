@@ -8,9 +8,7 @@ function SectionTitle({ children }: { children: string }) {
 }
 
 function Paragraph({ children }: { children: React.ReactNode }) {
-	return (
-		<Text className="mt-2 text-sm leading-6 text-fg">{children}</Text>
-	);
+	return <Text className="mt-2 text-sm leading-6 text-fg">{children}</Text>;
 }
 
 function ListItem({ children }: { children: string }) {
@@ -53,9 +51,7 @@ export default function TermsScreen() {
 				<Paragraph>
 					本サービスは、以下の機能を提供するWebアプリケーションです。
 				</Paragraph>
-				<ListItem>
-					Googleカレンダーとの連携による予定の統合表示
-				</ListItem>
+				<ListItem>Googleカレンダーとの連携による予定の統合表示</ListItem>
 				<ListItem>
 					AIアシスタントによるカレンダーデータの分析および情報提供
 				</ListItem>
@@ -99,18 +95,12 @@ export default function TermsScreen() {
 				<ListItem>
 					本サービスの運営を妨害し、または妨害するおそれのある行為
 				</ListItem>
-				<ListItem>
-					他のユーザーまたは第三者の権利を侵害する行為
-				</ListItem>
-				<ListItem>
-					一人のユーザーが複数のアカウントを作成する行為
-				</ListItem>
+				<ListItem>他のユーザーまたは第三者の権利を侵害する行為</ListItem>
+				<ListItem>一人のユーザーが複数のアカウントを作成する行為</ListItem>
 				<ListItem>
 					自動化されたスクリプト等を用いて本サービスにアクセスする行為
 				</ListItem>
-				<ListItem>
-					その他、当社が不適切と合理的に判断する行為
-				</ListItem>
+				<ListItem>その他、当社が不適切と合理的に判断する行為</ListItem>
 
 				<SectionTitle>第6条 プライバシー</SectionTitle>
 				<Paragraph>

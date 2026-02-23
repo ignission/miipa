@@ -7,17 +7,4 @@
  * @module lib/domain/calendar/event
  */
 
-export type {
-	CalendarEvent,
-	CalendarSource,
-	CreateCalendarEventParams,
-} from "./entities/event";
-
-export {
-	createCalendarEvent,
-	getEventDuration,
-	getEventDurationInMinutes,
-	isAllDayEvent,
-	isEventOnDate,
-	sortEventsByStartTime,
-} from "./entities/event";
+export type { CalendarEvent } from "./entities/event";

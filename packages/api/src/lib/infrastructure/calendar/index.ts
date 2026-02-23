@@ -12,16 +12,9 @@
  *   // OAuth 認証
  *   generateAuthUrl,
  *   exchangeCode,
- *   refreshToken,
- *   isTokenExpired,
  *   type OAuthTokens,
+ *   type OAuthConfig,
  *   type AuthUrlInfo,
- *
- *   // トークンストア
- *   saveTokens,
- *   getTokens,
- *   deleteTokens,
- *   hasTokens,
  *
  *   // プロバイダ
  *   GoogleCalendarProvider,
@@ -31,14 +24,14 @@
  * } from '@/lib/infrastructure/calendar';
  *
  * // OAuth フローの例
- * const authResult = generateAuthUrl();
+ * const authResult = generateAuthUrl(oauthConfig);
  * if (isOk(authResult)) {
  *   // ユーザーを認証URLにリダイレクト
  *   redirect(authResult.value.url);
  * }
  *
  * // Google Calendar プロバイダの例
- * const provider = new GoogleCalendarProvider('user@gmail.com', tokens, secretRepo);
+ * const provider = new GoogleCalendarProvider('user@gmail.com', tokens, secretRepo, oauthConfig);
  * const calendars = await provider.getCalendars();
  *
  * // iCal プロバイダの例
@@ -58,24 +51,9 @@ export {
 	type AuthUrlInfo,
 	exchangeCode,
 	generateAuthUrl,
-	isTokenExpired as isOAuthTokenExpired,
 	type OAuthConfig,
 	type OAuthTokens,
-	refreshToken,
 } from "./oauth-service";
-
-// ============================================================
-// トークンストア
-// ============================================================
-
-export {
-	deleteTokens,
-	getTokens,
-	hasTokens,
-	isTokenExpired,
-	type OAuthTokens as StoredOAuthTokens,
-	saveTokens,
-} from "./token-store";
 
 // ============================================================
 // Google Calendar プロバイダ

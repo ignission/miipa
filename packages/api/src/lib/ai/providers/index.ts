@@ -28,11 +28,6 @@ export function createProvider(config: LLMConfig, apiKey: string): LLMProvider {
 export type {
 	ChatMessage,
 	LLMProvider,
-	LLMProviderOptions,
-	LLMResponse,
 	StreamEvent,
-	StreamEventType,
 	ToolCall,
-	ToolDefinition,
-	ToolResult,
 } from "./types";

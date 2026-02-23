@@ -103,7 +103,7 @@ export interface ConfigError extends AppError {
  * return err(configNotFound('設定が見つかりません'));
  * ```
  */
-export function configNotFound(message?: string, cause?: unknown): ConfigError {
+function _configNotFound(message?: string, cause?: unknown): ConfigError {
 	return {
 		code: "CONFIG_NOT_FOUND",
 		message: message ?? "設定ファイルが見つかりません",
@@ -153,7 +153,7 @@ export function configParseError(
  * }
  * ```
  */
-export function configValidationError(
+function _configValidationError(
 	message?: string,
 	cause?: unknown,
 ): ConfigError {
@@ -198,7 +198,7 @@ export function configWriteFailed(
 /**
  * ファイルシステムエラーコードの型定義
  */
-export type FileSystemErrorCode =
+type FileSystemErrorCode =
 	| "FILE_NOT_FOUND"
 	| "FILE_READ_ERROR"
 	| "FILE_WRITE_ERROR"
@@ -219,7 +219,7 @@ export type FileSystemErrorCode =
  * };
  * ```
  */
-export interface FileSystemError extends AppError {
+interface FileSystemError extends AppError {
 	/** ファイルシステムエラーコード */
 	readonly code: FileSystemErrorCode;
 	/** 対象のファイル/ディレクトリパス */
@@ -241,7 +241,7 @@ export interface FileSystemError extends AppError {
  * }
  * ```
  */
-export function fileNotFound(
+function _fileNotFound(
 	path: string,
 	message?: string,
 	cause?: unknown,
@@ -271,7 +271,7 @@ export function fileNotFound(
  * }
  * ```
  */
-export function fileReadFailed(
+function _fileReadFailed(
 	path: string,
 	message?: string,
 	cause?: unknown,
@@ -301,7 +301,7 @@ export function fileReadFailed(
  * }
  * ```
  */
-export function fileWriteFailed(
+function _fileWriteFailed(
 	path: string,
 	message?: string,
 	cause?: unknown,
@@ -331,7 +331,7 @@ export function fileWriteFailed(
  * }
  * ```
  */
-export function directoryCreateFailed(
+function _directoryCreateFailed(
 	path: string,
 	message?: string,
 	cause?: unknown,
@@ -351,7 +351,7 @@ export function directoryCreateFailed(
 /**
  * Keychainエラーコードの型定義
  */
-export type KeychainErrorCode =
+type KeychainErrorCode =
 	| "KEYCHAIN_ACCESS_DENIED"
 	| "KEYCHAIN_ITEM_NOT_FOUND"
 	| "KEYCHAIN_WRITE_FAILED";
@@ -371,7 +371,7 @@ export type KeychainErrorCode =
  * };
  * ```
  */
-export interface KeychainError extends AppError {
+interface KeychainError extends AppError {
 	/** Keychainエラーコード */
 	readonly code: KeychainErrorCode;
 	/** Keychainサービス名 */
@@ -394,7 +394,7 @@ export interface KeychainError extends AppError {
  * return err(keychainAccessDenied('com.miipa.app'));
  * ```
  */
-export function keychainAccessDenied(
+function _keychainAccessDenied(
 	service: string,
 	message?: string,
 	cause?: unknown,
@@ -427,7 +427,7 @@ export function keychainAccessDenied(
  * }
  * ```
  */
-export function keychainItemNotFound(
+function _keychainItemNotFound(
 	service: string,
 	message?: string,
 	cause?: unknown,
@@ -461,7 +461,7 @@ export function keychainItemNotFound(
  * }
  * ```
  */
-export function keychainWriteFailed(
+function _keychainWriteFailed(
 	service: string,
 	message?: string,
 	cause?: unknown,
@@ -495,7 +495,7 @@ export function keychainWriteFailed(
  * }
  * ```
  */
-export function isConfigError(error: AppError): error is ConfigError {
+function _isConfigError(error: AppError): error is ConfigError {
 	return (
 		error.code === "CONFIG_NOT_FOUND" ||
 		error.code === "CONFIG_PARSE_ERROR" ||
@@ -518,7 +518,7 @@ export function isConfigError(error: AppError): error is ConfigError {
  * }
  * ```
  */
-export function isFileSystemError(error: AppError): error is FileSystemError {
+function _isFileSystemError(error: AppError): error is FileSystemError {
 	return (
 		error.code === "FILE_NOT_FOUND" ||
 		error.code === "FILE_READ_ERROR" ||
@@ -573,7 +573,7 @@ export interface DbError extends AppError {
  * return err(dbConnectionError('データベースに接続できません'));
  * ```
  */
-export function dbConnectionError(message?: string, cause?: unknown): DbError {
+function _dbConnectionError(message?: string, cause?: unknown): DbError {
 	return {
 		code: "DB_CONNECTION_ERROR",
 		message: message ?? "データベースに接続できません",
@@ -656,7 +656,7 @@ export function dbWriteError(
  * }
  * ```
  */
-export function dbNotFound(message?: string, cause?: unknown): DbError {
+function _dbNotFound(message?: string, cause?: unknown): DbError {
 	return {
 		code: "DB_NOT_FOUND",
 		message: message ?? "レコードが見つかりません",
@@ -680,7 +680,7 @@ export function dbNotFound(message?: string, cause?: unknown): DbError {
  * }
  * ```
  */
-export function isDbError(error: AppError): error is DbError {
+function _isDbError(error: AppError): error is DbError {
 	return (
 		error.code === "DB_CONNECTION_ERROR" ||
 		error.code === "DB_QUERY_ERROR" ||
@@ -703,7 +703,7 @@ export function isDbError(error: AppError): error is DbError {
  * }
  * ```
  */
-export function isKeychainError(error: AppError): error is KeychainError {
+function _isKeychainError(error: AppError): error is KeychainError {
 	return (
 		error.code === "KEYCHAIN_ACCESS_DENIED" ||
 		error.code === "KEYCHAIN_ITEM_NOT_FOUND" ||
@@ -729,7 +729,7 @@ export function isKeychainError(error: AppError): error is KeychainError {
  * const json = JSON.stringify(serialized);
  * ```
  */
-export function toSerializable(error: AppError): Record<string, unknown> {
+function _toSerializable(error: AppError): Record<string, unknown> {
 	const result: Record<string, unknown> = {
 		code: error.code,
 		message: error.message,
@@ -779,6 +779,6 @@ export function toSerializable(error: AppError): Record<string, unknown> {
  * // "[CONFIG_NOT_FOUND] 設定ファイルが見つかりません"
  * ```
  */
-export function formatError(error: AppError): string {
+function _formatError(error: AppError): string {
 	return `[${error.code}] ${error.message}`;
 }

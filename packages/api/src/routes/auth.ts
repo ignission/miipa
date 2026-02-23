@@ -623,7 +623,9 @@ async function saveGoogleCalendarTokens(
 			console.error("[auth] トークン保存に失敗しました:", saveResult.error);
 			return;
 		}
-		console.log(`[auth] Google OAuthトークンを保存しました: ${maskEmail(accountEmail)}`);
+		console.log(
+			`[auth] Google OAuthトークンを保存しました: ${maskEmail(accountEmail)}`,
+		);
 
 		// カレンダー一覧を取得して設定に追加
 		const provider = new GoogleCalendarProvider(accountEmail, tokens);

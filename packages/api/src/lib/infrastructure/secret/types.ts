@@ -8,20 +8,17 @@
  * @module lib/infrastructure/secret/types
  * @example
  * ```typescript
- * import type { SecretKey, SecretError } from '@/lib/infrastructure/secret/types';
- * import { secretNotFound, isGoogleOAuthKey } from '@/lib/infrastructure/secret/types';
+ * import type { LLMSecretKey, SecretError } from '@/lib/infrastructure/secret/types';
+ * import { secretWriteFailed, createGoogleOAuthKey } from '@/lib/infrastructure/secret/types';
  *
  * // LLMシークレットキーの使用
- * const key: SecretKey = 'anthropic-api-key';
+ * const key: LLMSecretKey = 'anthropic-api-key';
  *
- * // Google OAuthキー（動的生成）
- * const oauthKey: SecretKey = 'google-oauth-user@example.com';
- * if (isGoogleOAuthKey(oauthKey)) {
- *   // oauthKey は GoogleOAuthSecretKey 型に絞り込まれる
- * }
+ * // Google OAuthキーの生成
+ * const oauthKey = createGoogleOAuthKey('user@example.com');
  *
  * // エラーファクトリの使用
- * const error = secretNotFound('anthropic-api-key', 'APIキーが見つかりません');
+ * const error: SecretError = secretWriteFailed('anthropic-api-key', '保存に失敗しました');
  * ```
  */
 
@@ -56,7 +53,7 @@ export type LLMSecretKey =
  * const key2: GoogleOAuthSecretKey = 'google-oauth-work@company.co.jp';
  * ```
  */
-export type GoogleOAuthSecretKey = `google-oauth-${string}`;
+type GoogleOAuthSecretKey = `google-oauth-${string}`;
 
 /**
  * 全シークレットキー
@@ -73,7 +70,7 @@ export type GoogleOAuthSecretKey = `google-oauth-${string}`;
  * const oauthKey: SecretKey = 'google-oauth-user@example.com';
  * ```
  */
-export type SecretKey = LLMSecretKey | GoogleOAuthSecretKey;
+type SecretKey = LLMSecretKey | GoogleOAuthSecretKey;
 
 // ============================================================
 // LLMシークレットキー一覧
@@ -85,7 +82,7 @@ export type SecretKey = LLMSecretKey | GoogleOAuthSecretKey;
  * 型ガードや検証で使用するための配列。
  * LLMSecretKey型と同期を保つ必要があります。
  */
-export const LLM_SECRET_KEYS: readonly LLMSecretKey[] = [
+const LLM_SECRET_KEYS: readonly LLMSecretKey[] = [
 	"anthropic-api-key",
 	"openai-api-key",
 	"ollama-api-key",
@@ -97,7 +94,7 @@ export const LLM_SECRET_KEYS: readonly LLMSecretKey[] = [
  *
  * エラーメッセージやUIで使用するための説明文。
  */
-export const LLM_SECRET_KEY_DESCRIPTIONS: Record<LLMSecretKey, string> = {
+const _LLM_SECRET_KEY_DESCRIPTIONS: Record<LLMSecretKey, string> = {
 	"anthropic-api-key": "Anthropic APIキー（Claude用）",
 	"openai-api-key": "OpenAI APIキー（GPT用）",
 	"ollama-api-key": "Ollama APIキー（ローカルLLM用）",
@@ -113,7 +110,7 @@ export const LLM_SECRET_KEY_DESCRIPTIONS: Record<LLMSecretKey, string> = {
  *
  * シークレット管理で発生する可能性のあるエラーを識別するためのリテラル型。
  */
-export type SecretOwnErrorCode =
+type SecretOwnErrorCode =
 	| "SECRET_NOT_FOUND"
 	| "SECRET_WRITE_FAILED"
 	| "SECRET_DELETE_FAILED"
@@ -187,7 +184,7 @@ export interface SecretError extends AppError {
  * }
  * ```
  */
-export function secretNotFound(
+function _secretNotFound(
 	key: string,
 	message?: string,
 	cause?: unknown,
@@ -348,7 +345,7 @@ const CRYPTO_ERROR_CODES: readonly CryptoErrorCode[] = [
  * }
  * ```
  */
-export function isSecretError(error: AppError): error is SecretError {
+function _isSecretError(error: AppError): error is SecretError {
 	return (
 		(SECRET_OWN_ERROR_CODES as readonly string[]).includes(error.code) ||
 		(CRYPTO_ERROR_CODES as readonly string[]).includes(error.code)
@@ -370,7 +367,7 @@ export function isSecretError(error: AppError): error is SecretError {
  * }
  * ```
  */
-export function isLLMSecretKey(key: string): key is LLMSecretKey {
+function isLLMSecretKey(key: string): key is LLMSecretKey {
 	return (LLM_SECRET_KEYS as readonly string[]).includes(key);
 }
 
@@ -397,7 +394,7 @@ const GOOGLE_OAUTH_PREFIX = "google-oauth-";
  * }
  * ```
  */
-export function isGoogleOAuthKey(key: string): key is GoogleOAuthSecretKey {
+function isGoogleOAuthKey(key: string): key is GoogleOAuthSecretKey {
 	return (
 		key.startsWith(GOOGLE_OAUTH_PREFIX) &&
 		key.length > GOOGLE_OAUTH_PREFIX.length
@@ -421,7 +418,7 @@ export function isGoogleOAuthKey(key: string): key is GoogleOAuthSecretKey {
  * }
  * ```
  */
-export function isSecretKey(key: string): key is SecretKey {
+function _isSecretKey(key: string): key is SecretKey {
 	return isLLMSecretKey(key) || isGoogleOAuthKey(key);
 }
 
@@ -457,8 +454,6 @@ export function createGoogleOAuthKey(email: string): GoogleOAuthSecretKey {
  * // email = 'user@example.com'
  * ```
  */
-export function extractEmailFromGoogleOAuthKey(
-	key: GoogleOAuthSecretKey,
-): string {
+function _extractEmailFromGoogleOAuthKey(key: GoogleOAuthSecretKey): string {
 	return key.slice(GOOGLE_OAUTH_PREFIX.length);
 }

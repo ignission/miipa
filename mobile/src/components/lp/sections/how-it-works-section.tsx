@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
 import Animated, { type SharedValue } from "react-native-reanimated";
 import { useEntranceAnimation } from "../animations/use-entrance-animation";
 import { SectionWrapper } from "../shared/section-wrapper";
@@ -39,7 +39,12 @@ function StepItem({
 	const { animatedStyle } = useEntranceAnimation(index * 150);
 
 	return (
-		<Animated.View style={[animatedStyle, { flexDirection: "row", alignItems: "flex-start", gap: 16 }]}>
+		<Animated.View
+			style={[
+				animatedStyle,
+				{ flexDirection: "row", alignItems: "flex-start", gap: 16 },
+			]}
+		>
 			{/* 番号バッジ */}
 			<View className="w-10 h-10 rounded-full bg-accent items-center justify-center">
 				<Text className="text-white font-black">{number}</Text>

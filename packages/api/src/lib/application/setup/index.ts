@@ -36,45 +36,15 @@
 
 // 型エクスポート
 export type {
-	ApiKeyValidationError,
-	ApiKeyValidationErrorCode,
-	OllamaConnectionResult,
-	ProviderSecretKeyMap,
 	SaveOptions,
-	SaveSettingsError,
-	SaveSettingsErrorCode,
 	SetupSettings,
-	SetupStatus,
 } from "./types";
-
-// 関数・定数エクスポート
-export {
-	createSetupStatus,
-	getSecretKeyForProvider,
-	PROVIDER_SECRET_KEY_MAP,
-} from "./types";
-
-// ============================================================
-// check-setup-status.ts からのエクスポート
-// ============================================================
-
-export {
-	checkSetupStatus,
-	isFirstLaunch,
-	isSetupComplete,
-} from "./check-setup-status";
 
 // ============================================================
 // validate-api-key.ts からのエクスポート
 // ============================================================
 
-export {
-	validateApiKey,
-	validateApiKeyFormat,
-	validateClaudeKey,
-	validateOllamaConnection,
-	validateOpenAIKey,
-} from "./validate-api-key";
+export { validateApiKey } from "./validate-api-key";
 
 // ============================================================
 // save-setup-settings.ts からのエクスポート

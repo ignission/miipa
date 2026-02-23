@@ -135,9 +135,7 @@ export async function validateICalUrl(
 		// サイズ制限付き読み込み
 		const text = await readResponseWithSizeLimit(response);
 		if (text === null) {
-			return err(
-				networkError("レスポンスサイズが上限（5MB）を超えています"),
-			);
+			return err(networkError("レスポンスサイズが上限（5MB）を超えています"));
 		}
 
 		const jcal = ICAL.parse(text);
@@ -262,9 +260,7 @@ export class ICalProvider implements CalendarProvider {
 			// サイズ制限付き読み込み
 			const text = await readResponseWithSizeLimit(response);
 			if (text === null) {
-				return err(
-					networkError("レスポンスサイズが上限（5MB）を超えています"),
-				);
+				return err(networkError("レスポンスサイズが上限（5MB）を超えています"));
 			}
 
 			const events = this.parseEvents(text, this.calendarId, range);

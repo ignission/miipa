@@ -35,7 +35,7 @@ import type { LLMSecretKey } from "@/lib/infrastructure/secret";
  *
  * 各プロバイダに対応するAPIキーのKeychain保存キーを定義します。
  */
-export type ProviderSecretKeyMap = {
+type ProviderSecretKeyMap = {
 	readonly [K in LLMProvider]: LLMSecretKey;
 };
 
@@ -48,7 +48,7 @@ export type ProviderSecretKeyMap = {
  * - ollama: ollama-api-key
  * - gemini: gemini-api-key
  */
-export const PROVIDER_SECRET_KEY_MAP: ProviderSecretKeyMap = {
+const PROVIDER_SECRET_KEY_MAP: ProviderSecretKeyMap = {
 	claude: "anthropic-api-key",
 	openai: "openai-api-key",
 	ollama: "ollama-api-key",
@@ -112,7 +112,7 @@ export function getSecretKeyForProvider(provider: LLMProvider): LLMSecretKey {
  * };
  * ```
  */
-export interface SetupStatus {
+interface SetupStatus {
 	/** セットアップが完了しているかどうか */
 	readonly isComplete: boolean;
 
@@ -129,7 +129,7 @@ export interface SetupStatus {
  * @param params - セットアップ状態のパラメータ
  * @returns SetupStatusオブジェクト
  */
-export function createSetupStatus(params: {
+function _createSetupStatus(params: {
 	currentProvider: LLMProvider | undefined;
 	hasApiKey: boolean;
 	calendarCount: number;

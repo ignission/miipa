@@ -158,7 +158,7 @@ export function parseError(message: string, cause?: unknown): CalendarError {
  * return err(notFound('指定されたカレンダーが見つかりません'));
  * ```
  */
-export function notFound(message: string): CalendarError {
+function _notFound(message: string): CalendarError {
 	return { code: "NOT_FOUND", message };
 }
 

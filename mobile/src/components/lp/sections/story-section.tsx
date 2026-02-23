@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
 import Animated, { type SharedValue } from "react-native-reanimated";
 
 import { useEntranceAnimation } from "../animations/use-entrance-animation";
@@ -28,13 +28,7 @@ const storyCards: StoryCard[] = [
 	},
 ];
 
-function StoryCardItem({
-	card,
-	index,
-}: {
-	card: StoryCard;
-	index: number;
-}) {
+function StoryCardItem({ card, index }: { card: StoryCard; index: number }) {
 	const { animatedStyle } = useEntranceAnimation(index * 150);
 
 	return (
@@ -68,11 +62,7 @@ export function StorySection({ scrollY: _scrollY }: StorySectionProps) {
 
 			<View className="gap-4">
 				{storyCards.map((card, index) => (
-					<StoryCardItem
-						key={card.title}
-						card={card}
-						index={index}
-					/>
+					<StoryCardItem key={card.title} card={card} index={index} />
 				))}
 			</View>
 
