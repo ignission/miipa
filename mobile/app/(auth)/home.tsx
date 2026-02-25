@@ -209,7 +209,9 @@ export default function TodayScreen() {
 					(isBriefingLoading ? (
 						<BriefingSkeleton />
 					) : (
-						briefing && <BriefingCard briefing={briefing} />
+						briefing && (
+							<BriefingCard briefing={briefing} currentTime={currentTime} />
+						)
 					))}
 
 				{/* コンテンツ */}

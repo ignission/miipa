@@ -16,12 +16,17 @@ interface NextEventProps {
 		location: string | null;
 		minutesUntil: number;
 	} | null;
+	/** 現在時刻（毎分更新）。カウントダウンをクライアント側で計算するために使用 */
+	currentTime: Date;
 }
 
 /**
  * カウントダウンテキストをフォーマット
  */
 function formatCountdown(minutes: number): string {
+	if (minutes < 0) {
+		return "開催中";
+	}
 	if (minutes < 1) {
 		return "まもなく開始";
 	}
@@ -47,7 +52,7 @@ function formatTime(isoString: string): string {
 	});
 }
 
-export function NextEventCard({ nextEvent }: NextEventProps) {
+export function NextEventCard({ nextEvent, currentTime }: NextEventProps) {
 	if (!nextEvent) {
 		return (
 			<View className="mb-2 flex-row items-center gap-2 rounded-xl bg-white/60 px-3 py-2.5">
@@ -59,12 +64,16 @@ export function NextEventCard({ nextEvent }: NextEventProps) {
 		);
 	}
 
+	// currentTimeからリアルタイムにminutesUntilを算出
+	const minutesUntil =
+		(new Date(nextEvent.startTime).getTime() - currentTime.getTime()) / 60_000;
+
 	return (
 		<View className="mb-2 flex-row items-center gap-3 rounded-xl bg-white/60 px-3 py-2.5">
 			{/* カウントダウンバッジ */}
 			<View className="items-center justify-center rounded-full bg-orange-500 px-2 py-1">
 				<Text className="text-[11px] font-bold text-white">
-					{formatCountdown(nextEvent.minutesUntil)}
+					{formatCountdown(minutesUntil)}
 				</Text>
 			</View>
 
