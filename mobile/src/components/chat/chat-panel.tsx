@@ -3,12 +3,10 @@ import {
 	Keyboard,
 	KeyboardAvoidingView,
 	Platform,
-	Pressable,
 	ScrollView,
 	Text,
 	View,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
 import type { SendKeyType } from "../../api/settings";
 import { ChatInput } from "./chat-input";
 import { ChatMessage } from "./chat-message";
@@ -38,30 +36,6 @@ interface ChatPanelProps {
 	error: string | null;
 }
 
-function ExpandIcon() {
-	return (
-		<Svg width={20} height={20} viewBox="0 0 20 20" fill="currentColor">
-			<Path
-				fillRule="evenodd"
-				d="M9.47 6.47a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 1 1-1.06 1.06L10 8.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06l4.25-4.25Z"
-				clipRule="evenodd"
-			/>
-		</Svg>
-	);
-}
-
-function CollapseIcon() {
-	return (
-		<Svg width={20} height={20} viewBox="0 0 20 20" fill="currentColor">
-			<Path
-				fillRule="evenodd"
-				d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
-				clipRule="evenodd"
-			/>
-		</Svg>
-	);
-}
-
 /** AI応答中のローディングインジケーター */
 function LoadingDots() {
 	return (
@@ -84,7 +58,7 @@ function LoadingDots() {
 /**
  * チャットパネル
  *
- * Web: 画面下部にフローティング表示、Mobile: フルスクリーン
+ * Web/Mobile共にフルスクリーン表示
  */
 export function ChatPanel({
 	messages,
@@ -94,28 +68,19 @@ export function ChatPanel({
 	isLoading,
 	error,
 }: ChatPanelProps) {
-	const [isExpanded, setIsExpanded] = useState(false);
 	const [sendKey, setSendKey] = useState<SendKeyType>("enter");
 
 	const handleSuggestionSelect = useCallback(
 		(suggestion: string) => {
-			setIsExpanded(true);
 			sendMessage(suggestion);
 		},
 		[sendMessage],
 	);
 
 	const handleSend = useCallback(() => {
-		if (!isExpanded) {
-			setIsExpanded(true);
-		}
 		Keyboard.dismiss();
 		sendMessage();
-	}, [isExpanded, sendMessage]);
-
-	const toggleExpanded = useCallback(() => {
-		setIsExpanded((prev) => !prev);
-	}, []);
+	}, [sendMessage]);
 
 	const toggleSendKey = useCallback(() => {
 		setSendKey((prev) => (prev === "enter" ? "cmd+enter" : "enter"));
@@ -123,74 +88,48 @@ export function ChatPanel({
 
 	const hasMessages = messages.length > 0;
 
-	// Web: フローティングパネル
+	// Web: フルスクリーンレイアウト
 	if (Platform.OS === "web") {
 		return (
-			<View
-				className={`border-t border-border bg-bg shadow-lg ${
-					isExpanded ? "max-h-[70vh]" : ""
-				}`}
-				style={
-					Platform.OS === "web"
-						? ({
-								position: "fixed" as unknown as undefined,
-								bottom: 0,
-								left: 0,
-								right: 0,
-								zIndex: 50,
-							} as Record<string, unknown>)
-						: undefined
-				}
-				accessibilityLabel="チャットパネル"
-			>
-				{/* パネルヘッダー */}
-				<View className="flex-row items-center justify-between border-b border-border bg-bg px-4 py-1">
-					<Text className="text-xs font-medium text-fg-muted">miipa AI</Text>
-					<Pressable
-						onPress={toggleExpanded}
-						accessibilityLabel={
-							isExpanded ? "チャットを閉じる" : "チャットを開く"
-						}
-						accessibilityRole="button"
-						className="h-11 w-11 items-center justify-center rounded-lg"
-					>
-						{isExpanded ? <CollapseIcon /> : <ExpandIcon />}
-					</Pressable>
+			<View className="flex-1 bg-bg" accessibilityLabel="チャットパネル">
+				{/* ヘッダー */}
+				<View className="border-b border-border bg-bg px-4 py-3">
+					<Text className="text-center text-sm font-medium text-fg-muted">
+						miipa AI
+					</Text>
 				</View>
 
-				{/* 展開時: メッセージ履歴エリア */}
-				{isExpanded && (
-					<View className="flex-1 gap-3 overflow-auto py-4">
-						{/* 会話が空の時: 質問候補を表示 */}
-						{!hasMessages && !isLoading && (
-							<ChatSuggestions onSelect={handleSuggestionSelect} />
-						)}
+				{/* メッセージエリア */}
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						gap: 12,
+						paddingVertical: 16,
+						flexGrow: 1,
+					}}
+				>
+					{!hasMessages && !isLoading && (
+						<ChatSuggestions onSelect={handleSuggestionSelect} />
+					)}
+					{messages.map((message) => (
+						<ChatMessage
+							key={message.id}
+							role={message.role}
+							content={message.content}
+						/>
+					))}
+					{isLoading && <LoadingDots />}
+					{error && (
+						<View
+							className="mx-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2"
+							accessibilityRole="alert"
+						>
+							<Text className="text-sm text-red-700">{error}</Text>
+						</View>
+					)}
+				</ScrollView>
 
-						{/* メッセージ一覧 */}
-						{messages.map((message) => (
-							<ChatMessage
-								key={message.id}
-								role={message.role}
-								content={message.content}
-							/>
-						))}
-
-						{/* ローディングインジケーター */}
-						{isLoading && <LoadingDots />}
-
-						{/* エラー表示 */}
-						{error && (
-							<View
-								className="mx-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2"
-								accessibilityRole="alert"
-							>
-								<Text className="text-sm text-red-700">{error}</Text>
-							</View>
-						)}
-					</View>
-				)}
-
-				{/* 入力エリア（常時表示） */}
+				{/* 入力エリア */}
 				<ChatInput
 					value={input}
 					onChange={setInput}
