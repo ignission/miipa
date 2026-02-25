@@ -1,7 +1,7 @@
 /**
  * ViewTabsコンポーネント
  *
- * 「今日」「今週」の表示切替タブを提供します。
+ * 「今日」「今週」「月」の3つの表示切替タブを提供します。
  * Web版の Panda CSS + SVG アイコン実装から
  * NativeWind + React Native Pressable に移行しています。
  *
@@ -21,7 +21,7 @@ import { Pressable, Text, View } from "react-native";
 /**
  * ビュータイプ
  */
-export type ViewType = "today" | "week";
+export type ViewType = "today" | "week" | "month";
 
 /**
  * ViewTabsコンポーネントのProps
@@ -39,15 +39,16 @@ export interface ViewTabsProps {
 const TABS: { id: ViewType; label: string; icon: string }[] = [
 	{ id: "today", label: "今日", icon: "☀️" },
 	{ id: "week", label: "今週", icon: "📅" },
+	{ id: "month", label: "月", icon: "📆" },
 ];
 
 /**
  * ビュー切替タブコンポーネント
  *
- * 「今日」と「今週」の表示を切り替えるためのタブUIを提供します。
+ * 「今日」「今週」「月」の3つの表示を切り替えるためのタブUIを提供します。
  *
  * @param props - コンポーネントのProps
- * @param props.activeView - 現在アクティブなビュー（'today' | 'week'）
+ * @param props.activeView - 現在アクティブなビュー（'today' | 'week' | 'month'）
  * @param props.onViewChange - ビュー変更時のコールバック
  * @returns タブ要素
  */
@@ -64,7 +65,7 @@ export function ViewTabs({ activeView, onViewChange }: ViewTabsProps) {
 				return (
 					<Pressable
 						key={tab.id}
-						className={`min-w-[100px] flex-row items-center justify-center gap-2 rounded-xl px-5 py-2.5 ${
+						className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 ${
 							isActive ? "bg-bg shadow-sm" : "bg-transparent active:bg-bg-muted"
 						}`}
 						onPress={() => onViewChange(tab.id)}

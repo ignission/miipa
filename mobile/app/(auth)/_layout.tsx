@@ -2,7 +2,7 @@
  * 認証済み画面レイアウト
  *
  * 認証状態を確認し、未認証ならサインイン画面にリダイレクトします。
- * タブナビゲーション（今日 / 今週 / 設定）を提供し、
+ * タブナビゲーション（ホーム / AI / 設定）を提供し、
  * 設定サブ画面・セットアップ・チャットの Stack.Screen も含みます。
  *
  * @module app/(auth)/_layout
@@ -48,10 +48,10 @@ export default function AuthLayout() {
 			<Tabs.Screen
 				name="home"
 				options={{
-					title: "今日",
+					title: "ホーム",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
-							name={focused ? "calendar" : "calendar-outline"}
+							name={focused ? "home" : "home-outline"}
 							color={color}
 						/>
 					),
@@ -60,6 +60,7 @@ export default function AuthLayout() {
 			<Tabs.Screen
 				name="week"
 				options={{
+					href: null,
 					title: "今週",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
@@ -72,6 +73,7 @@ export default function AuthLayout() {
 			<Tabs.Screen
 				name="month"
 				options={{
+					href: null,
 					title: "月",
 					tabBarIcon: ({ color, focused }) => (
 						<TabBarIcon
