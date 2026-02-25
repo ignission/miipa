@@ -41,7 +41,7 @@ export default function AuthLayout() {
 	return (
 		<Tabs
 			screenOptions={{
-				tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+				tabBarActiveTintColor: Colors.light.tint,
 				tabBarStyle: { backgroundColor: "#ffffff" },
 				headerShown: false,
 			}}
