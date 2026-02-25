@@ -1,4 +1,5 @@
 export type {
+	BriefingResponse,
 	EventResponse,
 	EventsApiResponse,
 	SerializedCalendarEvent,

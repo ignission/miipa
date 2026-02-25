@@ -1,6 +1,9 @@
 // アカウント
 export { deleteAccount } from "./account";
 
+// ブリーフィング
+export { fetchBriefing } from "./briefing";
+
 // カレンダー
 export type { Calendar, SyncResponse } from "./calendars";
 export {
