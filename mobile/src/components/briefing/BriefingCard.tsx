@@ -12,12 +12,14 @@ import { NextEventCard } from "./NextEventCard";
 
 interface BriefingCardProps {
 	briefing: BriefingResponse;
+	/** 現在時刻（毎分更新）。NextEventCardのカウントダウン算出に使用 */
+	currentTime: Date;
 }
 
 /** デフォルトの挨拶文 */
 const DEFAULT_GREETING = "おはようございます! 今日の予定をお知らせします。";
 
-export function BriefingCard({ briefing }: BriefingCardProps) {
+export function BriefingCard({ briefing, currentTime }: BriefingCardProps) {
 	const greeting = briefing.greeting ?? DEFAULT_GREETING;
 
 	return (
@@ -28,7 +30,7 @@ export function BriefingCard({ briefing }: BriefingCardProps) {
 			</View>
 
 			{/* 次の予定 */}
-			<NextEventCard nextEvent={briefing.nextEvent} />
+			<NextEventCard nextEvent={briefing.nextEvent} currentTime={currentTime} />
 
 			{/* 統計サマリー */}
 			<BriefingSummary
