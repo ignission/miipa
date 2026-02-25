@@ -16,6 +16,7 @@ import {
 	Text,
 	View,
 } from "react-native";
+import { BriefingCard, BriefingSkeleton } from "../../src/components/briefing";
 import { MonthView } from "../../src/components/calendar/MonthView";
 import { TimelineView } from "../../src/components/calendar/TimelineView";
 import {
@@ -23,6 +24,7 @@ import {
 	type ViewType,
 } from "../../src/components/calendar/view-tabs";
 import { WeekTimelineView } from "../../src/components/calendar/WeekTimelineView";
+import { useBriefing } from "../../src/hooks/useBriefing";
 import { useEvents } from "../../src/hooks/useEvents";
 import { useMonthEvents } from "../../src/hooks/useMonthEvents";
 import { useWidgetData } from "../../src/hooks/useWidgetData";
@@ -50,6 +52,13 @@ export default function TodayScreen() {
 	// 月ビュー用ステート
 	const [{ year: viewYear, month: viewMonth }, setYearMonth] =
 		useState(getInitialYearMonth);
+
+	// ブリーフィング取得（todayビューで使用）
+	const {
+		briefing,
+		isLoading: isBriefingLoading,
+		refresh: refreshBriefing,
+	} = useBriefing();
 
 	// 今日/今週用イベント取得（month時はWidgetデータ同期のためtodayを取得）
 	const eventsRange = activeView === "week" ? "week" : "today";
@@ -112,9 +121,9 @@ export default function TodayScreen() {
 		} else if (activeView === "week") {
 			await refreshWeek();
 		} else {
-			await Promise.all([refresh(), refreshWeek()]);
+			await Promise.all([refresh(), refreshWeek(), refreshBriefing()]);
 		}
-	}, [activeView, refresh, refreshWeek, refreshMonth]);
+	}, [activeView, refresh, refreshWeek, refreshMonth, refreshBriefing]);
 
 	const handleViewChange = useCallback((view: ViewType) => {
 		setActiveView(view);
@@ -194,6 +203,14 @@ export default function TodayScreen() {
 						<LastSyncText lastSync={currentLastSync} />
 					</View>
 				)}
+
+				{/* ブリーフィングカード（todayビューのみ） */}
+				{activeView === "today" &&
+					(isBriefingLoading ? (
+						<BriefingSkeleton />
+					) : (
+						briefing && <BriefingCard briefing={briefing} />
+					))}
 
 				{/* コンテンツ */}
 				{activeView === "month" ? (

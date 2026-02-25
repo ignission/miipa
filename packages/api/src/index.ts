@@ -17,6 +17,7 @@ import { rateLimiter } from "@/middleware/rate-limit";
 import { securityHeaders } from "@/middleware/security-headers";
 import { account } from "@/routes/account";
 import { auth } from "@/routes/auth";
+import { briefing } from "@/routes/briefing";
 import { calendars } from "@/routes/calendars";
 import { chat } from "@/routes/chat";
 import { events } from "@/routes/events";
@@ -94,6 +95,7 @@ protectedApp.use(
 	}),
 );
 
+protectedApp.route("/briefing", briefing);
 protectedApp.route("/calendars", calendars);
 protectedApp.route("/events", events);
 protectedApp.route("/chat", chat);
