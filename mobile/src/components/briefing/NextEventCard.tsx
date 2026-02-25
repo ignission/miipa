@@ -14,7 +14,6 @@ interface NextEventProps {
 		startTime: string;
 		endTime: string;
 		location: string | null;
-		minutesUntil: number;
 	} | null;
 	/** 現在時刻（毎分更新）。カウントダウンをクライアント側で計算するために使用 */
 	currentTime: Date;
@@ -34,7 +33,7 @@ function formatCountdown(minutes: number): string {
 		return `あと${Math.round(minutes)}分`;
 	}
 	const hours = Math.floor(minutes / 60);
-	const remainingMinutes = Math.round(minutes % 60);
+	const remainingMinutes = Math.floor(minutes % 60);
 	if (remainingMinutes === 0) {
 		return `あと${hours}時間`;
 	}
