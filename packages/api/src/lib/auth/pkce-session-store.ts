@@ -11,17 +11,25 @@
 /** PKCE セッションの有効期限（秒）: 10分 */
 const PKCE_SESSION_TTL_SEC = 10 * 60;
 
+/** consumePkceSession の戻り値型 */
+export interface PkceSessionResult {
+	readonly codeVerifier: string;
+	readonly userId: string | null;
+}
+
 /**
  * PKCEセッションを D1 に保存
  *
  * @param db - D1 Database インスタンス
  * @param state - OAuth state パラメータ（キー）
  * @param codeVerifier - PKCE code_verifier
+ * @param userId - カレンダー追加フロー時の現在のユーザーID（ログインフローでは省略）
  */
 export async function savePkceSession(
 	db: D1Database,
 	state: string,
 	codeVerifier: string,
+	userId?: string,
 ): Promise<void> {
 	const expiresAt = Math.floor(Date.now() / 1000) + PKCE_SESSION_TTL_SEC;
 
@@ -33,9 +41,9 @@ export async function savePkceSession(
 
 	await db
 		.prepare(
-			"INSERT OR REPLACE INTO pkce_sessions (state, code_verifier, expires_at) VALUES (?, ?, ?)",
+			"INSERT OR REPLACE INTO pkce_sessions (state, code_verifier, expires_at, user_id) VALUES (?, ?, ?, ?)",
 		)
-		.bind(state, codeVerifier, expiresAt)
+		.bind(state, codeVerifier, expiresAt, userId ?? null)
 		.run();
 }
 
@@ -44,19 +52,23 @@ export async function savePkceSession(
  *
  * @param db - D1 Database インスタンス
  * @param state - OAuth state パラメータ（キー）
- * @returns code_verifier、または見つからない/期限切れの場合 null
+ * @returns code_verifier と userId を含むオブジェクト、または見つからない/期限切れの場合 null
  */
 export async function consumePkceSession(
 	db: D1Database,
 	state: string,
-): Promise<string | null> {
+): Promise<PkceSessionResult | null> {
 	// アトミックに取得＋削除（リプレイ攻撃防止）
 	const row = await db
 		.prepare(
-			"DELETE FROM pkce_sessions WHERE state = ? RETURNING code_verifier, expires_at",
+			"DELETE FROM pkce_sessions WHERE state = ? RETURNING code_verifier, expires_at, user_id",
 		)
 		.bind(state)
-		.first<{ code_verifier: string; expires_at: number }>();
+		.first<{
+			code_verifier: string;
+			expires_at: number;
+			user_id: string | null;
+		}>();
 
 	if (!row) {
 		return null;
@@ -66,5 +78,8 @@ export async function consumePkceSession(
 		return null;
 	}
 
-	return row.code_verifier;
+	return {
+		codeVerifier: row.code_verifier,
+		userId: row.user_id,
+	};
 }

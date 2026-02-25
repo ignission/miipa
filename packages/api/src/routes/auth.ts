@@ -369,12 +369,17 @@ async function findOrCreateUser(
 	name: string,
 	image: string,
 ): Promise<UserRow> {
-	const id = crypto.randomUUID();
+	// 既存ユーザーを先に検索
+	const existing = await db
+		.prepare("SELECT * FROM users WHERE email = ?")
+		.bind(email)
+		.first<UserRow>();
+	if (existing) return existing;
 
+	// 存在しなければ新規作成
+	const id = crypto.randomUUID();
 	await db
-		.prepare(
-			"INSERT OR IGNORE INTO users (id, name, email, image) VALUES (?, ?, ?, ?)",
-		)
+		.prepare("INSERT INTO users (id, name, email, image) VALUES (?, ?, ?, ?)")
 		.bind(id, name, email, image)
 		.run();
 
@@ -594,12 +599,12 @@ async function saveGoogleCalendarTokens(
 	encryptionKeyBase64: string,
 	accountEmail: string,
 	tokens: { accessToken: string; refreshToken: string; expiresAt: Date },
-): Promise<void> {
+): Promise<boolean> {
 	try {
 		const cryptoKeyResult = await importEncryptionKey(encryptionKeyBase64);
 		if (!isOk(cryptoKeyResult)) {
 			console.error("[auth] 暗号化キーのインポートに失敗しました");
-			return;
+			return false;
 		}
 
 		const secretRepo = new D1SecretRepository(
@@ -621,7 +626,7 @@ async function saveGoogleCalendarTokens(
 		);
 		if (!isOk(saveResult)) {
 			console.error("[auth] トークン保存に失敗しました:", saveResult.error);
-			return;
+			return false;
 		}
 		console.log(
 			`[auth] Google OAuthトークンを保存しました: ${maskEmail(accountEmail)}`,
@@ -635,7 +640,7 @@ async function saveGoogleCalendarTokens(
 				"[auth] カレンダー一覧の取得に失敗しました:",
 				calendarsResult.error,
 			);
-			return;
+			return false;
 		}
 
 		const providerCalendars = calendarsResult.value;
@@ -677,7 +682,7 @@ async function saveGoogleCalendarTokens(
 					"[auth] カレンダー設定の保存に失敗しました:",
 					setResult.error,
 				);
-				return;
+				return false;
 			}
 			console.log(
 				`[auth] ${newCalendars.length}件のカレンダーを追加しました: ${maskEmail(accountEmail)}`,
@@ -689,7 +694,9 @@ async function saveGoogleCalendarTokens(
 		}
 	} catch (error) {
 		console.error("[auth] カレンダートークン保存エラー:", error);
+		return false;
 	}
+	return true;
 }
 
 // ============================================================
@@ -856,12 +863,14 @@ auth.get("/google/callback", async (c) => {
 			);
 		}
 
-		const codeVerifier = await consumePkceSession(c.env.DB, state);
-		if (!codeVerifier) {
+		const pkceResult = await consumePkceSession(c.env.DB, state);
+		if (!pkceResult) {
 			return c.redirect(
 				`${baseUrl}/settings/calendars?calendar=error&message=${encodeURIComponent("認証セッションが無効です。もう一度お試しください。")}`,
 			);
 		}
+
+		const { codeVerifier } = pkceResult;
 
 		// コードをトークンに交換
 		const config = getOAuthConfig(c.env);
@@ -913,25 +922,50 @@ auth.get("/google/callback", async (c) => {
 			);
 		}
 
-		// ユーザーを検索・作成
-		const user = await findOrCreateUser(
-			db,
-			userInfo.email,
-			userInfo.name ?? "",
-			userInfo.picture ?? "",
-		);
+		// カレンダー追加フロー（pkceResult.userId あり）とログインフローを分岐
+		const targetUserId = pkceResult.userId;
+		let effectiveUserId: string;
+
+		if (targetUserId) {
+			// カレンダー追加フロー: 既存ユーザーIDをそのまま使用（セッション切り替えを防止）
+			effectiveUserId = targetUserId;
+			console.log(
+				`[auth] カレンダー追加フロー: userId=${targetUserId}, googleAccount=${maskEmail(userInfo.email)}`,
+			);
+		} else {
+			// ログインフロー: Google アカウントのメールでユーザーを検索・作成
+			const user = await findOrCreateUser(
+				db,
+				userInfo.email,
+				userInfo.name ?? "",
+				userInfo.picture ?? "",
+			);
+			effectiveUserId = user.id;
+		}
 
 		// Google Calendar OAuthトークンを保存し、カレンダーを自動追加
-		await saveGoogleCalendarTokens(
+		// ※ userInfo.email は Google アカウントのメール（トークン保存に必要）
+		const tokenSaved = await saveGoogleCalendarTokens(
 			db,
-			user.id,
+			effectiveUserId,
 			c.env.ENCRYPTION_KEY,
 			userInfo.email,
 			tokenResult.value,
 		);
+		if (!tokenSaved) {
+			console.warn(
+				`[auth] トークン保存に失敗しましたが、処理は続行します: ${maskEmail(userInfo.email)}`,
+			);
+		}
 
-		// ワンタイム認可コードをD1に保存（30秒TTL）
-		const oneTimeCode = await generateAndStoreAuthCode(db, user.id);
+		if (targetUserId) {
+			// カレンダー追加フロー: 既にJWTを持っているのでauth-callbackを経由せず
+			// カレンダー設定ページに直接リダイレクト
+			return c.redirect(`${baseUrl}/settings/calendars`);
+		}
+
+		// ログインフロー: ワンタイム認可コードをD1に保存（30秒TTL）
+		const oneTimeCode = await generateAndStoreAuthCode(db, effectiveUserId);
 
 		// フロントエンドにワンタイムコードのみを渡してリダイレクト
 		return c.redirect(`${baseUrl}/auth-callback?code=${oneTimeCode}`);

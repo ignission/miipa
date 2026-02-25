@@ -304,9 +304,9 @@ calendars.post("/google", async (c) => {
 	if (isOk(result)) {
 		const { url, codeVerifier, state } = result.value;
 
-		// PKCEセッションをD1に保存
+		// PKCEセッションをD1に保存（カレンダー追加フローなのでuserIdを付与）
 		try {
-			await savePkceSession(c.env.DB, state, codeVerifier);
+			await savePkceSession(c.env.DB, state, codeVerifier, c.get("userId"));
 		} catch (e) {
 			console.error("[calendars] PKCEセッション保存エラー:", e);
 			return c.json(
@@ -356,9 +356,9 @@ calendars.get("/google/reauth", async (c) => {
 	if (isOk(result)) {
 		const { url, codeVerifier, state } = result.value;
 
-		// PKCEセッションをD1に保存
+		// PKCEセッションをD1に保存（再認証フローなのでuserIdを付与）
 		try {
-			await savePkceSession(c.env.DB, state, codeVerifier);
+			await savePkceSession(c.env.DB, state, codeVerifier, c.get("userId"));
 		} catch (e) {
 			console.error("[calendars] PKCEセッション保存エラー（再認証）:", e);
 			return c.json(

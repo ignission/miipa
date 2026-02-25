@@ -51,6 +51,9 @@ export function useCalendars() {
 	/** Google OAuth認証開始 */
 	const googleAuthMutation = useMutation({
 		mutationFn: (loginHint?: string) => startGoogleAuth(loginHint),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["calendars"] });
+		},
 	});
 
 	/** iCalカレンダー追加 */
