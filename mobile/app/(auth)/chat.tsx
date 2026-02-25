@@ -9,9 +9,9 @@
  * @module app/(auth)/chat
  */
 
-import { Stack } from "expo-router";
 import { useCallback, useState } from "react";
-import { Platform, View } from "react-native";
+import { Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AUTH_CONFIG } from "../../src/auth/config";
 import { getToken } from "../../src/auth/storage";
 import { ChatPanel } from "../../src/components/chat/chat-panel";
@@ -173,18 +173,15 @@ export default function ChatScreen() {
 	);
 
 	return (
-		<>
-			<Stack.Screen options={{ title: "miipa AI" }} />
-			<View className="flex-1 bg-bg-canvas">
-				<ChatPanel
-					messages={messages}
-					input={input}
-					setInput={setInput}
-					sendMessage={sendMessage}
-					isLoading={isLoading}
-					error={error}
-				/>
-			</View>
-		</>
+		<SafeAreaView className="flex-1 bg-bg-canvas" edges={["top"]}>
+			<ChatPanel
+				messages={messages}
+				input={input}
+				setInput={setInput}
+				sendMessage={sendMessage}
+				isLoading={isLoading}
+				error={error}
+			/>
+		</SafeAreaView>
 	);
 }
