@@ -12,7 +12,7 @@
 const PKCE_SESSION_TTL_SEC = 10 * 60;
 
 /** consumePkceSession の戻り値型 */
-export interface PkceSessionResult {
+interface PkceSessionResult {
 	readonly codeVerifier: string;
 	readonly userId: string | null;
 }
