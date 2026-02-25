@@ -10,7 +10,13 @@
 import { Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import {
+	ActivityIndicator,
+	Platform,
+	ScrollView,
+	Text,
+	View,
+} from "react-native";
 import { SyncStatusBadge } from "../../../src/components/calendar/sync-status-badge";
 import { AddGoogleCalendarButton } from "../../../src/components/settings/add-google-calendar-button";
 import { AddICalDialog } from "../../../src/components/settings/add-ical-dialog";
@@ -101,7 +107,13 @@ export default function CalendarsSettingsScreen() {
 		try {
 			const result = await startGoogleAuth(undefined);
 			if (result?.authUrl) {
-				await WebBrowser.openBrowserAsync(result.authUrl);
+				if (Platform.OS === "web") {
+					// Web: フルページリダイレクト（ポップアップではなく同じタブで遷移）
+					window.location.href = result.authUrl;
+				} else {
+					// Mobile: アプリ内ブラウザを開く
+					await WebBrowser.openBrowserAsync(result.authUrl);
+				}
 			}
 		} finally {
 			setIsGoogleAuthLoading(false);
