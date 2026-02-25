@@ -32,6 +32,18 @@ function getInitialYearMonth(): { year: number; month: number } {
 	return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
+function LastSyncText({ lastSync }: { lastSync: Date }) {
+	return (
+		<Text className="text-xs text-neutral-400">
+			最終更新:{" "}
+			{lastSync.toLocaleTimeString("ja-JP", {
+				hour: "2-digit",
+				minute: "2-digit",
+			})}
+		</Text>
+	);
+}
+
 export default function TodayScreen() {
 	const [activeView, setActiveView] = useState<ViewType>("today");
 
@@ -97,6 +109,8 @@ export default function TodayScreen() {
 	const onRefresh = useCallback(async () => {
 		if (activeView === "month") {
 			await refreshMonth();
+		} else if (activeView === "week") {
+			await refreshWeek();
 		} else {
 			await Promise.all([refresh(), refreshWeek()]);
 		}
@@ -169,25 +183,15 @@ export default function TodayScreen() {
 							})}
 						</Text>
 						{currentLastSync && (
-							<Text className="mt-0.5 text-xs text-neutral-400">
-								最終更新:{" "}
-								{currentLastSync.toLocaleTimeString("ja-JP", {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							</Text>
+							<View className="mt-0.5">
+								<LastSyncText lastSync={currentLastSync} />
+							</View>
 						)}
 					</View>
 				)}
 				{activeView === "month" && currentLastSync && (
 					<View className="px-4 pb-1">
-						<Text className="text-xs text-neutral-400">
-							最終更新:{" "}
-							{currentLastSync.toLocaleTimeString("ja-JP", {
-								hour: "2-digit",
-								minute: "2-digit",
-							})}
-						</Text>
+						<LastSyncText lastSync={currentLastSync} />
 					</View>
 				)}
 
