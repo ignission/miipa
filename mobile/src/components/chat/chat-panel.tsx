@@ -216,7 +216,7 @@ export function ChatPanel({
 			{/* メッセージエリア */}
 			<ScrollView
 				className="flex-1"
-				contentContainerClassName="gap-3 py-4"
+				contentContainerStyle={{ gap: 12, paddingVertical: 16, flexGrow: 1 }}
 				keyboardDismissMode="on-drag"
 				keyboardShouldPersistTaps="handled"
 			>
