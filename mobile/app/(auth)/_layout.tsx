@@ -42,7 +42,7 @@ export default function AuthLayout() {
 		<Tabs
 			screenOptions={{
 				tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-				headerShown: true,
+				headerShown: false,
 			}}
 		>
 			<Tabs.Screen

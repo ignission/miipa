@@ -16,6 +16,7 @@ import {
 	Text,
 	View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { BriefingCard, BriefingSkeleton } from "../../src/components/briefing";
 import { MonthView } from "../../src/components/calendar/MonthView";
 import { TimelineView } from "../../src/components/calendar/TimelineView";
@@ -138,109 +139,111 @@ export default function TodayScreen() {
 
 	if (currentIsLoading) {
 		return (
-			<View className="flex-1 items-center justify-center p-6">
+			<SafeAreaView className="flex-1 items-center justify-center bg-white p-6">
 				<ActivityIndicator size="large" color="#F97316" />
 				<Text className="mt-3 text-sm text-neutral-500">読み込み中...</Text>
-			</View>
+			</SafeAreaView>
 		);
 	}
 
 	if (currentError) {
 		return (
-			<View className="flex-1 items-center justify-center p-6">
+			<SafeAreaView className="flex-1 items-center justify-center bg-white p-6">
 				<Text className="mb-3 text-3xl">(; _ ;)</Text>
 				<Text className="mb-1 text-base font-semibold text-neutral-900">
 					読み込みに失敗しました
 				</Text>
 				<Text className="text-sm text-neutral-500">{currentError.message}</Text>
-			</View>
+			</SafeAreaView>
 		);
 	}
 
 	return (
-		<ScrollView
-			className="flex-1 bg-white"
-			contentContainerStyle={{ flexGrow: 1 }}
-			refreshControl={
-				<RefreshControl
-					refreshing={currentIsRefreshing}
-					onRefresh={onRefresh}
-					tintColor="#F97316"
-				/>
-			}
-		>
-			{/* Web用のコンテナ制約 */}
-			<View
-				className={`mx-auto w-full ${
-					Platform.OS === "web" ? "max-w-2xl px-6 py-4" : ""
-				}`}
-			>
-				{/* ViewTabs（今日/今週/月 切り替え） */}
-				<View className="items-center px-4 py-3">
-					<ViewTabs activeView={activeView} onViewChange={handleViewChange} />
-				</View>
-
-				{/* ヘッダー: 今日/今週ビューでは日付表示、月ビューではlastSyncのみ */}
-				{activeView !== "month" && (
-					<View className="px-4 pb-2 pt-3">
-						<Text className="text-base font-semibold text-neutral-900">
-							{currentTime.toLocaleDateString("ja-JP", {
-								year: "numeric",
-								month: "long",
-								day: "numeric",
-								weekday: "long",
-							})}
-						</Text>
-						{currentLastSync && (
-							<View className="mt-0.5">
-								<LastSyncText lastSync={currentLastSync} />
-							</View>
-						)}
-					</View>
-				)}
-				{activeView === "month" && currentLastSync && (
-					<View className="px-4 pb-1">
-						<LastSyncText lastSync={currentLastSync} />
-					</View>
-				)}
-
-				{/* ブリーフィングカード（todayビューのみ） */}
-				{activeView === "today" &&
-					(isBriefingLoading ? (
-						<BriefingSkeleton />
-					) : (
-						briefing && (
-							<BriefingCard briefing={briefing} currentTime={currentTime} />
-						)
-					))}
-
-				{/* コンテンツ */}
-				{activeView === "month" ? (
-					<MonthView
-						year={viewYear}
-						month={viewMonth}
-						events={monthEvents}
-						onPrevMonth={handlePrevMonth}
-						onNextMonth={handleNextMonth}
+		<SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+			<ScrollView
+				className="flex-1 bg-white"
+				contentContainerStyle={{ flexGrow: 1 }}
+				refreshControl={
+					<RefreshControl
+						refreshing={currentIsRefreshing}
+						onRefresh={onRefresh}
+						tintColor="#F97316"
 					/>
-				) : events.length === 0 ? (
-					<View className="items-center pt-20">
-						<Text className="mb-4 text-5xl">( ^ o ^ )</Text>
-						<Text className="mb-1 text-lg font-semibold text-neutral-700">
-							{activeView === "today"
-								? "今日の予定はありません"
-								: "今週の予定はありません"}
-						</Text>
-						<Text className="text-sm text-neutral-400">
-							ゆっくり過ごしましょう
-						</Text>
+				}
+			>
+				{/* Web用のコンテナ制約 */}
+				<View
+					className={`mx-auto w-full ${
+						Platform.OS === "web" ? "max-w-2xl px-6 py-4" : ""
+					}`}
+				>
+					{/* ViewTabs（今日/今週/月 切り替え） */}
+					<View className="px-4 py-3">
+						<ViewTabs activeView={activeView} onViewChange={handleViewChange} />
 					</View>
-				) : activeView === "week" ? (
-					<WeekTimelineView events={events} currentTime={currentTime} />
-				) : (
-					<TimelineView events={events} currentTime={currentTime} />
-				)}
-			</View>
-		</ScrollView>
+
+					{/* ヘッダー: 今日/今週ビューでは日付表示、月ビューではlastSyncのみ */}
+					{activeView !== "month" && (
+						<View className="px-4 pb-2 pt-3">
+							<Text className="text-base font-semibold text-neutral-900">
+								{currentTime.toLocaleDateString("ja-JP", {
+									year: "numeric",
+									month: "long",
+									day: "numeric",
+									weekday: "long",
+								})}
+							</Text>
+							{currentLastSync && (
+								<View className="mt-0.5">
+									<LastSyncText lastSync={currentLastSync} />
+								</View>
+							)}
+						</View>
+					)}
+					{activeView === "month" && currentLastSync && (
+						<View className="px-4 pb-1">
+							<LastSyncText lastSync={currentLastSync} />
+						</View>
+					)}
+
+					{/* ブリーフィングカード（todayビューのみ） */}
+					{activeView === "today" &&
+						(isBriefingLoading ? (
+							<BriefingSkeleton />
+						) : (
+							briefing && (
+								<BriefingCard briefing={briefing} currentTime={currentTime} />
+							)
+						))}
+
+					{/* コンテンツ */}
+					{activeView === "month" ? (
+						<MonthView
+							year={viewYear}
+							month={viewMonth}
+							events={monthEvents}
+							onPrevMonth={handlePrevMonth}
+							onNextMonth={handleNextMonth}
+						/>
+					) : events.length === 0 ? (
+						<View className="items-center pt-20">
+							<Text className="mb-4 text-5xl">( ^ o ^ )</Text>
+							<Text className="mb-1 text-lg font-semibold text-neutral-700">
+								{activeView === "today"
+									? "今日の予定はありません"
+									: "今週の予定はありません"}
+							</Text>
+							<Text className="text-sm text-neutral-400">
+								ゆっくり過ごしましょう
+							</Text>
+						</View>
+					) : activeView === "week" ? (
+						<WeekTimelineView events={events} currentTime={currentTime} />
+					) : (
+						<TimelineView events={events} currentTime={currentTime} />
+					)}
+				</View>
+			</ScrollView>
+		</SafeAreaView>
 	);
 }
