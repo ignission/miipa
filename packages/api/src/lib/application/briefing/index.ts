@@ -6,5 +6,5 @@
  * @module lib/application/briefing
  */
 
-export { type BriefingData, buildBriefing } from "./build-briefing";
+export { buildBriefing } from "./build-briefing";
 export { getOrGenerateGreeting } from "./generate-greeting";
