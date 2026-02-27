@@ -81,5 +81,6 @@ shared/node_modules/
 # iOS build artifacts
 *.ipa
 
-# Local tarballs
-*.tgz
+# Local tarballs (npm pack outputs)
+/*.tgz
+packages/**/*.tgz

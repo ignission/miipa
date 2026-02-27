@@ -267,7 +267,7 @@ miipa/
 
 ## APIエンドポイント
 
-```
+```text
 GET  /health                     # ヘルスチェック
 POST /auth/mobile/token          # モバイルJWT発行
 GET  /auth/google/start          # Google OAuth開始

@@ -85,6 +85,10 @@ describe("isInternalHost", () => {
 		it("metadata.google.internal を内部ホストとして検出する", () => {
 			expect(isInternalHost("metadata.google.internal")).toBe(true);
 		});
+
+		it("169.254.169.254 (AWS/GCPメタデータIP) を内部ホストとして検出する", () => {
+			expect(isInternalHost("169.254.169.254")).toBe(true);
+		});
 	});
 
 	describe("ブラケット付きIPv6", () => {
