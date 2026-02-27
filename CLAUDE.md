@@ -6,37 +6,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **miipa** - 一人社長向けカレンダー統合AIアシスタント
 
-ミーアキャットをキャラクターとした、複数カレンダーを統合して「今日/今週の自分を30秒で把握」するCloudflare Workers上で動作するWebアプリケーション。
+ミーアキャットをキャラクターとした、複数カレンダーを統合して「今日/今週の自分を30秒で把握」するアプリケーション。
+Hono（Cloudflare Workers）+ Expo（iOS/Android/Web）のモノレポ構成。
 
 ## 技術スタック
 
-- **フレームワーク**: Next.js (App Router) on Cloudflare Workers
-- **AI**: Mastra（Vercel AI SDK上に構築、マルチプロバイダ: Claude/OpenAI/Ollama）
-- **UI**: Panda CSS + Park UI
+- **API**: Hono on Cloudflare Workers
+- **フロントエンド**: Expo (React Native) + Expo Router（iOS/Android/Web）
+- **AI**: カスタムLLMプロバイダー層（Anthropic Claude / OpenAI / Google Gemini / Ollama）
+- **UI**: React Native + NativeWind（Tailwind CSS for RN）
+- **状態管理**: Zustand + React Query 5
 - **Linter/Formatter**: Biome
 - **DB**: Cloudflare D1
-- **認証**: Auth.js v5
-- **暗号化**: Web Crypto API
-- **配布**: Cloudflare Workers
-- **開発手法**: spec-workflow MCP（仕様駆動）
+- **認証**: カスタムJWT（Web Crypto HMAC-SHA256）+ OAuth PKCE
+- **暗号化**: Web Crypto API（AES-256-GCM）
+- **バリデーション**: Zod
+- **ビルド**: Turborepo（pnpmワークスペース）
+- **配布**: Cloudflare Workers（API）/ EAS Build（iOS）/ Cloudflare Pages（Web）
 
 ## コマンド
 
 ```bash
-# 開発サーバー起動
+# 全体開発サーバー起動（turbo経由）
 pnpm dev
 
+# API のみ起動
+pnpm dev:api
+
+# Web のみ起動
+pnpm dev:web
+
+# モバイルのみ起動
+pnpm dev:mobile
+
 # Lint & Format（修正適用）
-npx biome check --write .
+pnpm lint:fix
 
 # Lint & Formatチェックのみ
-npx biome check .
+pnpm lint          # または npx biome check .
 
-# ビルド（ローカル確認用）
+# ビルド（全パッケージ）
 pnpm build
 
-# Cloudflare Workers用ビルド＆デプロイ
-pnpm build:worker && npx wrangler deploy
+# デプロイ（API + Web）
+pnpm deploy
+
+# API のみデプロイ
+pnpm deploy:api
+
+# Web のみデプロイ
+pnpm deploy:web
 ```
 
 ## 検証ルール
@@ -115,14 +134,19 @@ spec-workflow MCP を使用して Requirements → Design → Tasks → Implemen
 claude mcp add spec-workflow npx -y @pimzino/spec-workflow-mcp@latest $(pwd)
 ```
 
-### Mastra のレールに乗る
+### AIプロバイダー層
 
-会話管理、メモリ、ツールは Mastra 組み込みを使う。自前実装は避ける。
+`packages/api/src/lib/ai/providers/` にカスタムマルチプロバイダーを実装。
+Anthropic / OpenAI / Google Gemini / Ollama に対応し、ユーザーが設定で選択可能。
+ツール呼び出し（get-calendar-events, find-free-slots）とSSEストリーミングをサポート。
 
 ### セキュリティ
 
-- API Key / Token は Web Crypto で暗号化し D1 に保存（平文保存禁止）
-- 認証は Auth.js v5（OAuth）
+- API Key / Token は Web Crypto API（AES-256-GCM）で暗号化し D1 に保存（平文保存禁止）
+- 認証は カスタムJWT（Web Crypto HMAC-SHA256）+ OAuth PKCE
+- JWTアルゴリズム検証（HS256のみ許可、CVE-2015-9235対策）
+- SSRF対策（ssrf-guard.ts でプライベートIP・内部ネットワークをブロック）
+- マルチテナント分離（全クエリに user_id フィルタ）
 - Google Calendar は read-only スコープのみ
 
 ### DDD（ドメイン駆動設計）
@@ -143,25 +167,27 @@ claude mcp add spec-workflow npx -y @pimzino/spec-workflow-mcp@latest $(pwd)
 ## アーキテクチャ
 
 ```
-Cloudflare Workers
+Expo (iOS/Android/Web)
         │
-        ▼
+        ▼ (REST API)
 ┌─────────────────────────────────────────┐
-│  Next.js + Mastra                       │
+│  Hono + Cloudflare Workers              │
 ├─────────────────────────────────────────┤
 │  ┌─────────────┐    ┌─────────────┐    │
-│  │   Agent     │    │   Tools     │    │
-│  │ (Mastra)    │    │ - Calendar  │    │
-│  └──────┬──────┘    └──────┬──────┘    │
+│  │  AI Layer   │    │   Tools     │    │
+│  │ (Anthropic/ │    │ - Calendar  │    │
+│  │  OpenAI/    │    │ - Free Slots│    │
+│  │  Google)    │    └──────┬──────┘    │
+│  └──────┬──────┘           │           │
 │         └────────┬─────────┘           │
 │  ┌───────────────▼───────────────┐     │
-│  │     LLM Provider              │     │
-│  │  (Claude / OpenAI / Ollama)   │     │
+│  │     Domain Layer (DDD)        │     │
+│  │  Result/Option, Brand型ID     │     │
 │  └───────────────────────────────┘     │
 │  ┌─────────────┐    ┌─────────────┐    │
 │  │  D1         │    │  Web Crypto │    │
-│  │  (設定,     │    │  (API Key,  │    │
-│  │   キャッシュ) │    │   Token)    │    │
+│  │  (設定,     │    │  (AES-256-  │    │
+│  │   キャッシュ) │    │   GCM暗号化) │    │
 │  └─────────────┘    └─────────────┘    │
 └─────────────────────────────────────────┘
 ```
@@ -170,31 +196,98 @@ Cloudflare Workers
 
 ```
 miipa/
-├── app/
-│   ├── layout.tsx
-│   ├── page.tsx              # メイン画面
-│   ├── setup/page.tsx        # セットアップ画面
-│   └── api/
-│       ├── calendar/         # カレンダーAPI
-│       ├── ask/              # AI質問API
-│       └── auth/[...nextauth]/ # Auth.js
-├── lib/
-│   ├── mastra/
-│   │   ├── agent.ts          # Mastra Agent 定義
-│   │   └── tools/calendar.ts
-│   ├── calendar/
-│   │   ├── google.ts         # Google Calendar API
-│   │   ├── ical.ts           # iCal パーサー
-│   │   └── merge.ts          # 複数カレンダー統合
-│   ├── infrastructure/
-│   │   ├── db/               # D1接続・リポジトリ
-│   │   ├── crypto/           # Web Crypto 暗号化
-│   │   └── secret/           # シークレット管理
-│   └── config/               # 設定管理
-├── migrations/               # D1マイグレーション
-├── components/
-├── panda.config.ts
-└── biome.json
+├── packages/
+│   └── api/                    # Hono REST API (Cloudflare Workers)
+│       └── src/
+│           ├── index.ts            # Honoアプリケーションエントリー
+│           ├── routes/             # APIエンドポイント
+│           │   ├── auth.ts         # OAuth/JWT認証
+│           │   ├── briefing.ts     # ブリーフィングAPI
+│           │   ├── calendars.ts    # カレンダー管理
+│           │   ├── events.ts       # イベント取得
+│           │   ├── chat.ts         # AIチャット（SSE）
+│           │   ├── settings.ts     # ユーザー設定
+│           │   ├── setup.ts        # セットアップ
+│           │   └── account.ts      # アカウント管理
+│           ├── middleware/         # ミドルウェア
+│           │   ├── auth.ts         # JWT認証（HMAC-SHA256）
+│           │   ├── cors.ts         # CORS
+│           │   ├── error-handler.ts
+│           │   ├── rate-limit.ts   # レートリミット
+│           │   └── security-headers.ts
+│           └── lib/
+│               ├── ai/            # AIプロバイダー
+│               │   ├── providers/  # Anthropic/OpenAI/Google/Ollama
+│               │   ├── tools/      # AIツール（イベント取得、空き時間検索）
+│               │   ├── system-prompt.ts
+│               │   └── model-resolver.ts
+│               ├── auth/          # OAuth PKCE、JWT定数
+│               ├── application/   # ユースケース層
+│               │   ├── briefing/  # ブリーフィング生成
+│               │   ├── calendar/  # カレンダー管理
+│               │   └── setup/     # セットアップ
+│               ├── domain/        # ドメイン層（DDD）
+│               │   ├── calendar/  # カレンダーエンティティ、リポジトリIF
+│               │   └── shared/    # Result型、Option型、共有エラー
+│               └── infrastructure/ # インフラ層
+│                   ├── calendar/  # Google/iCal実装
+│                   ├── db/        # D1リポジトリ実装
+│                   ├── crypto/    # Web Crypto暗号化
+│                   ├── config/    # D1設定リポジトリ
+│                   ├── secret/    # シークレット管理
+│                   └── network/   # SSRF対策
+├── mobile/                     # Expo (iOS/Android/Web)
+│   ├── app/                    # Expo Routerページ
+│   │   ├── _layout.tsx         # ルートレイアウト
+│   │   ├── index.tsx           # ランディングページ
+│   │   ├── sign-in.tsx         # サインイン
+│   │   ├── auth-callback.tsx   # OAuthコールバック
+│   │   └── (auth)/             # 認証ガード済み
+│   │       ├── home.tsx        # ホーム/ブリーフィング
+│   │       ├── week.tsx        # 週間ビュー
+│   │       ├── month.tsx       # 月間ビュー
+│   │       ├── chat.tsx        # チャット
+│   │       ├── setup.tsx       # カレンダーセットアップ
+│   │       └── settings/       # 設定画面群
+│   └── src/
+│       ├── components/         # UIコンポーネント
+│       ├── api/                # API通信（React Query）
+│       ├── auth/               # トークン管理
+│       ├── hooks/              # カスタムフック
+│       ├── store/              # Zustandストア
+│       └── theme/              # テーマ設定
+├── shared/                     # 共有型定義（@miipa/shared）
+│   └── types/
+│       └── api.ts              # APIレスポンス型
+├── biome.json
+├── turbo.json
+├── pnpm-workspace.yaml
+└── tsconfig.base.json
+```
+
+## APIエンドポイント
+
+```
+GET  /health                     # ヘルスチェック
+POST /auth/mobile/token          # モバイルJWT発行
+GET  /auth/google/start          # Google OAuth開始
+GET  /auth/google/callback       # Google OAuthコールバック
+POST /auth/refresh               # JWTリフレッシュ
+POST /auth/logout                # ログアウト
+
+[認証必須]
+POST /briefing                   # ブリーフィング取得
+GET  /calendars                  # カレンダー一覧
+POST /calendars/google           # Googleカレンダー追加
+POST /calendars/ical             # iCal追加
+DELETE /calendars/:id            # カレンダー削除
+GET  /events                     # イベント取得
+POST /chat                       # AIチャット（SSEストリーミング）
+GET  /chat                       # チャット履歴取得
+GET  /settings                   # 設定取得
+POST /settings                   # 設定更新
+POST /setup/validate-key         # APIキーバリデーション
+POST /account/logout             # アカウント削除
 ```
 
 ## データ保存
@@ -203,12 +296,19 @@ Cloudflare D1 に全データを保存:
 
 | テーブル | 用途 |
 |---------|------|
-| `users` | ユーザー情報（Auth.js管理） |
+| `users` | ユーザー情報 |
 | `accounts` | OAuthアカウント連携 |
 | `sessions` | セッション管理 |
-| `settings` | アプリケーション設定 |
-| `calendar_events` | カレンダーイベントキャッシュ |
+| `verification_tokens` | メール確認トークン |
+| `user_settings` | ユーザー設定（KV形式） |
+| `calendars` | カレンダー設定 |
+| `calendar_events` | イベントキャッシュ |
+| `calendar_sync_state` | 同期状態管理 |
 | `credentials` | 暗号化された認証情報 |
+| `chat_histories` | チャット履歴 |
+| `refresh_tokens` | リフレッシュトークン |
+| `pkce_sessions` | PKCE状態管理 |
+| `auth_codes` | 認可コード |
 
 ## 機能スコープ
 
@@ -227,10 +327,12 @@ Cloudflare D1 に全データを保存:
 
 ## 参考リンク
 
-- [Mastra](https://mastra.ai/docs)
-- [Panda CSS](https://panda-css.com/)
-- [Park UI](https://park-ui.com/)
+- [Hono](https://hono.dev/)
+- [Expo](https://docs.expo.dev/)
+- [Expo Router](https://docs.expo.dev/router/introduction/)
 - [Biome](https://biomejs.dev/)
-- [spec-workflow MCP](https://github.com/Pimzino/spec-workflow-mcp)
 - [Cloudflare D1](https://developers.cloudflare.com/d1/)
-- [Auth.js](https://authjs.dev/)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
+- [Zustand](https://zustand-demo.pmnd.rs/)
+- [React Query](https://tanstack.com/query/latest)
+- [spec-workflow MCP](https://github.com/Pimzino/spec-workflow-mcp)

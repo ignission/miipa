@@ -77,3 +77,9 @@ mobile/dist/
 # shared パッケージ
 shared/dist/
 shared/node_modules/
+
+# iOS build artifacts
+*.ipa
+
+# Local tarballs
+*.tgz

@@ -13,8 +13,8 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { GluestackUIProvider } from "../components/ui/gluestack-ui-provider";
 import { AuthProvider } from "../src/auth";
+import { GluestackUIProvider } from "../src/components/ui/gluestack-ui-provider";
 import {
 	registerBackgroundSync,
 	unregisterBackgroundSync,
