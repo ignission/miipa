@@ -30,7 +30,7 @@
 		{
 			"includes": [
 				"mobile/app/+html.tsx",
-				"mobile/components/ui/gluestack-ui-provider/index.web.tsx"
+				"mobile/src/components/ui/gluestack-ui-provider/index.web.tsx"
 			],
 			"linter": {
 				"rules": {
