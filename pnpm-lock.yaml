@@ -145,8 +145,8 @@ importers:
   packages/api:
     dependencies:
       hono:
-        specifier: ^4.7.0
-        version: 4.12.1
+        specifier: ^4.12.2
+        version: 4.12.2
       ical.js:
         specifier: ^2.2.1
         version: 2.2.1
@@ -3204,8 +3204,8 @@ packages:
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
 
-  hono@4.12.1:
-    resolution: {integrity: sha512-hi9afu8g0lfJVLolxElAZGANCTTl6bewIdsRNhaywfP9K8BPf++F2z6OLrYGIinUwpRKzbZHMhPwvc0ZEpAwGw==}
+  hono@4.12.2:
+    resolution: {integrity: sha512-gJnaDHXKDayjt8ue0n8Gs0A007yKXj4Xzb8+cNjZeYsSzzwKc0Lr+OZgYwVfB0pHfUs17EPoLvrOsEaJ9mj+Tg==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@7.0.2:
@@ -8484,7 +8484,7 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono@4.12.1: {}
+  hono@4.12.2: {}
 
   hosted-git-info@7.0.2:
     dependencies:
