@@ -25,12 +25,11 @@
  */
 const fs = require("node:fs");
 
-const { PBXNativeTarget, PBXCopyFilesBuildPhase } = require("@bacons/xcode");
-
 /**
  * インメモリの XcodeProject オブジェクトを修正する
  */
 function fixWatchEmbed(project) {
+	const { PBXNativeTarget, PBXCopyFilesBuildPhase } = require("@bacons/xcode");
 	// メインの iOS アプリターゲットを取得
 	const mainAppTarget = project.rootObject.getMainAppTarget("ios");
 	if (!mainAppTarget) {
