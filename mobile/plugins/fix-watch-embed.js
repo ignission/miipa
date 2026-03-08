@@ -25,10 +25,7 @@
  */
 const fs = require("node:fs");
 
-const { PBXNativeTarget } = require("@bacons/xcode/build/api/PBXNativeTarget");
-const {
-	PBXCopyFilesBuildPhase,
-} = require("@bacons/xcode/build/api/PBXSourcesBuildPhase");
+const { PBXNativeTarget, PBXCopyFilesBuildPhase } = require("@bacons/xcode");
 
 /**
  * インメモリの XcodeProject オブジェクトを修正する
