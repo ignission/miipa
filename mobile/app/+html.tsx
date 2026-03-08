@@ -6,13 +6,37 @@ import { ScrollViewStyleReset } from "expo-router/html";
 // do not have access to the DOM or browser APIs.
 export default function Root({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
+		<html lang="ja">
 			<head>
 				<meta charSet="utf-8" />
 				<meta httpEquiv="X-UA-Compatible" content="IE=edge" />
 				<meta
 					name="viewport"
 					content="width=device-width, initial-scale=1, shrink-to-fit=no"
+				/>
+
+				<title>miipa - カレンダーAIアシスタント</title>
+				<meta
+					name="description"
+					content="複数カレンダーを統合して「今日の自分」を30秒で把握。一人社長向けカレンダーAIアシスタント。"
+				/>
+
+				{/* Open Graph */}
+				<meta property="og:title" content="miipa - カレンダーAIアシスタント" />
+				<meta
+					property="og:description"
+					content="複数カレンダーを統合して「今日の自分」を30秒で把握。一人社長向けカレンダーAIアシスタント。"
+				/>
+				<meta property="og:type" content="website" />
+				<meta property="og:url" content="https://miipa.app" />
+				<meta property="og:site_name" content="miipa" />
+
+				{/* Twitter Card */}
+				<meta name="twitter:card" content="summary" />
+				<meta name="twitter:title" content="miipa - カレンダーAIアシスタント" />
+				<meta
+					name="twitter:description"
+					content="複数カレンダーを統合して「今日の自分」を30秒で把握。一人社長向けカレンダーAIアシスタント。"
 				/>
 
 				{/* 

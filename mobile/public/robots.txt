@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /sign-in
+Disallow: /home
+Disallow: /chat
+Disallow: /week
+Disallow: /month
+Disallow: /settings
+Disallow: /setup
+Disallow: /auth-callback
+
+Sitemap: https://miipa.app/sitemap.xml
